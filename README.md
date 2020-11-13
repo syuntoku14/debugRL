@@ -27,7 +27,6 @@ logger of [trains](https://github.com/allegroai/trains) at the initialization, b
 See the notebook in examples for basic usage. 
 Currently the following solvers are supported:
 
-Translated with www.DeepL.com/Translator (free version)
 | Solver | Sample approximation | Function approximation | Continuous Action | Algorithm |
 | :---:| :---: | :---: | :---: | :---: |
 | [OracleViSolver, OracleCviSolver](debug_rl/solvers/oracle_vi) | - | - | - | Q-learning, [Conservative Value Iteration (CVI)](http://proceedings.mlr.press/v89/kozuno19a.html) |
