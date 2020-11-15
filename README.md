@@ -38,6 +38,8 @@ Currently the following solvers are supported:
 | [SacContinuousSolver](debug_rl/solvers/sac_continuous) | ✓ | ✓ | ✓ | [Soft Actor Critic](https://arxiv.org/abs/1801.01290) |
 
 
+# Citation
+
 ```
 @misc{toshinori2020debugrl,
     author = {Kitamura Toshinori},
