@@ -166,6 +166,14 @@ def compute_epsilon(step, eps_start, eps_end, eps_decay):
 
 
 def collect_samples(env, policy, num_samples, all_obss=None, render=False):
+    """
+    Args:
+        env (debug_rl.envs.base.TabularEnv)
+        policy (np.nd_array): SxA matrix
+        num_samples (int): Number of samples to collect
+        all_obss (np.nd_array, optional): SxO matrix. Defaults to None.
+        render (bool, optional)
+    """
     states, next_states = [], []
     obss, next_obss = [], []
     actions = []

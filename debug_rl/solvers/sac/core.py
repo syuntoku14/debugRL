@@ -190,7 +190,7 @@ class Solver(Solver):
     def record_performance(self, k, tensor_all_obss):
         alpha = self.solve_options["alpha"]
         beta = self.solve_options["beta"]
-        if k % self.solve_options["record_performance_freq"] == 0:
+        if k % self.solve_options["record_performance_interval"] == 0:
             preference = self.policy_network(tensor_all_obss).reshape(
                 self.dS, self.dA).detach().cpu().numpy()
             policy = self.compute_policy(preference)

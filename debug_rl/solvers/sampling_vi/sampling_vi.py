@@ -4,16 +4,13 @@ from tqdm import tqdm
 from scipy.special import rel_entr
 from scipy import stats
 from .core import Solver
-from debug_rl.solvers import (
-    OracleViSolver,
-    OracleCviSolver
-)
 from debug_rl.utils import (
     collect_samples,
     gen_replay_buffer,
     squeeze_trajectory,
     compute_epsilon,
-    sigmoid
+    eps_greedy_policy,
+    softmax_policy
 )
 
 
@@ -34,7 +31,7 @@ class SamplingSolver(Solver):
         # start training
         for k in tqdm(range(self.solve_options["num_trains"])):
             # ------ collect samples by the current policy ------
-            if isinstance(self, OracleViSolver):
+            if isinstance(self, SamplingViSolver):
                 eps_greedy = compute_epsilon(
                     k, self.solve_options["eps_start"],
                     self.solve_options["eps_end"],
@@ -67,17 +64,17 @@ class SamplingSolver(Solver):
 
             prev_policy = policy
         self.values = values
-        return values
+        return self.values
 
     def record_performance(self, k, eval_policy):
-        if k % self.solve_options["record_performance_freq"] == 0:
+        if k % self.solve_options["record_performance_interval"] == 0:
             expected_return, std_return = \
                 self.compute_expected_return(eval_policy)
             self.record_history("Return mean", expected_return, x=k)
             self.record_history("Return std", std_return, x=k)
 
 
-class SamplingViSolver(SamplingSolver, OracleViSolver):
+class SamplingViSolver(SamplingSolver):
     def backup(self, q_values, state, act, next_state, rew):
         # Bellman Operator to update q values SxA
         discount = self.solve_options["discount"]
@@ -85,8 +82,14 @@ class SamplingViSolver(SamplingSolver, OracleViSolver):
         target = rew + discount * next_v
         return target
 
+    def compute_policy(self, q_values, eps_greedy=0.0):
+        # return epsilon-greedy policy
+        policy_probs = eps_greedy_policy(q_values, eps_greedy=eps_greedy)
+        self.policy = policy_probs
+        return self.policy
 
-class SamplingCviSolver(SamplingSolver, OracleCviSolver):
+
+class SamplingCviSolver(SamplingSolver):
     def backup(self, pref, state, act, next_state, rew):
         discount = self.solve_options["discount"]
         alpha, beta = self.solve_options["alpha"], self.solve_options["beta"]
@@ -96,3 +99,10 @@ class SamplingCviSolver(SamplingSolver, OracleCviSolver):
         target = alpha * (curr_pref - curr_max) \
             + (rew + discount*next_max)
         return target
+
+    def compute_policy(self, preference):
+        # return softmax policy
+        beta = self.solve_options["beta"]
+        policy_probs = softmax_policy(preference, beta=beta)
+        self.policy = policy_probs
+        return self.policy

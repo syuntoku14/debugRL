@@ -14,6 +14,7 @@ setup(
     install_requires=[
         "gym",
         "numpy",
+        "opencv-python",
         "matplotlib",
         "seaborn",
         "pandas",

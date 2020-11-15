@@ -34,8 +34,8 @@ def plot_pendulum_values(
     data = pd.DataFrame(
         reshaped_values, index=th_ticks,
         columns=thv_ticks)
-    data = data.mask(data == np.nan, axis=0).ffill(downcast='infer', axis=0)
-    data = data.mask(data == np.nan, axis=1).ffill(downcast='infer', axis=1)
+    data = data.ffill(downcast='infer', axis=0)
+    data = data.ffill(downcast='infer', axis=1)
     sns.heatmap(data, ax=ax, cbar=True, vmin=vmin, vmax=vmax)
     ax.set_title(title)
     ax.set_ylabel(r"$\theta$")

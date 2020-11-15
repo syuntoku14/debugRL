@@ -5,16 +5,13 @@ import torch
 from torch.nn import functional as F
 from tqdm import tqdm
 from .core import Solver
-from debug_rl.solvers import (
-    SamplingViSolver,
-    SamplingCviSolver
-)
 from debug_rl.utils import (
     trajectory_to_tensor,
     squeeze_trajectory,
     collect_samples,
     compute_epsilon,
-    sigmoid
+    eps_greedy_policy,
+    softmax_policy
 )
 
 
@@ -31,12 +28,11 @@ class SamplingFittedSolver(Solver):
             self.all_obss, dtype=torch.float32, device=self.device)
         values = self.value_network(tensor_all_obss).reshape(
             self.dS, self.dA).detach().cpu().numpy()
-        prev_policy = None
 
         self.env.reset()
         if self.solve_options["use_replay_buffer"]:
             # Collect random samples in advance
-            if isinstance(self, SamplingViSolver):
+            if isinstance(self, SamplingFittedViSolver):
                 policy = self.compute_policy(values, eps_greedy=1.0)
             else:
                 policy = self.compute_policy(values)
@@ -47,18 +43,17 @@ class SamplingFittedSolver(Solver):
         # start training
         for k in tqdm(range(self.solve_options["num_trains"])):
             # ------ collect samples by the current policy ------
-            if isinstance(self, SamplingViSolver):
+            if isinstance(self, SamplingFittedViSolver):
                 eps_greedy = compute_epsilon(
                     k, self.solve_options["eps_start"],
                     self.solve_options["eps_end"],
                     self.solve_options["eps_decay"])
+                self.record_history("epsilon", eps_greedy, x=k)
                 policy = self.compute_policy(values, eps_greedy=eps_greedy)
                 eval_policy = self.compute_policy(values, eps_greedy=0)
             else:
                 policy = self.compute_policy(values)
                 eval_policy = policy
-            if prev_policy is None:
-                prev_policy = policy
             trajectory = collect_samples(
                 self.env, policy, self.solve_options["num_samples"], self.all_obss)
 
@@ -69,9 +64,7 @@ class SamplingFittedSolver(Solver):
                 trajectory = squeeze_trajectory(trajectory)
 
             # ----- record performance -----
-            kl = rel_entr(policy, prev_policy).sum(axis=-1)
-            entropy = stats.entropy(policy, axis=1)
-            self.record_performance(k, eval_policy, kl, entropy)
+            self.record_performance(k, eval_policy, tensor_all_obss)
 
             # ----- update values -----
             tensor_traj = trajectory_to_tensor(trajectory, self.device)
@@ -88,7 +81,6 @@ class SamplingFittedSolver(Solver):
 
             values = self.value_network(tensor_all_obss).reshape(
                 self.dS, self.dA).detach().cpu().numpy()
-            prev_policy = policy
 
             # ----- update target network -----
             if self.solve_options["use_target_network"] and \
@@ -112,19 +104,8 @@ class SamplingFittedSolver(Solver):
         optimizer.step()
         return loss.detach().cpu().item()
 
-    def record_performance(self, k, eval_policy, kl, entropy):
-        if k % self.solve_options["record_performance_freq"] == 0:
-            expected_return, std_return = \
-                self.compute_expected_return(eval_policy)
-            self.record_history("Return mean", expected_return, x=k)
-            self.record_history("Return std", std_return, x=k)
-            self.record_history("KL max", kl.max(), x=k)
-            self.record_history("KL mean", kl.mean(), x=k)
-            self.record_history("Entropy max", entropy.max(), x=k)
-            self.record_history("Entropy mean", entropy.mean(), x=k)
 
-
-class SamplingFittedViSolver(SamplingFittedSolver, SamplingViSolver):
+class SamplingFittedViSolver(SamplingFittedSolver):
     """
     This class is same as DQN if the following options are True
     * use_target_network
@@ -152,8 +133,14 @@ class SamplingFittedViSolver(SamplingFittedSolver, SamplingViSolver):
             new_q = rews + discount*next_vval*(~dones)
         return new_q.squeeze()  # S
 
+    def compute_policy(self, q_values, eps_greedy=0.0):
+        # return epsilon-greedy policy
+        policy_probs = eps_greedy_policy(q_values, eps_greedy=eps_greedy)
+        self.policy = policy_probs
+        return self.policy
 
-class SamplingFittedCviSolver(SamplingFittedSolver, SamplingCviSolver):
+
+class SamplingFittedCviSolver(SamplingFittedSolver):
     def backup(self, tensor_traj):
         discount = self.solve_options["discount"]
         alpha = self.solve_options["alpha"]
@@ -191,3 +178,10 @@ class SamplingFittedCviSolver(SamplingFittedSolver, SamplingCviSolver):
                 alpha * (curr_preference.squeeze() - curr_max.squeeze()) \
                 + rews + discount*next_max*(~dones)
         return new_preference.squeeze()  # S
+
+    def compute_policy(self, preference):
+        # return softmax policy
+        beta = self.solve_options["beta"]
+        policy_probs = softmax_policy(preference, beta=beta)
+        self.policy = policy_probs
+        return self.policy

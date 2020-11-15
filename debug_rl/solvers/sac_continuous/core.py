@@ -237,7 +237,7 @@ class Solver(Solver):
                     p_targ.data.add_((1 - polyak) * p.data)
 
     def record_performance(self, k, tensor_all_obss, tensor_all_actions):
-        if k % self.solve_options["record_performance_freq"] == 0:
+        if k % self.solve_options["record_performance_interval"] == 0:
             nets = {self.policy_network: "Policy"}
             for net, name in nets.items():
                 dist = net.compute_pi_distribution(tensor_all_obss)

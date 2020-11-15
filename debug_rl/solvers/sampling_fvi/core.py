@@ -17,6 +17,10 @@ OPTIONS = {
     "alpha": 0.9,
     "beta": 1.0,
     "max_operator": "mellow_max",
+    # Q settings
+    "eps_start": 0.9,
+    "eps_end": 0.05,
+    "eps_decay": 200,
     # Fitted iteration settings
     "num_trains": 10000,
     "activation": "relu",
@@ -155,3 +159,15 @@ class Solver(Solver):
         print("{} solve_options:".format(type(self).__name__))
         pp = pprint.PrettyPrinter(indent=4)
         pp.pprint(self.solve_options)
+
+    def record_performance(self, k, eval_policy, tensor_all_obss):
+        if k % self.solve_options["record_performance_interval"] == 0:
+            expected_return, std_return = \
+                self.compute_expected_return(eval_policy)
+            self.record_history("Return mean", expected_return, x=k)
+            self.record_history("Return std", std_return, x=k)
+
+            aval = self.compute_action_values(eval_policy)
+            values = self.value_network(tensor_all_obss).reshape(
+                self.dS, self.dA).detach().cpu().numpy()
+            self.record_history("Q error", ((aval-values)**2).mean(), x=k)

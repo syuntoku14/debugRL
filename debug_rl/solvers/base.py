@@ -15,7 +15,7 @@ DEFAULT_OPTIONS = {
     # general settings
     "seed": 0,
     "discount": 0.99,
-    "record_performance_freq": 100
+    "record_performance_interval": 100
 }
 
 
