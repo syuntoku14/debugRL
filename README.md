@@ -1,3 +1,5 @@
+**Status:** Maintenance (expect bug fixes and minor updates)
+
 # DebugRL: A python library for debugging RL algorithms
 
 [日本語](assets/README.jp.md) | English
