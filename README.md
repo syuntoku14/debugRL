@@ -40,6 +40,15 @@ Currently the following solvers are supported:
 | [SacContinuousSolver](debug_rl/solvers/sac_continuous) | ✓ | ✓ | ✓ | [Soft Actor Critic](https://arxiv.org/abs/1801.01290) |
 
 
+# Installation
+
+```bash
+$ git clone git@github.com:syuntoku14/debugRL.git
+$ cd debugRL
+$ pip install -e .
+```
+
+
 # Citation
 
 ```

@@ -12,7 +12,7 @@ from debug_rl.utils import (
     trajectory_to_tensor,
     squeeze_trajectory,
     collect_samples,
-    gen_replay_buffer,
+    make_replay_buffer,
 )
 
 

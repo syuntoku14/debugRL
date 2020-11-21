@@ -9,7 +9,7 @@ from debug_rl.solvers import Solver
 from debug_rl.utils import (
     boltzmann_softmax,
     mellow_max,
-    gen_replay_buffer,
+    make_replay_buffer,
 )
 
 
@@ -207,7 +207,7 @@ class Solver(Solver):
         self.policy_optimizer = self.optimizer(self.policy_network.parameters(),
                                                lr=self.solve_options["lr"])
         # set replay buffer
-        self.buffer = gen_replay_buffer(
+        self.buffer = make_replay_buffer(
             self.env, self.solve_options["buffer_size"])
 
         print("{} solve_options:".format(type(self).__name__))

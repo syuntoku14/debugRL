@@ -35,3 +35,11 @@ debug_rlは行列形式で表現された`envs`と, その`envs`を解く`solver
 | [SamplingFittedViSolver, SamplingFittedCviSolver](debug_rl/solvers/sampling_fvi) | ✓ | ✓ | - | Fitted Q-learning, Fitted CVI |
 | [SacSolver](debug_rl/solvers/sac) | ✓ | ✓ | - | [Discrete Soft Actor Critic](https://arxiv.org/abs/1910.07207) |
 | [SacContinuousSolver](debug_rl/solvers/sac_continuous) | ✓ | ✓ | ✓ | [Soft Actor Critic](https://arxiv.org/abs/1801.01290) |
+
+# インストール
+
+```bash
+$ git clone git@github.com:syuntoku14/debugRL.git
+$ cd debugRL
+$ pip install -e .
+```

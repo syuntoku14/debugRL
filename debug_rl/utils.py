@@ -14,7 +14,7 @@ from cpprb import (ReplayBuffer, PrioritizedReplayBuffer,
 
 
 # -----plot utils-----
-def gen_image():
+def make_image():
     """Save created plot to buffer."""
     buf = io.BytesIO()
     plt.savefig(buf, format='jpeg')
@@ -23,21 +23,6 @@ def gen_image():
     image = PIL.Image.open(buf)
     image = ToTensor()(image).detach().cpu().numpy()
     return image
-
-
-def plot_result(mean, stds=None, x=None, label=None,
-                x_label="training iteration", y_label="return"):
-    mean = np.array(mean)
-    if x is None:
-        x = [i for i in range(len(mean))]
-    p = plt.plot(x, mean, label=label)
-    color = p[-1].get_color()
-
-    if stds is not None:
-        std = np.array(stds)
-        plt.fill_between(x, mean - std, mean + std, color=color, alpha=0.2)
-    plt.xlabel(x_label)
-    plt.ylabel(y_label)
 
 
 # -----env utils-----
@@ -73,45 +58,6 @@ def get_all_actions(env):
         acts.append(np.expand_dims(a, axis=0))
     acts = np.vstack(acts)  # A x 1
     return acts
-
-
-# -----trajectory utils-----
-def squeeze_trajectory(trajectory):
-    for key, value in trajectory.items():
-        if trajectory[key].shape[-1] == 1:
-            trajectory[key] = np.squeeze(value, axis=-1)
-    return trajectory
-
-
-def trajectory_to_tensor(trajectory, device="cpu", is_discrete=True):
-    obss = torch.tensor(trajectory["obs"], dtype=torch.float32, device=device)
-    if is_discrete:
-        acts = torch.tensor(trajectory["act"], dtype=torch.long, device=device)
-    else:
-        acts = torch.tensor(trajectory["act"],
-                            dtype=torch.float32, device=device)
-    next_obss = torch.tensor(
-        trajectory["next_obs"], dtype=torch.float32, device=device)
-    rews = torch.tensor(trajectory["rew"], dtype=torch.float32, device=device)
-    dones = torch.tensor(trajectory["done"], dtype=torch.bool, device=device)
-    states = torch.tensor(trajectory["state"], dtype=torch.long, device=device)
-    next_states = torch.tensor(
-        trajectory["next_state"], dtype=torch.long, device=device)
-    act_prob = torch.tensor(
-        trajectory["act_prob"], dtype=torch.float32, device=device)
-    times = torch.tensor(trajectory["time"], dtype=torch.long, device=device)
-    tensor_traj = {
-        "obs": obss,
-        "act": acts,
-        "next_obs": next_obss,
-        "rew": rews,
-        "done": dones,
-        "state": states,
-        "next_state": next_states,
-        "act_prob": act_prob,
-        "time": times,
-    }
-    return tensor_traj
 
 
 # -----math utils-----
@@ -152,6 +98,11 @@ def eps_greedy_policy(q_values, eps_greedy=0.0):
     return policy_probs
 
 
+def compute_epsilon(step, eps_start, eps_end, eps_decay):
+    return eps_end + (eps_start - eps_end) * \
+        np.exp(-1. * step / eps_decay)
+
+
 def softmax_policy(preference, beta=1.0):
     # return softmax policy (*)xA
     policy = special.softmax(beta * preference, axis=-1).astype(np.float64)
@@ -160,9 +111,43 @@ def softmax_policy(preference, beta=1.0):
     return policy.astype(np.float32)
 
 
-def compute_epsilon(step, eps_start, eps_end, eps_decay):
-    return eps_end + (eps_start - eps_end) * \
-        np.exp(-1. * step / eps_decay)
+# -----trajectory utils-----
+def squeeze_trajectory(trajectory):
+    for key, value in trajectory.items():
+        if trajectory[key].shape[-1] == 1:
+            trajectory[key] = np.squeeze(value, axis=-1)
+    return trajectory
+
+
+def trajectory_to_tensor(trajectory, device="cpu", is_discrete=True):
+    obss = torch.tensor(trajectory["obs"], dtype=torch.float32, device=device)
+    if is_discrete:
+        acts = torch.tensor(trajectory["act"], dtype=torch.long, device=device)
+    else:
+        acts = torch.tensor(trajectory["act"],
+                            dtype=torch.float32, device=device)
+    next_obss = torch.tensor(
+        trajectory["next_obs"], dtype=torch.float32, device=device)
+    rews = torch.tensor(trajectory["rew"], dtype=torch.float32, device=device)
+    dones = torch.tensor(trajectory["done"], dtype=torch.bool, device=device)
+    states = torch.tensor(trajectory["state"], dtype=torch.long, device=device)
+    next_states = torch.tensor(
+        trajectory["next_state"], dtype=torch.long, device=device)
+    act_prob = torch.tensor(
+        trajectory["act_prob"], dtype=torch.float32, device=device)
+    times = torch.tensor(trajectory["time"], dtype=torch.long, device=device)
+    tensor_traj = {
+        "obs": obss,
+        "act": acts,
+        "next_obs": next_obss,
+        "rew": rews,
+        "done": dones,
+        "state": states,
+        "next_state": next_states,
+        "act_prob": act_prob,
+        "time": times,
+    }
+    return tensor_traj
 
 
 def collect_samples(env, policy, num_samples, all_obss=None, render=False):
@@ -231,7 +216,7 @@ def collect_samples(env, policy, num_samples, all_obss=None, render=False):
     return trajectory
 
 
-def gen_replay_buffer(env, size):
+def make_replay_buffer(env, size):
     env_dict = create_env_dict(env)
     env_dict.update({
         "obs": {'dtype': np.float32, 'shape': env_dict["obs"]["shape"]},

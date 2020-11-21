@@ -7,7 +7,7 @@ from debug_rl.solvers import Solver
 from debug_rl.utils import (
     boltzmann_softmax,
     mellow_max,
-    gen_replay_buffer
+    make_replay_buffer
 )
 
 
@@ -153,7 +153,7 @@ class Solver(Solver):
         self.target_value_network2 = deepcopy(self.value_network2)
 
         # set replay buffer
-        self.buffer = gen_replay_buffer(
+        self.buffer = make_replay_buffer(
             self.env, self.solve_options["buffer_size"])
 
         print("{} solve_options:".format(type(self).__name__))

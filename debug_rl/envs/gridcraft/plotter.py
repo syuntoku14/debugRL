@@ -4,7 +4,7 @@ from matplotlib.patches import Polygon
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-from debug_rl.utils import gen_image
+from debug_rl.utils import make_image
 
 
 NOOP = np.array([[-0.1, 0.1], [-0.1, -0.1], [0.1, -0.1], [0.1, 0.1]])
@@ -106,7 +106,7 @@ def plot_grid_values(gs, q_values, title=None, return_image=False, ax=None):
                           q_values[gs.xy_to_idx((x, y)), a])
     plotter.make_plot(title=title, ax=ax)
     if return_image:
-        return gen_image()
+        return make_image()
     else:
         plotter.show()
         plt.close()

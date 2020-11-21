@@ -7,7 +7,7 @@ from collections import defaultdict
 from scipy import sparse
 from debug_rl.utils import (
     get_all_observations, get_all_actions, boltzmann_softmax,
-    mellow_max, gen_replay_buffer, sigmoid)
+    mellow_max, make_replay_buffer)
 from copy import deepcopy
 
 

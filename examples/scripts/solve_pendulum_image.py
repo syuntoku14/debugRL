@@ -7,7 +7,7 @@ from trains import Task
 import matplotlib
 import matplotlib.pyplot as plt
 from debug_rl.solvers.base import DEFAULT_OPTIONS
-from debug_rl.utils import boltzmann_softmax, mellow_max, plot_result
+from debug_rl.utils import boltzmann_softmax, mellow_max
 from debug_rl.solvers import *
 from debug_rl.envs.pendulum import (
     Pendulum, plot_pendulum_values, reshape_values)

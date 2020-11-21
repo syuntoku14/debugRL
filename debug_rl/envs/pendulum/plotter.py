@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 import numpy as np
-from debug_rl.utils import gen_image
+from debug_rl.utils import make_image
 
 
 def reshape_values(env, values):
@@ -42,6 +42,6 @@ def plot_pendulum_values(
     ax.set_xlabel(r"$\dot{\theta}$")
 
     if return_image:
-        return gen_image()
+        return make_image()
     else:
         plt.show()

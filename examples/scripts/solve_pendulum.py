@@ -7,7 +7,7 @@ import numpy as np
 from debug_rl.envs.pendulum import (
     Pendulum, plot_pendulum_values, reshape_values)
 from debug_rl.solvers import *
-from debug_rl.utils import boltzmann_softmax, mellow_max, plot_result
+from debug_rl.utils import boltzmann_softmax, mellow_max
 from debug_rl.solvers.base import DEFAULT_OPTIONS
 import matplotlib.pyplot as plt
 import matplotlib

@@ -6,7 +6,7 @@ from scipy import stats
 from .core import Solver
 from debug_rl.utils import (
     collect_samples,
-    gen_replay_buffer,
+    make_replay_buffer,
     squeeze_trajectory,
     compute_epsilon,
     eps_greedy_policy,

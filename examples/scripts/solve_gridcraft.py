@@ -7,7 +7,7 @@ import numpy as np
 from debug_rl.envs.gridcraft import (
     GridEnv, OneHotObsWrapper, spec_from_string, plot_grid_values)
 from debug_rl.solvers import *
-from debug_rl.utils import boltzmann_softmax, mellow_max, plot_result
+from debug_rl.utils import boltzmann_softmax, mellow_max
 import matplotlib.pyplot as plt
 import matplotlib
 from trains import Task

@@ -6,7 +6,7 @@ os.environ["OMP_NUM_THREADS"] = "1"
 import numpy as np
 from debug_rl.envs.mountaincar import MountainCar
 from debug_rl.solvers import *
-from debug_rl.utils import boltzmann_softmax, mellow_max, plot_result
+from debug_rl.utils import boltzmann_softmax, mellow_max
 from debug_rl.solvers.base import DEFAULT_OPTIONS
 import matplotlib.pyplot as plt
 import matplotlib
