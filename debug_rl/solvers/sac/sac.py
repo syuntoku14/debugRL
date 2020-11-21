@@ -53,14 +53,14 @@ class SacSolver(Solver):
                 target, self.value_network2, self.value_optimizer2,
                 self.critic_loss, obss=tensor_traj["obs"],
                 actions=tensor_traj["act"])
-            self.record_history("value loss", value_loss)
+            self.record_scalar("value loss", value_loss)
 
             # ----- update policy network -----
             target = self.policy_backup(tensor_traj)  # BxA
             policy_loss = self.update_network(
                 target, self.policy_network, self.policy_optimizer,
                 self.policy_loss_fn, obss=tensor_traj["obs"])
-            self.record_history("policy loss", policy_loss)
+            self.record_scalar("policy loss", policy_loss)
 
             preference = self.policy_network(tensor_all_obss).reshape(
                 self.dS, self.dA).detach().cpu().numpy()

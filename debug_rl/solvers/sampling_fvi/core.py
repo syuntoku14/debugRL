@@ -164,10 +164,10 @@ class Solver(Solver):
         if k % self.solve_options["record_performance_interval"] == 0:
             expected_return, std_return = \
                 self.compute_expected_return(eval_policy)
-            self.record_history("Return mean", expected_return, x=k)
-            self.record_history("Return std", std_return, x=k)
+            self.record_scalar("Return mean", expected_return, x=k)
+            self.record_scalar("Return std", std_return, x=k)
 
             aval = self.compute_action_values(eval_policy)
             values = self.value_network(tensor_all_obss).reshape(
                 self.dS, self.dA).detach().cpu().numpy()
-            self.record_history("Q error", ((aval-values)**2).mean(), x=k)
+            self.record_scalar("Q error", ((aval-values)**2).mean(), x=k)

@@ -195,7 +195,7 @@ class Solver(Solver):
                 self.dS, self.dA).detach().cpu().numpy()
             policy = self.compute_policy(preference)
             expected_return, std_return = self.compute_expected_return(policy)
-            self.record_history(
+            self.record_scalar(
                 " Return mean", expected_return, x=k, tag="Policy")
             # q performance
             curr_q = self.value_network(tensor_all_obss)
@@ -205,7 +205,7 @@ class Solver(Solver):
                                                self.dA).detach().cpu().numpy()
             policy = self.compute_policy(preference)
             expected_return, std_return = self.compute_expected_return(policy)
-            self.record_history(
+            self.record_scalar(
                 " Return mean", expected_return, x=k, tag="Q Policy")
 
             # target q performance
@@ -216,7 +216,7 @@ class Solver(Solver):
                                                self.dA).detach().cpu().numpy()
             policy = self.compute_policy(preference)
             expected_return, std_return = self.compute_expected_return(policy)
-            self.record_history(
+            self.record_scalar(
                 " Return mean", expected_return, x=k, tag="Target Q Policy")
 
     def policy_loss_fn(self, target, preference):

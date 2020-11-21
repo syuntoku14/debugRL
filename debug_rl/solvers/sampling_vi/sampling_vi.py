@@ -70,8 +70,8 @@ class SamplingSolver(Solver):
         if k % self.solve_options["record_performance_interval"] == 0:
             expected_return, std_return = \
                 self.compute_expected_return(eval_policy)
-            self.record_history("Return mean", expected_return, x=k)
-            self.record_history("Return std", std_return, x=k)
+            self.record_scalar("Return mean", expected_return, x=k)
+            self.record_scalar("Return std", std_return, x=k)
 
 
 class SamplingViSolver(SamplingSolver):

@@ -53,8 +53,8 @@ class SacContinuousSolver(Solver):
             self.record_performance(k, tensor_all_obss, tensor_all_actions)
             kl = rel_entr(policy, prev_policy).sum(axis=-1)
             entropy = stats.entropy(policy, axis=1)
-            self.record_history("KL divergence", kl.mean(), x=k)
-            self.record_history("Entropy", entropy.mean(), x=k)
+            self.record_scalar("KL divergence", kl.mean(), x=k)
+            self.record_scalar("Entropy", entropy.mean(), x=k)
 
             # ----- update q network -----
             trajectory = self.buffer.sample(
@@ -66,7 +66,7 @@ class SacContinuousSolver(Solver):
             value_loss = self.update_network(
                 target, self.value_network, self.value_optimizer,
                 self.critic_loss, obss=tensor_traj["obs"], actions=tensor_traj["act"])
-            self.record_history("value loss", value_loss)
+            self.record_scalar("value loss", value_loss)
             self.update_network(
                 target, self.value_network2, self.value_optimizer2,
                 self.critic_loss, obss=tensor_traj["obs"],
@@ -75,7 +75,7 @@ class SacContinuousSolver(Solver):
             # ----- update policy network -----
             # update policy
             policy_loss = self.update_policy(tensor_traj)
-            self.record_history("policy loss", policy_loss)
+            self.record_scalar("policy loss", policy_loss)
 
             dist = self.policy_network.compute_pi_distribution(tensor_all_obss)
             log_policy = dist.log_prob(tensor_all_actions) \
@@ -109,9 +109,9 @@ class SacContinuousSolver(Solver):
             q2_pi_targ = self.target_value_network2(next_obss, pi2).squeeze(-1)
             q_pi_targ = torch.min(q1_pi_targ, q2_pi_targ)
             backup = rews + discount * (~dones) * (q_pi_targ - sigma * logp_pi2)
-            self.record_history("Backup logp_pi2", logp_pi2.mean())
-            self.record_history("Backup q_pi_targ", q_pi_targ.mean())
-            self.record_history("Backup rews", rews.mean())
+            self.record_scalar("Backup logp_pi2", logp_pi2.mean())
+            self.record_scalar("Backup q_pi_targ", q_pi_targ.mean())
+            self.record_scalar("Backup rews", rews.mean())
         return backup.squeeze()  # B
 
     def update_policy(self, tensor_traj):

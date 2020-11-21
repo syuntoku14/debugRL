@@ -1,9 +1,8 @@
-import argparse
 import os
-os.environ["MKL_NUM_THREADS"] = "1" 
-os.environ["NUMEXPR_NUM_THREADS"] = "1" 
-os.environ["OMP_NUM_THREADS"] = "1" 
-
+os.environ["MKL_NUM_THREADS"] = "1"  # NOQA
+os.environ["NUMEXPR_NUM_THREADS"] = "1"  # NOQA
+os.environ["OMP_NUM_THREADS"] = "1"  # NOQA
+import argparse
 import numpy as np
 from debug_rl.envs.mountaincar import MountainCar
 from debug_rl.solvers import *

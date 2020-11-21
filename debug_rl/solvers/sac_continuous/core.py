@@ -249,7 +249,7 @@ class Solver(Solver):
                 policy = self.compute_policy(policy_probs)
                 expected_return, std_return = self.compute_expected_return(
                     policy)
-                self.record_history(
+                self.record_scalar(
                     " Return mean", expected_return, x=k, tag=name)
 
     def compute_policy(self, policy_probs):

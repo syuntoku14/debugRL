@@ -182,7 +182,7 @@ class Solver(ABC):
         std_return = np.sqrt(np.sum(init_probs * init_vvar))
         return expected_return, std_return
 
-    def record_history(self, title, y, x=None, tag=None):
+    def record_scalar(self, title, y, x=None, tag=None):
         if x is None:
             x = len(self.history[title]["x"])
         if self.logger is not None:

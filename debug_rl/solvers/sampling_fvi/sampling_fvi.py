@@ -48,7 +48,7 @@ class SamplingFittedSolver(Solver):
                     k, self.solve_options["eps_start"],
                     self.solve_options["eps_end"],
                     self.solve_options["eps_decay"])
-                self.record_history("epsilon", eps_greedy, x=k)
+                self.record_scalar("epsilon", eps_greedy, x=k)
                 policy = self.compute_policy(values, eps_greedy=eps_greedy)
                 eval_policy = self.compute_policy(values, eps_greedy=0)
             else:
@@ -77,7 +77,7 @@ class SamplingFittedSolver(Solver):
                     target, self.value_network2, self.value_optimizer2,
                     obss=tensor_traj["obs"], actions=tensor_traj["act"])
 
-            self.record_history("value loss", loss)
+            self.record_scalar("value loss", loss)
 
             values = self.value_network(tensor_all_obss).reshape(
                 self.dS, self.dA).detach().cpu().numpy()
