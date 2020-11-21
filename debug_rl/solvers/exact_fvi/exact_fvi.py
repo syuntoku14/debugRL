@@ -14,7 +14,6 @@ class ExactFittedSolver(Solver):
     def solve(self):
         """
         Do value iteration from the end of the episode with a value approximator.
-        Store the results and backup to self.values
 
         Returns:
             values: SxA matrix
@@ -24,7 +23,7 @@ class ExactFittedSolver(Solver):
         obss = torch.tensor(obss, dtype=torch.float32, device=self.device)
         error = np.inf
         # start training
-        for _ in tqdm(range(self.solve_options["num_trains"])):
+        for k in tqdm(range(self.solve_options["num_trains"])):
             target = self.backup(values)  # SxA
             target = torch.tensor(
                 target, dtype=torch.float32, device=self.device)
@@ -32,12 +31,12 @@ class ExactFittedSolver(Solver):
             projected = self.value_network(obss).detach().cpu().numpy()
             error = np.abs(values - projected).max()
             values = projected
+            self.record_performance(k, values)
             if error < 1e-7:
                 break
+        self.record_performance(k, values, force=True)
 
         print("Iteration finished with maximum error: ", error)
-        self.values = values
-        return self.values
 
     def update_network(self, target, obss):
         values = self.value_network(obss)
@@ -68,9 +67,7 @@ class ExactFittedViSolver(ExactFittedSolver):
 
     def compute_policy(self, q_values, eps_greedy=0.0):
         # return epsilon-greedy policy
-        policy_probs = eps_greedy_policy(q_values, eps_greedy=eps_greedy)
-        self.policy = policy_probs
-        return self.policy
+        return eps_greedy_policy(q_values, eps_greedy=eps_greedy)
 
 
 class ExactFittedCviSolver(ExactFittedSolver):
@@ -88,6 +85,4 @@ class ExactFittedCviSolver(ExactFittedSolver):
     def compute_policy(self, preference):
         # return softmax policy
         beta = self.solve_options["beta"]
-        policy_probs = softmax_policy(preference, beta=beta)
-        self.policy = policy_probs
-        return self.policy
+        return softmax_policy(preference, beta=beta)

@@ -38,3 +38,10 @@ class Solver(Solver):
         print("{} solve_options:".format(type(self).__name__))
         pp = pprint.PrettyPrinter(indent=4)
         pp.pprint(self.solve_options)
+
+    def record_performance(self, k, values, eval_policy, force=False):
+        if k % self.solve_options["record_performance_interval"] == 0 or force:
+            expected_return = self.compute_expected_return(eval_policy)
+            self.record_scalar("Return mean", expected_return, x=k)
+            self.record_array("policy", eval_policy, x=k)
+            self.record_array("values", values, x=k)

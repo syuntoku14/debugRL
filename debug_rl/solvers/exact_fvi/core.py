@@ -128,3 +128,12 @@ class Solver(Solver):
             activation=self.solve_options["activation"]).to(self.device)
         self.value_optimizer = self.optimizer(self.value_network.parameters(),
                                               lr=self.solve_options["lr"])
+
+    def record_performance(self, k, values, force=False):
+        if k % self.solve_options["record_performance_interval"] == 0 or force:
+            policy = self.compute_policy(values)
+            expected_return = self.compute_expected_return(policy)
+            self.record_array("policy", policy, x=k)
+            self.record_array("values", values, x=k)
+            self.record_scalar(
+                " Return mean", expected_return, x=k, tag="Policy")

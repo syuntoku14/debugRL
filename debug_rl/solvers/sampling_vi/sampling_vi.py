@@ -1,8 +1,6 @@
 import numpy as np
 import torch
 from tqdm import tqdm
-from scipy.special import rel_entr
-from scipy import stats
 from .core import Solver
 from debug_rl.utils import (
     collect_samples,
@@ -47,9 +45,7 @@ class SamplingSolver(Solver):
                 self.env, policy, self.solve_options["num_samples"], self.all_obss)
 
             # ----- record performance -----
-            kl = rel_entr(policy, prev_policy).sum(axis=-1)
-            entropy = stats.entropy(policy, axis=1)
-            self.record_performance(k, eval_policy)
+            self.record_performance(k, values, eval_policy)
 
             # ----- update values -----
             for state, act, next_state, rew in zip(
@@ -63,15 +59,7 @@ class SamplingSolver(Solver):
                     (1-lr) * curr_value + lr*target
 
             prev_policy = policy
-        self.values = values
-        return self.values
-
-    def record_performance(self, k, eval_policy):
-        if k % self.solve_options["record_performance_interval"] == 0:
-            expected_return, std_return = \
-                self.compute_expected_return(eval_policy)
-            self.record_scalar("Return mean", expected_return, x=k)
-            self.record_scalar("Return std", std_return, x=k)
+        self.record_performance(k, values, eval_policy, force=True)
 
 
 class SamplingViSolver(SamplingSolver):
@@ -84,9 +72,7 @@ class SamplingViSolver(SamplingSolver):
 
     def compute_policy(self, q_values, eps_greedy=0.0):
         # return epsilon-greedy policy
-        policy_probs = eps_greedy_policy(q_values, eps_greedy=eps_greedy)
-        self.policy = policy_probs
-        return self.policy
+        return eps_greedy_policy(q_values, eps_greedy=eps_greedy)
 
 
 class SamplingCviSolver(SamplingSolver):
@@ -103,6 +89,4 @@ class SamplingCviSolver(SamplingSolver):
     def compute_policy(self, preference):
         # return softmax policy
         beta = self.solve_options["beta"]
-        policy_probs = softmax_policy(preference, beta=beta)
-        self.policy = policy_probs
-        return self.policy
+        return softmax_policy(preference, beta=beta)

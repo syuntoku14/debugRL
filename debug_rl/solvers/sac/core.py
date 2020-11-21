@@ -194,9 +194,11 @@ class Solver(Solver):
             preference = self.policy_network(tensor_all_obss).reshape(
                 self.dS, self.dA).detach().cpu().numpy()
             policy = self.compute_policy(preference)
-            expected_return, std_return = self.compute_expected_return(policy)
+            expected_return = self.compute_expected_return(policy)
             self.record_scalar(
                 " Return mean", expected_return, x=k, tag="Policy")
+            self.record_array("policy", policy, x=k)
+
             # q performance
             curr_q = self.value_network(tensor_all_obss)
             curr_q2 = self.value_network2(tensor_all_obss)
@@ -204,9 +206,11 @@ class Solver(Solver):
             preference = (beta*curr_q).reshape(self.dS,
                                                self.dA).detach().cpu().numpy()
             policy = self.compute_policy(preference)
-            expected_return, std_return = self.compute_expected_return(policy)
+            expected_return = self.compute_expected_return(policy)
             self.record_scalar(
                 " Return mean", expected_return, x=k, tag="Q Policy")
+            values = curr_q.reshape(self.dS, self.dA).detach().cpu().numpy()
+            self.record_array("values", values, x=k)
 
             # target q performance
             curr_q = self.target_value_network(tensor_all_obss)
@@ -215,7 +219,7 @@ class Solver(Solver):
             preference = (beta*curr_q).reshape(self.dS,
                                                self.dA).detach().cpu().numpy()
             policy = self.compute_policy(preference)
-            expected_return, std_return = self.compute_expected_return(policy)
+            expected_return = self.compute_expected_return(policy)
             self.record_scalar(
                 " Return mean", expected_return, x=k, tag="Target Q Policy")
 
@@ -230,6 +234,4 @@ class Solver(Solver):
 
     def compute_policy(self, preference):
         # return softmax policy
-        policy_probs = softmax_policy(preference, beta=1.0)
-        self.policy = policy_probs
-        return policy_probs
+        return softmax_policy(preference, beta=1.0)

@@ -71,8 +71,6 @@ class SacSolver(Solver):
                                        self.target_value_network, self.solve_options["polyak"])
             self.update_target_network(self.value_network2,
                                        self.target_value_network2, self.solve_options["polyak"])
-        self.values = preference
-        return preference
 
     # This implementation does not use reparameterization trick
     def backup(self, tensor_traj):

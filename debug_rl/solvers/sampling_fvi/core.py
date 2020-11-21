@@ -160,14 +160,15 @@ class Solver(Solver):
         pp = pprint.PrettyPrinter(indent=4)
         pp.pprint(self.solve_options)
 
-    def record_performance(self, k, eval_policy, tensor_all_obss):
-        if k % self.solve_options["record_performance_interval"] == 0:
-            expected_return, std_return = \
+    def record_performance(self, k, eval_policy, tensor_all_obss, force=True):
+        if k % self.solve_options["record_performance_interval"] == 0 or force:
+            expected_return = \
                 self.compute_expected_return(eval_policy)
             self.record_scalar("Return mean", expected_return, x=k)
-            self.record_scalar("Return std", std_return, x=k)
 
             aval = self.compute_action_values(eval_policy)
             values = self.value_network(tensor_all_obss).reshape(
                 self.dS, self.dA).detach().cpu().numpy()
             self.record_scalar("Q error", ((aval-values)**2).mean(), x=k)
+            self.record_array("values", values, x=k)
+            self.record_array("policy", eval_policy, x=k)

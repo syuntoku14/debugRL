@@ -15,19 +15,20 @@ class OracleSolver(Solver):
         Returns:
             SxA matrix
         """
+        self.init_history()
         values = np.zeros((self.dS, self.dA))  # SxA
         error = np.inf
         # start training
-        for _ in tqdm(range(self.solve_options["num_trains"])):
+        for k in tqdm(range(self.solve_options["num_trains"])):
             new_values = self.backup(values)  # SxA
             error = np.abs(values - new_values).max()
             values = new_values
+            self.record_performance(k, values)
             if error < 1e-9:
                 break
+        self.record_performance(k, values, force=True)
 
         print("Iteration finished with maximum error: ", error)
-        self.values = np.asarray(values)
-        return self.values
 
 
 class OracleViSolver(OracleSolver):
@@ -42,9 +43,7 @@ class OracleViSolver(OracleSolver):
 
     def compute_policy(self, q_values, eps_greedy=0.0):
         # return epsilon-greedy policy
-        policy_probs = eps_greedy_policy(q_values, eps_greedy=eps_greedy)
-        self.policy = policy_probs
-        return self.policy
+        return eps_greedy_policy(q_values, eps_greedy=eps_greedy)
 
 
 class OracleCviSolver(OracleSolver):
@@ -68,6 +67,4 @@ class OracleCviSolver(OracleSolver):
     def compute_policy(self, preference):
         # return softmax policy
         beta = self.solve_options["beta"]
-        policy_probs = softmax_policy(preference, beta=beta)
-        self.policy = policy_probs
-        return self.policy
+        return softmax_policy(preference, beta=beta)

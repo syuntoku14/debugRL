@@ -89,8 +89,6 @@ class SacContinuousSolver(Solver):
                                        self.target_value_network, polyak)
             self.update_target_network(self.value_network2,
                                        self.target_value_network2, polyak)
-        self.values = policy_probs
-        return policy_probs
 
     def backup(self, tensor_traj):
         discount = self.solve_options["discount"]

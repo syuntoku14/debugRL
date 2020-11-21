@@ -87,11 +87,6 @@ def main():
     plot_grid_values(solver.env.gs, np.sum(
         solver.visitation, axis=0), title="Visitation")
 
-    dir_name = os.path.join("results", solver_name)
-    if not os.path.exists(dir_name):
-        os.makedirs(dir_name)
-    solver.save(os.path.join(dir_name, task.id))
-
 
 if __name__ == "__main__":
     main()

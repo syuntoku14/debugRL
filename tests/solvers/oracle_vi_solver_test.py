@@ -34,5 +34,5 @@ def run_solver(solver, env):
         == solver.policy.shape \
         == action_values.shape \
         == (env.num_states, env.num_actions)
-    assert solver.visitation.shape \
+    assert visitation.shape \
         == (env.horizon, env.num_states, env.num_actions)

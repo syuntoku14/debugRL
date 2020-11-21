@@ -247,22 +247,26 @@ class Solver(Solver):
                 policy_probs = torch.softmax(log_policy, dim=-1).reshape(
                     self.dS, self.dA).detach().cpu().numpy()
                 policy = self.compute_policy(policy_probs)
-                expected_return, std_return = self.compute_expected_return(
+                expected_return = self.compute_expected_return(
                     policy)
                 self.record_scalar(
                     " Return mean", expected_return, x=k, tag=name)
+                self.record_array("policy", policy, x=k)
+
+            tensor_all_obss = torch.repeat_interleave(tensor_all_obss, self.dA, 0)  # (SxA) x obss
+            tensor_all_actions = tensor_all_actions.reshape(-1, 1)
+            q1 = self.value_network(tensor_all_obss, tensor_all_actions)
+            q2 = self.value_network2(tensor_all_obss, tensor_all_actions)
+            values = torch.min(q1, q2).reshape(self.dS, self.dA)
+            self.record_array("values", values, x=k)
 
     def compute_policy(self, policy_probs):
         # return softmax policy
-        self.policy = policy_probs
         return policy_probs
 
     def save(self, path):
         data = {
             "env_name": str(self.env),
-            "values": self.values,
-            "policy": self.policy,
-            "visitation": self.visitation,
             "history": dict(self.history),
             "options": self.solve_options,
             "networks": {},

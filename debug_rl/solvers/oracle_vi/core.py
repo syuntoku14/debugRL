@@ -1,3 +1,4 @@
+import numpy as np
 import pprint
 from debug_rl.solvers import Solver
 from debug_rl.utils import (
@@ -32,3 +33,13 @@ class Solver(Solver):
         print("{} solve_options:".format(type(self).__name__))
         pp = pprint.PrettyPrinter(indent=4)
         pp.pprint(self.solve_options)
+
+    def record_performance(self, k, values, force=False):
+        if k % self.solve_options["record_performance_interval"] == 0 or force:
+            values = np.asarray(values)
+            policy = self.compute_policy(values)
+            expected_return = self.compute_expected_return(policy)
+            self.record_array("policy", policy, x=k)
+            self.record_array("values", values, x=k)
+            self.record_scalar(
+                " Return mean", expected_return, x=k, tag="Policy")

@@ -16,30 +16,30 @@ def setUp():
     yield env
 
 
-def compute_visitation(solver):
-    return solver.compute_visitation(solver.policy)
+def compute_visitation(solver, policy):
+    return solver.compute_visitation(policy)
 
 
-def compute_expected_return(solver):
-    return solver.compute_expected_return(solver.policy)
+def compute_expected_return(solver, policy):
+    return solver.compute_expected_return(policy)
 
 
 def test_compute_visitation(setUp, benchmark):
     env = setUp
     solver = OracleViSolver(env)
     solver.solve()
-    solver.compute_policy(solver.values)
+    policy = solver.compute_policy(solver.values)
     benchmark.pedantic(compute_visitation,
-                       kwargs={"solver": solver})
+                       kwargs={"solver": solver, "policy": policy})
 
 
 def test_compute_expected_return(setUp, benchmark):
     env = setUp
     solver = OracleViSolver(env)
     solver.solve()
-    solver.compute_policy(solver.values)
+    policy = solver.compute_policy(solver.values)
     benchmark.pedantic(compute_expected_return,
-                       kwargs={"solver": solver})
+                       kwargs={"solver": solver, "policy": policy})
 
 
 def test_seed(setUp):
@@ -48,21 +48,27 @@ def test_seed(setUp):
     fsolver = SamplingFittedViSolver(env)
     solver.set_options({"seed": 0, "num_trains": 10})
     fsolver.set_options({"seed": 0, "num_trains": 10})
-    val1 = solver.solve()
-    fval1 = fsolver.solve()
+    solver.solve()
+    fsolver.solve()
+    val1 = solver.values
+    fval1 = fsolver.values
 
     solver.set_options({"seed": 0, "num_trains": 10})
     fsolver.set_options({"seed": 0, "num_trains": 10})
-    val2 = solver.solve()
-    fval2 = fsolver.solve()
+    solver.solve()
+    fsolver.solve()
+    val2 = solver.values
+    fval2 = fsolver.values
 
     assert np.all(val1 == val2)
     assert np.all(fval1 == fval2)
 
     solver.set_options({"seed": 1, "num_trains": 10})
     fsolver.set_options({"seed": 1, "num_trains": 10})
-    val3 = solver.solve()
-    fval3 = fsolver.solve()
+    solver.solve()
+    fsolver.solve()
+    val3 = solver.values
+    fval3 = fsolver.values
 
     assert not np.all(val1 == val3)
     assert not np.all(fval1 == fval3)

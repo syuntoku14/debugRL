@@ -1,3 +1,5 @@
+import warnings
+import pickle
 import numpy as np
 import torch
 import gym
@@ -15,7 +17,8 @@ DEFAULT_OPTIONS = {
     # general settings
     "seed": 0,
     "discount": 0.99,
-    "record_performance_interval": 100
+    "record_performance_interval": 100,
+    "record_all_array": False
 }
 
 
@@ -41,18 +44,11 @@ class Solver(ABC):
         self.horizon = env.horizon
         self.all_obss = get_all_observations(env)
         self.all_actions = get_all_actions(env) if env.action_mode == "continuous" else None
-        # these matrix are for speeding up computation
+        # matrix for speeding up computation
         self.trr_rew_sum = np.sum(self.transition_matrix.multiply(
             self.rew_matrix), axis=-1).reshape(self.dS, self.dA)  # SxA
-        self.trr_rew2_sum = np.sum(self.transition_matrix.multiply(
-            self.rew_matrix.multiply(self.rew_matrix)), axis=-1).reshape(self.dS, self.dA)  # SxA
-        # results
-        self.values = np.zeros((self.dS, self.dA))
-        self.policy = np.zeros((self.dS, self.dA))
-        self.visitation = np.zeros((self.horizon, self.dS, self.dA))
-        self.history = defaultdict(list)
 
-        # networks
+        self.init_history()
         self.set_options(solve_options)
 
     def set_options(self, options={}):
@@ -75,20 +71,67 @@ class Solver(ABC):
     def solve(self):
         """
         Iterate the backup function and comptue value iteration.
-        Set the retult to self.values.
 
         Returns:
             SxA matrix
         """
 
-    @abstractmethod
-    def compute_policy(self, values):
-        """
-        Compute policy from the given values and set it to self.policy
+    @property
+    def values(self):
+        if len(self.history["values"]["y"]) == 0:
+            assert ValueError("\"values\" has not been recorded yet. Check history.")
+        return self.history["values"]["y"][-1]
 
-        Returns:
-            SxA matrix
+    @property
+    def policy(self):
+        if len(self.history["policy"]["y"]) == 0:
+            assert ValueError("\"policy\" has not been recorded yet. Check history.")
+        return self.history["policy"]["y"][-1]
+
+    def record_scalar(self, title, y, x=None, tag=None):
         """
+        Record a scalar y to self.history. 
+        Report to trains also if self.logger is set.
+        """
+        if x is None:
+            x = len(self.history[title]["x"])
+        if self.logger is not None:
+            tag = title if tag is None else tag
+            self.logger.report_scalar(title, tag, y, x)
+        self.history[title]["x"].append(x)
+        self.history[title]["y"].append(y)
+
+    def record_array(self, title, array, x=None):
+        if x is None:
+            x = len(self.history[title]["x"])
+        if isinstance(array, torch.Tensor):
+            array = array.detach().cpu().numpy()
+        assert isinstance(array, np.ndarray), \
+            "array must be a torch.tensor or a numpy.ndarray"
+
+        if self.solve_options["record_all_array"]:
+            self.history[title]["x"].append(x)
+            self.history[title]["y"].append(array.astype(np.float32))
+        else:
+            warnings.warn(
+                "The option \"record_all_array\" is False and the record_array \
+                function only record the lastly recorded array", UserWarning)
+            self.history[title]["x"] = [x, ]
+            self.history[title]["y"] = [array.astype(np.float32), ]
+
+    def save(self, path):
+        data = {
+            "env_name": str(self.env),
+            "history": dict(self.history),
+            "options": self.solve_options
+        }
+        torch.save(data, path)
+
+    def load(self, path):
+        data = torch.load(path)
+        self.init_history()
+        self.history.update(data["history"])
+        self.set_options(data["options"])
 
     def compute_action_values(self, policy):
         """
@@ -139,26 +182,20 @@ class Solver(ABC):
                 sa_visit_t.reshape(self.dS*self.dA) * self.transition_matrix
             s_visit_t = np.expand_dims(new_s_visit_t, axis=1)
         visitation = sa_visit / norm_factor
-        self.visitation = visitation
         return visitation
 
     def compute_expected_return(self, policy):
         """
-        Compute expected return and its variance on the given policy
-        See eq (3) in the following paper for computing variance:
-        https://www.semanticscholar.org/paper/TD-algorithm-for-the-variance-of-return-and-Sato-Kimura/23bde3741ba220532ede5e236a0dc1bd01b7ed87
+        Compute expected return of the given policy
 
         Args:
             policy: SxA matrix
 
         Returns:
             expected_return (float)
-            std_return (float)
         """
 
         q_values = np.zeros((self.dS, self.dA))  # SxA
-        q_vars = np.zeros((self.dS, self.dA))  # SxA
-
         for t in reversed(range(1, self.horizon+1)):
             # backup q values
             curr_vval = np.sum(policy * q_values, axis=-1)  # S
@@ -166,47 +203,9 @@ class Solver(ABC):
                       curr_vval).reshape(self.dS, self.dA)  # SxA
             q_values = np.asarray(prev_q + self.trr_rew_sum)  # SxA
 
-            # backup q variances
-            curr_vvar = np.sum(policy * q_vars, axis=-1)  # S
-            prev_qvar = (self.transition_matrix *
-                         curr_vvar).reshape(self.dS, self.dA)  # SxA
-            q_vars = np.asarray(prev_qvar + self.trr_rew2_sum)  # SxA
-
         init_vval = np.sum(policy*q_values, axis=-1)  # S
-        init_vvar = np.sum(policy*q_vars, axis=-1)  # S
-
         init_probs = np.zeros(self.dS)  # S
         for (state, prob) in self.env.initial_state_distribution.items():
             init_probs[state] = prob
         expected_return = np.sum(init_probs * init_vval)
-        std_return = np.sqrt(np.sum(init_probs * init_vvar))
-        return expected_return, std_return
-
-    def record_scalar(self, title, y, x=None, tag=None):
-        if x is None:
-            x = len(self.history[title]["x"])
-        if self.logger is not None:
-            tag = title if tag is None else tag
-            self.logger.report_scalar(title, tag, y, x)
-        self.history[title]["x"].append(x)
-        self.history[title]["y"].append(y)
-
-    def save(self, path):
-        data = {
-            "env_name": str(self.env),
-            "values": self.values,
-            "policy": self.policy,
-            "visitation": self.visitation,
-            "history": dict(self.history),
-            "options": self.solve_options
-        }
-        torch.save(data, path)
-
-    def load(self, path):
-        data = torch.load(path)
-        self.values = data["values"]
-        self.policy = data["policy"]
-        self.visitation = data["visitation"]
-        self.init_history()
-        self.history.update(data["history"])
-        self.set_options(data["options"])
+        return expected_return

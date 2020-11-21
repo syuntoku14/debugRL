@@ -46,13 +46,6 @@ def main():
     solver_name = solver.__class__.__name__
     print(solver_name, "starts...")
     solver.solve()
-    solver.compute_policy(solver.values)
-    solver.compute_visitation(solver.policy)
-
-    dir_name = os.path.join("results", solver_name)
-    if not os.path.exists(dir_name):
-        os.makedirs(dir_name)
-    solver.save(os.path.join(dir_name, task.id))
 
 
 if __name__ == "__main__":

@@ -89,8 +89,8 @@ class SamplingFittedSolver(Solver):
                     self.value_network.state_dict())
                 self.target_value_network2.load_state_dict(
                     self.value_network2.state_dict())
-        self.values = values
-        return values
+
+        self.record_performance(k, eval_policy, tensor_all_obss, force=True)
 
     def update_network(self, target, network, optimizer, obss, actions):
         values = network(obss)
@@ -135,9 +135,7 @@ class SamplingFittedViSolver(SamplingFittedSolver):
 
     def compute_policy(self, q_values, eps_greedy=0.0):
         # return epsilon-greedy policy
-        policy_probs = eps_greedy_policy(q_values, eps_greedy=eps_greedy)
-        self.policy = policy_probs
-        return self.policy
+        return eps_greedy_policy(q_values, eps_greedy=eps_greedy)
 
 
 class SamplingFittedCviSolver(SamplingFittedSolver):
@@ -182,6 +180,4 @@ class SamplingFittedCviSolver(SamplingFittedSolver):
     def compute_policy(self, preference):
         # return softmax policy
         beta = self.solve_options["beta"]
-        policy_probs = softmax_policy(preference, beta=beta)
-        self.policy = policy_probs
-        return self.policy
+        return softmax_policy(preference, beta=beta)
