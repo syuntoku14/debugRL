@@ -2,7 +2,7 @@ import numpy as np
 import gym
 from abc import abstractmethod
 from scipy import sparse
-from torch.distributions.utils import lazy_property
+from debug_rl.utils import lazy_property
 
 
 class TabularEnv(gym.Env):

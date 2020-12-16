@@ -1,13 +1,13 @@
 import io
 import PIL.Image
 import numpy as np
-import torch
 import gym
 import time
 from functools import update_wrapper
 from scipy import special
 import matplotlib.pyplot as plt
 try:
+    import torch
     from torchvision.transforms import ToTensor
     from torch import nn
     from torch.nn import functional as F
@@ -15,6 +15,26 @@ try:
                        create_env_dict, create_before_add_func)
 except ImportError:
     pass
+
+
+class lazy_property(object):
+    r"""
+    Stolen from https://github.com/pytorch/pytorch/blob/master/torch/distributions/utils.py
+    Used as a decorator for lazy loading of class attributes. This uses a
+    non-data descriptor that calls the wrapped method to compute the property on
+    first call; thereafter replacing the wrapped method into an instance
+    attribute.
+    """
+    def __init__(self, wrapped):
+        self.wrapped = wrapped
+        update_wrapper(self, wrapped)  # type: ignore[arg-type]
+
+    def __get__(self, instance, obj_type=None):
+        if instance is None:
+            return self
+        value = self.wrapped(instance)
+        setattr(instance, self.wrapped.__name__, value)
+        return value
 
 
 # -----plot utils-----
