@@ -7,9 +7,9 @@ from torch.nn import functional as F
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from scipy import sparse
+from debug_rl.envs.base import TabularEnv
 from debug_rl.utils import (
-    get_all_observations, get_all_actions, boltzmann_softmax,
-    mellow_max, make_replay_buffer)
+    boltzmann_softmax, mellow_max, make_replay_buffer)
 from copy import deepcopy
 
 
@@ -20,6 +20,13 @@ DEFAULT_OPTIONS = {
     "record_performance_interval": 100,
     "record_all_array": False
 }
+
+
+def check_tabular_env(func):
+    def decorator(self, *args, **kwargs):
+        assert self.is_tabular_env, "self.env is not TabularEnv"
+        return func(self, *args, **kwargs)
+    return decorator
 
 
 class Solver(ABC):
@@ -37,17 +44,20 @@ class Solver(ABC):
 
         # env parameters
         self.env = env
-        self.dS = env.num_states
-        self.dA = env.num_actions
-        self.transition_matrix = env.transition_matrix()  # (SxA)xS
-        self.rew_matrix = env.reward_matrix()  # (SxA)x1
-        self.horizon = env.horizon
-        self.all_obss = get_all_observations(env)
-        self.all_actions = get_all_actions(env) if env.action_mode == "continuous" else None
-        # matrix for speeding up computation
-        self.trr_rew_sum = np.sum(self.transition_matrix.multiply(
-            self.rew_matrix), axis=-1).reshape(self.dS, self.dA)  # SxA
+        self.is_tabular_env = isinstance(self.env, TabularEnv)
 
+        if self.is_tabular_env:
+            self.dS = env.dS
+            self.dA = env.dA
+            self.transition_matrix = env.transition_matrix  # (SxA)xS
+            self.reward_matrix = env.reward_matrix  # (SxA)x1
+            self.trr_rew_sum = env.trr_rew_sum
+            self.horizon = env.horizon
+            self.all_obss = env.all_observations
+            self.all_actions = env.all_actions if env.action_mode == "continuous" else None
+            self.compute_visitation = env.compute_visitation
+            self.compute_action_values = env.compute_action_values
+            self.compute_expected_return = env.compute_expected_return
         self.init_history()
         self.set_options(solve_options)
 
@@ -70,7 +80,7 @@ class Solver(ABC):
     @abstractmethod
     def solve(self):
         """
-        Iterate the backup function and comptue value iteration.
+        Iterate the backup function and compute value iteration.
 
         Returns:
             SxA matrix
@@ -132,80 +142,3 @@ class Solver(ABC):
         self.init_history()
         self.history.update(data["history"])
         self.set_options(data["options"])
-
-    def compute_action_values(self, policy):
-        """
-        Compute action values using bellman operator.
-        Returns:
-            Q values: SxA matrix
-        """
-
-        values = np.zeros((self.dS, self.dA))  # SxA
-
-        def backup(curr_q_val, policy):
-            discount = self.solve_options["discount"]
-            curr_v_val = np.sum(policy * curr_q_val, axis=-1)  # S
-            prev_q = self.trr_rew_sum \
-                + discount*(self.transition_matrix *
-                            curr_v_val).reshape(self.dS, self.dA)
-            prev_q = np.asarray(prev_q)
-            return prev_q
-
-        for _ in range(self.horizon):
-            values = backup(values, policy)  # SxA
-
-        return values
-
-    def compute_visitation(self, policy, discount=1.0):
-        """
-        Compute state and action frequency on the given policy
-        Args:
-            policy: SxA matrix
-            discount (float): discount factor.
-
-        Returns:
-            visitation: TxSxA matrix
-        """
-        sa_visit = np.zeros((self.horizon, self.dS, self.dA))  # SxAxS
-        s_visit_t = np.zeros((self.dS, 1))  # Sx1
-        for (state, prob) in self.env.initial_state_distribution.items():
-            s_visit_t[state] = prob
-
-        norm_factor = 0.0
-        for t in range(self.horizon):
-            cur_discount = (discount ** t)
-            norm_factor += cur_discount
-            sa_visit_t = s_visit_t * policy  # SxA
-            sa_visit[t, :, :] = cur_discount * sa_visit_t
-            # sum-out (SA)S
-            new_s_visit_t = \
-                sa_visit_t.reshape(self.dS*self.dA) * self.transition_matrix
-            s_visit_t = np.expand_dims(new_s_visit_t, axis=1)
-        visitation = sa_visit / norm_factor
-        return visitation
-
-    def compute_expected_return(self, policy):
-        """
-        Compute expected return of the given policy
-
-        Args:
-            policy: SxA matrix
-
-        Returns:
-            expected_return (float)
-        """
-
-        q_values = np.zeros((self.dS, self.dA))  # SxA
-        for t in reversed(range(1, self.horizon+1)):
-            # backup q values
-            curr_vval = np.sum(policy * q_values, axis=-1)  # S
-            prev_q = (self.transition_matrix *
-                      curr_vval).reshape(self.dS, self.dA)  # SxA
-            q_values = np.asarray(prev_q + self.trr_rew_sum)  # SxA
-
-        init_vval = np.sum(policy*q_values, axis=-1)  # S
-        init_probs = np.zeros(self.dS)  # S
-        for (state, prob) in self.env.initial_state_distribution.items():
-            init_probs[state] = prob
-        expected_return = np.sum(init_probs * init_vval)
-        return expected_return

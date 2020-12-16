@@ -12,6 +12,7 @@ To facilitate the addition and modification of new algorithms, implementations f
 See the notebook in [examples](examples) for basic usage.
 
 The debug_rl is constructed of two parts: the `envs` and the `solvers`.
+Although the `solvers` requires PyTorch, it is possible to install only `envs` for users who do not use PyTorch (See [Installation](#Installation)).
 
 * `envs`: All environments are subclasses of [TabularEnv](debug_rl/envs/base.py), but have step and reset functions similar to those of OpenAI Gym, so they can be used in the same way as the regular Gym environment.
 Some of the environments support continuous action input and image-based observation modes that enable analysis of continuous action RL and CNN.
@@ -42,12 +43,19 @@ Currently the following solvers are supported:
 
 # Installation
 
+You can install both the debug_rl.envs and debug_rl.solvers by:
+```bash
+$ git clone git@github.com:syuntoku14/debugRL.git
+$ cd debugRL
+$ pip install -e .[solver]
+```
+
+If you want to use only the debug_rl.envs, install debug_rl by:
 ```bash
 $ git clone git@github.com:syuntoku14/debugRL.git
 $ cd debugRL
 $ pip install -e .
 ```
-
 
 # Citation
 

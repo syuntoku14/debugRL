@@ -39,13 +39,13 @@ def main():
     # Construct the environment
     if "Continuous" in options["solver"]:
         action_mode = "continuous"
-        num_actions = 50
+        dA = 50
     else:
         action_mode = "discrete"
-        num_actions = 5
+        dA = 5
     # Construct the environment
     env = MountainCar(horizon=200, posdisc=32,
-                      veldisc=32, num_actions=num_actions,
+                      veldisc=32, dA=dA,
                       action_mode=action_mode, obs_mode="image")
 
     # solve tabular MDP

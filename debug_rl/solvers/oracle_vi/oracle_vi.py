@@ -1,5 +1,6 @@
 import numpy as np
 from tqdm import tqdm
+from debug_rl.solvers.base import check_tabular_env
 from .core import Solver
 from debug_rl.utils import (
     eps_greedy_policy,
@@ -8,6 +9,7 @@ from debug_rl.utils import (
 
 
 class OracleSolver(Solver):
+    @check_tabular_env
     def solve(self):
         """
         Do value iteration from the end of the episode.

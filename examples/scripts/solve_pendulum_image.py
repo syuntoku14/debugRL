@@ -44,12 +44,12 @@ def main():
     # Construct the environment
     if "Continuous" in options["solver"]:
         action_mode = "continuous"
-        num_actions = 50
+        dA = 50
     else:
         action_mode = "discrete"
-        num_actions = 5
+        dA = 5
     env = Pendulum(horizon=200, state_disc=32,
-                   num_actions=num_actions, obs_mode="image", action_mode=action_mode)
+                   dA=dA, obs_mode="image", action_mode=action_mode)
 
     # solve tabular MDP
     solver_cls = SOLVERS[options["solver"]]

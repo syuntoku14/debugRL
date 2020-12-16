@@ -8,7 +8,7 @@ from debug_rl.solvers import (
 
 @pytest.fixture
 def setUp():
-    pend_env = Pendulum(state_disc=5, num_actions=3, horizon=5)
+    pend_env = Pendulum(state_disc=5, dA=3, horizon=5)
     pend_env.reset()
     yield pend_env
 
@@ -33,6 +33,6 @@ def run_solver(solver, env):
     assert solver.values.shape \
         == solver.policy.shape \
         == action_values.shape \
-        == (env.num_states, env.num_actions)
+        == (env.dS, env.dA)
     assert visitation.shape \
-        == (env.horizon, env.num_states, env.num_actions)
+        == (env.horizon, env.dS, env.dA)

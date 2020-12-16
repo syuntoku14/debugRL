@@ -11,7 +11,7 @@ import torch
 
 @pytest.fixture
 def setUp():
-    pend_env = Pendulum(state_disc=5, num_actions=3, horizon=5)
+    pend_env = Pendulum(state_disc=5, dA=3, horizon=5)
     pend_env.reset()
 
     solve_options = {
@@ -40,7 +40,7 @@ def test_cvi(setUp):
 
 def test_image_obs(setUp):
     _, solve_options = setUp
-    pend_env = Pendulum(state_disc=5, num_actions=3,
+    pend_env = Pendulum(state_disc=5, dA=3,
                         horizon=5, obs_mode="image")
     pend_env.reset()
     solver = SamplingFittedViSolver(pend_env)

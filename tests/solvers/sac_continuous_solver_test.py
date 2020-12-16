@@ -8,7 +8,7 @@ import torch
 
 @pytest.fixture
 def setUp():
-    pend_env = Pendulum(state_disc=5, num_actions=4, horizon=5, action_mode="continuous")
+    pend_env = Pendulum(state_disc=5, dA=4, horizon=5, action_mode="continuous")
     pend_env.reset()
 
     solve_options = {

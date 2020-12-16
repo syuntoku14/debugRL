@@ -14,13 +14,13 @@ def test_cartpole_env():
     obs, rew, done, info = env.step(a)
     assert done
 
-    trans_matrix = env.transition_matrix()
-    rew_matrix = env.reward_matrix()
+    trans_matrix = env.transition_matrix
+    reward_matrix = env.reward_matrix
 
     assert trans_matrix.shape == (
-        env.num_states*env.num_actions, env.num_states)
-    assert rew_matrix.shape == (
-        env.num_states*env.num_actions, 1)
+        env.dS*env.dA, env.dS)
+    assert reward_matrix.shape == (
+        env.dS*env.dA, 1)
 
 
 def test_cartpole_continuous_env():
@@ -36,10 +36,10 @@ def test_cartpole_continuous_env():
     obs, rew, done, info = env.step(a)
     assert done
 
-    trans_matrix = env.transition_matrix()
-    rew_matrix = env.reward_matrix()
+    trans_matrix = env.transition_matrix
+    reward_matrix = env.reward_matrix
 
     assert trans_matrix.shape == (
-        env.num_states*env.num_actions, env.num_states)
-    assert rew_matrix.shape == (
-        env.num_states*env.num_actions, 1)
+        env.dS*env.dA, env.dS)
+    assert reward_matrix.shape == (
+        env.dS*env.dA, 1)

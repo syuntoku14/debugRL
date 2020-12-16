@@ -21,10 +21,14 @@ setup(
         "autopep8",
         "pytest",
         "pytest-benchmark",
-        "cpprb",
-        "trains",
-        "trains-agent",
-        "torch",
-        "torchvision"
     ],
+    extra_requires={
+        "solver": [
+            "cpprb",
+            "trains",
+            "trains-agent",
+            "torch",
+            "torchvision"
+        ],
+    }
 )

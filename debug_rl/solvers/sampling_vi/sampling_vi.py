@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from tqdm import tqdm
+from debug_rl.solvers.base import check_tabular_env
 from .core import Solver
 from debug_rl.utils import (
     collect_samples,
@@ -13,13 +14,8 @@ from debug_rl.utils import (
 
 
 class SamplingSolver(Solver):
+    @check_tabular_env
     def solve(self):
-        """
-        Do value iteration with collected samples.
-
-        Returns:
-            SxA matrix
-        """
         self.init_history()
         values = np.zeros((self.dS, self.dA))  # SxA
         prev_policy = None

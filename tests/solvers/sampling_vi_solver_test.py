@@ -9,7 +9,7 @@ from .oracle_vi_solver_test import run_solver
 
 @pytest.fixture
 def setUp():
-    pend_env = Pendulum(state_disc=5, num_actions=3, horizon=5)
+    pend_env = Pendulum(state_disc=5, dA=3, horizon=5)
     pend_env.reset()
 
     solve_options = {

@@ -5,6 +5,7 @@ import torch
 from torch.nn import functional as F
 from tqdm import tqdm
 from .core import Solver
+from debug_rl.envs.base import TabularEnv
 from debug_rl.utils import (
     trajectory_to_tensor,
     squeeze_trajectory,
@@ -17,17 +18,12 @@ from debug_rl.utils import (
 
 class SamplingFittedSolver(Solver):
     def solve(self):
-        """
-        Do value iteration with collected samples.
-
-        Returns:
-            values: SxA matrix
-        """
         self.init_history()
-        tensor_all_obss = torch.tensor(
-            self.all_obss, dtype=torch.float32, device=self.device)
-        values = self.value_network(tensor_all_obss).reshape(
-            self.dS, self.dA).detach().cpu().numpy()
+        if isinstance(self.env, TabularEnv):
+            tensor_all_obss = torch.tensor(
+                self.all_obss, dtype=torch.float32, device=self.device)
+            values = self.value_network(tensor_all_obss).reshape(
+                self.dS, self.dA).detach().cpu().numpy()
 
         self.env.reset()
         if self.solve_options["use_replay_buffer"]:
@@ -91,18 +87,6 @@ class SamplingFittedSolver(Solver):
                     self.value_network2.state_dict())
 
         self.record_performance(k, eval_policy, tensor_all_obss, force=True)
-
-    def update_network(self, target, network, optimizer, obss, actions):
-        values = network(obss)
-        values = values.gather(1, actions.reshape(-1, 1)).squeeze()
-        loss = self.critic_loss(target, values)
-        optimizer.zero_grad()
-        loss.backward()
-        if self.solve_options["clip_grad"]:
-            for param in network.parameters():
-                param.grad.data.clamp_(-1, 1)
-        optimizer.step()
-        return loss.detach().cpu().item()
 
 
 class SamplingFittedViSolver(SamplingFittedSolver):

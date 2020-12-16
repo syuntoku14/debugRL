@@ -2,15 +2,16 @@ import numpy as np
 import torch
 from tqdm import tqdm
 from torch.nn import functional as F
+from debug_rl.solvers.base import check_tabular_env
 from .core import Solver
 from debug_rl.utils import (
-    get_all_observations,
     eps_greedy_policy,
     softmax_policy
 )
 
 
 class ExactFittedSolver(Solver):
+    @check_tabular_env
     def solve(self):
         """
         Do value iteration from the end of the episode with a value approximator.
@@ -19,7 +20,7 @@ class ExactFittedSolver(Solver):
             values: SxA matrix
         """
         values = np.zeros((self.dS, self.dA))  # SxA
-        obss = get_all_observations(self.env)
+        obss = self.env.all_observations
         obss = torch.tensor(obss, dtype=torch.float32, device=self.device)
         error = np.inf
         # start training

@@ -7,11 +7,14 @@ import time
 from functools import update_wrapper
 from scipy import special
 import matplotlib.pyplot as plt
-from torchvision.transforms import ToTensor
-from torch import nn
-from torch.nn import functional as F
-from cpprb import (ReplayBuffer, PrioritizedReplayBuffer,
-                   create_env_dict, create_before_add_func)
+try:
+    from torchvision.transforms import ToTensor
+    from torch import nn
+    from torch.nn import functional as F
+    from cpprb import (ReplayBuffer, PrioritizedReplayBuffer,
+                       create_env_dict, create_before_add_func)
+except ImportError:
+    pass
 
 
 # -----plot utils-----

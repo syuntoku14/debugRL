@@ -11,27 +11,14 @@ from debug_rl.utils import *
 
 @pytest.fixture
 def setUp():
-    env = Pendulum(state_disc=5, num_actions=3)
+    env = Pendulum(state_disc=5, dA=3)
     env.reset()
     solver = OracleViSolver(env)
 
-    cont_env = Pendulum(state_disc=5, num_actions=3, action_mode="continuous")
+    cont_env = Pendulum(state_disc=5, dA=3, action_mode="continuous")
     cont_env.reset()
     cont_solver = OracleViSolver(cont_env)
     yield env, solver, cont_env, cont_solver
-
-
-def test_get_observations(setUp):
-    env, _, _, _ = setUp
-    obss = get_all_observations(env)
-    assert obss.shape == (env.num_states,
-                          env.observation_space.shape[0])
-
-
-def test_get_actions(setUp):
-    _, _, cont_env, _ = setUp
-    actions = get_all_actions(cont_env)
-    assert actions.shape == (cont_env.num_actions, 1)
 
 
 def test_max_operator():
@@ -66,11 +53,11 @@ def test_collect_samples(setUp):
     env, solver, cont_env, cont_solver = setUp
     solver.solve()
     policy = solver.compute_policy(solver.values)
-    traj = collect_samples(env, policy, 10)
+    traj = collect_samples(env, policy, 10, all_obss=env.all_observations)
     assert len(traj["obs"]) == 10
     assert (traj["act"]).dtype == np.long
 
     cont_solver.solve()
     policy = cont_solver.compute_policy(cont_solver.values)
-    traj = collect_samples(cont_env, policy, 10)
+    traj = collect_samples(cont_env, policy, 10, all_obss=cont_env.all_observations)
     assert (traj["obs"]).dtype == np.float32

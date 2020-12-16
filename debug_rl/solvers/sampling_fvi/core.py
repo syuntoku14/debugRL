@@ -160,13 +160,26 @@ class Solver(Solver):
         pp = pprint.PrettyPrinter(indent=4)
         pp.pprint(self.solve_options)
 
+    def update_network(self, target, network, optimizer, obss, actions):
+        values = network(obss)
+        values = values.gather(1, actions.reshape(-1, 1)).squeeze()
+        loss = self.critic_loss(target, values)
+        optimizer.zero_grad()
+        loss.backward()
+        if self.solve_options["clip_grad"]:
+            for param in network.parameters():
+                param.grad.data.clamp_(-1, 1)
+        optimizer.step()
+        return loss.detach().cpu().item()
+
     def record_performance(self, k, eval_policy, tensor_all_obss, force=True):
         if k % self.solve_options["record_performance_interval"] == 0 or force:
             expected_return = \
                 self.compute_expected_return(eval_policy)
             self.record_scalar("Return mean", expected_return, x=k)
 
-            aval = self.compute_action_values(eval_policy)
+            aval = self.compute_action_values(
+                eval_policy, self.solve_options["discount"])
             values = self.value_network(tensor_all_obss).reshape(
                 self.dS, self.dA).detach().cpu().numpy()
             self.record_scalar("Q error", ((aval-values)**2).mean(), x=k)
