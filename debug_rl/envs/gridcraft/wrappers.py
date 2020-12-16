@@ -49,7 +49,7 @@ class OneHotObsWrapper(ObservationWrapper):
         assert isinstance(env, GridEnv)
         super().__init__(env)
         self.gs = env.gs
-        self.num_states = env.num_states
+        self.dS = env.dS
         self.dO = self.gs.width+self.gs.height
         self.observation_space = Box(0, 1, (self.dO, ))
         self.horizon = env.horizon
@@ -78,7 +78,7 @@ class RandomObsWrapper(ObservationWrapper):
         assert isinstance(env, GridEnv)
         super().__init__(env)
         self.gs = env.gs
-        self.num_states = env.num_states
+        self.dS = env.dS
         self.obs_dim = obs_dim
         self.obs_matrix = np.random.randn(len(self.gs), self.obs_dim)
         self.observation_space = Box(np.min(self.obs_matrix), np.max(self.obs_matrix),

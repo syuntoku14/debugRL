@@ -90,8 +90,8 @@ class GridEnv(TabularEnv):
                 start_idxs[i])] = 1.0/num_starts
 
         super().__init__(
-            num_states=len(gridspec),
-            num_actions=5,
+            dS=len(gridspec),
+            dA=5,
             initial_state_distribution=initial_distribution,
             horizon=horizon
         )

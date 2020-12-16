@@ -13,17 +13,17 @@ class Pendulum(TabularEnv):
     """
 
     def __init__(self,
-                 state_disc=32, num_actions=5, init_dist=None,
+                 state_disc=32, dA=5, init_dist=None,
                  horizon=200, action_mode="discrete", obs_mode="tuple"):
         self.state_disc = state_disc
-        self.num_actions = num_actions
+        self.dA = dA
         self.max_vel = 8.
         self.max_torque = 2.
         self.min_torque = -self.max_torque
-        self.torque_step = (2*self.max_torque) / num_actions
+        self.torque_step = (2*self.max_torque) / dA
 
         self.action_map = np.linspace(-self.max_torque,
-                                      self.max_torque, num=num_actions)
+                                      self.max_torque, num=dA)
         self.state_min = -np.pi
         self.state_step = (2*np.pi) / (state_disc - 1)
         self.vel_min = -self.max_vel
@@ -49,11 +49,11 @@ class Pendulum(TabularEnv):
         idxs = set(idxs)
         random_init = {idx: 1/len(idxs) for idx in idxs}
         init_dist = random_init if init_dist is None else init_dist
-        super().__init__(state_disc*state_disc, num_actions, init_dist, horizon=horizon)
+        super().__init__(state_disc*state_disc, dA, init_dist, horizon=horizon)
 
         self.action_mode = action_mode
         if action_mode == "discrete":
-            self.action_space = gym.spaces.Discrete(num_actions)
+            self.action_space = gym.spaces.Discrete(dA)
         elif action_mode == "continuous":
             self.action_space = gym.spaces.Box(
                 low=np.array((self.min_torque, )), high=np.array((self.max_torque, )))

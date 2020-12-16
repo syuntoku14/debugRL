@@ -1,4 +1,4 @@
-**Status:** Maintenance (expect bug fixes and minor updates)
+**Status:** Under development (expect bug fixes and huge updates)
 
 # DebugRL: A python library for debugging RL algorithms
 

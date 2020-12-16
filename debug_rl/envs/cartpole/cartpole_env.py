@@ -15,7 +15,7 @@ class CartPole(TabularEnv):
     """
 
     def __init__(self, x_disc=128, x_dot_disc=4,
-                 th_disc=64, th_dot_disc=4, num_actions=5,
+                 th_disc=64, th_dot_disc=4, dA=5,
                  init_dist=None, horizon=100,
                  action_mode="discrete", obs_mode="tuple"):
 
@@ -24,7 +24,7 @@ class CartPole(TabularEnv):
         self.x_dot_disc = x_dot_disc
         self.th_disc = th_disc
         self.th_dot_disc = th_dot_disc
-        self.num_actions = num_actions
+        self.dA = dA
 
         self.gravity = 9.8
         self.masscart = 1.0
@@ -33,7 +33,7 @@ class CartPole(TabularEnv):
         self.length = 0.5  # actually half the pole's length
         self.polemass_length = (self.masspole * self.length)
         self.force_mag = 10.0
-        self.force_list = np.linspace(-self.force_mag, self.force_mag, num=self.num_actions)
+        self.force_list = np.linspace(-self.force_mag, self.force_mag, num=self.dA)
         self.tau = 0.1  # seconds between state updates
 
         # Angle at which to fail the episode
@@ -42,7 +42,7 @@ class CartPole(TabularEnv):
         self.max_th = 0.25
         self.max_th_dot = 0.2
 
-        self.action_step = (self.force_mag*2) / self.num_actions
+        self.action_step = (self.force_mag*2) / self.dA
         self.x_step = (self.max_x*2) / (self.x_disc-1)
         self.x_dot_step = (self.max_x_dot*2) / (self.x_dot_disc-1)
         self.th_step = (self.max_th*2) / (self.th_disc-1)
@@ -67,7 +67,7 @@ class CartPole(TabularEnv):
         init_dist = random_init if init_dist is None else init_dist
         super().__init__(
             x_disc*x_dot_disc*th_disc*th_dot_disc,
-            num_actions, init_dist, horizon=horizon)
+            dA, init_dist, horizon=horizon)
 
         high = np.array([self.max_x,
                          self.max_x_dot,
@@ -84,7 +84,7 @@ class CartPole(TabularEnv):
 
         self.action_mode = action_mode
         if action_mode == "discrete":
-            self.action_space = gym.spaces.Discrete(num_actions)
+            self.action_space = gym.spaces.Discrete(dA)
         elif action_mode == "continuous":
             self.action_space = gym.spaces.Box(
                 low=np.array((-self.force_mag, )), high=np.array((self.force_mag, )))

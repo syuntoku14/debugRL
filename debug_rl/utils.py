@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import gym
 import time
+from functools import update_wrapper
 from scipy import special
 import matplotlib.pyplot as plt
 from torchvision.transforms import ToTensor
@@ -23,41 +24,6 @@ def make_image():
     image = PIL.Image.open(buf)
     image = ToTensor()(image).detach().cpu().numpy()
     return image
-
-
-# -----env utils-----
-def get_all_observations(env):
-    """get_all_observations
-
-    Args:
-        env: TabularEnv
-
-    Returns:
-        S x obs_dim matrix: Observations of the all states.
-    """
-    obss = []
-    for s in range(env.num_states):
-        s = env.observation(s)
-        obss.append(np.expand_dims(s, axis=0))
-    obss = np.vstack(obss)  # S x obs_dim
-    return obss
-
-
-def get_all_actions(env):
-    """
-
-    Args:
-        env: TabularEnv
-
-    Returns:
-        A x 1 vector
-    """
-    acts = []
-    for a in range(env.num_actions):
-        a = env.to_continuous_action(a)
-        acts.append(np.expand_dims(a, axis=0))
-    acts = np.vstack(acts)  # A x 1
-    return acts
 
 
 # -----math utils-----
@@ -150,13 +116,13 @@ def trajectory_to_tensor(trajectory, device="cpu", is_discrete=True):
     return tensor_traj
 
 
-def collect_samples(env, policy, num_samples, all_obss=None, render=False):
+def collect_samples(env, policy, num_samples, all_obss, render=False):
     """
     Args:
         env (debug_rl.envs.base.TabularEnv)
         policy (np.nd_array): SxA matrix
         num_samples (int): Number of samples to collect
-        all_obss (np.nd_array, optional): SxO matrix. Defaults to None.
+        all_obss (np.nd_array): SxO matrix. Defaults to None.
         render (bool, optional)
     """
     states, next_states = [], []
@@ -166,8 +132,6 @@ def collect_samples(env, policy, num_samples, all_obss=None, render=False):
     dones = []
     act_prob = []
     times = []
-    if all_obss is None:
-        all_obss = get_all_observations(env)
     done_obs = np.zeros_like(all_obss[0])
 
     done = False
@@ -183,7 +147,7 @@ def collect_samples(env, policy, num_samples, all_obss=None, render=False):
         probs = policy[s]
         if np.sum(probs) != 1:
             probs /= np.sum(probs)
-        action = np.random.choice(np.arange(0, env.num_actions), p=probs)
+        action = np.random.choice(np.arange(0, env.dA), p=probs)
         _, rew, done, _ = env.step(action)
         ns = env.get_state()
         next_states.append(ns)

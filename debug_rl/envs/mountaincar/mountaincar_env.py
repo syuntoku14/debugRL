@@ -13,21 +13,21 @@ class MountainCar(TabularEnv):
     """
 
     def __init__(self, posdisc=32, veldisc=32, init_dist=None,
-                 horizon=200, num_actions=3,
+                 horizon=200, dA=3,
                  action_mode="discrete", obs_mode="tuple"):
         # env parameters
         self.pos_disc = posdisc
         self.vel_disc = veldisc
-        self.num_actions = num_actions
+        self.dA = dA
         self.max_vel = 0.07
         self.min_vel = -self.max_vel
         self.max_pos = 0.6
         self.min_pos = -1.2
         self.goal_pos = 0.5
         self.force_mag = 1.0
-        self.force_list = np.linspace(-self.force_mag, self.force_mag, num=self.num_actions)
+        self.force_list = np.linspace(-self.force_mag, self.force_mag, num=self.dA)
 
-        self.action_step = (self.force_mag*2) / self.num_actions
+        self.action_step = (self.force_mag*2) / self.dA
         self.state_step = (self.max_pos-self.min_pos) / (self.pos_disc-1)
         self.vel_step = (self.max_vel-self.min_vel)/(self.vel_disc-1)
 
@@ -50,11 +50,11 @@ class MountainCar(TabularEnv):
         idxs = set(idxs)
         random_init = {idx: 1/len(idxs) for idx in idxs}
         init_dist = random_init if init_dist is None else init_dist
-        super().__init__(posdisc*veldisc, self.num_actions, init_dist, horizon=horizon)
+        super().__init__(posdisc*veldisc, self.dA, init_dist, horizon=horizon)
 
         self.action_mode = action_mode
         if action_mode == "discrete":
-            self.action_space = gym.spaces.Discrete(num_actions)
+            self.action_space = gym.spaces.Discrete(dA)
         elif action_mode == "continuous":
             self.action_space = gym.spaces.Box(
                 low=np.array((-self.force_mag, )), high=np.array((self.force_mag, )))
