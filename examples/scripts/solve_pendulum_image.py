@@ -2,7 +2,7 @@ import os
 os.environ["MKL_NUM_THREADS"] = "1"  # NOQA
 os.environ["NUMEXPR_NUM_THREADS"] = "1"  # NOQA
 os.environ["OMP_NUM_THREADS"] = "1"  # NOQA
-from trains import Task
+from clearml import Task
 import matplotlib
 import matplotlib.pyplot as plt
 from debug_rl.solvers.base import DEFAULT_OPTIONS

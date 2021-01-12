@@ -9,7 +9,7 @@ from debug_rl.solvers import *
 from debug_rl.utils import boltzmann_softmax, mellow_max
 import matplotlib.pyplot as plt
 import matplotlib
-from trains import Task
+from clearml import Task
 matplotlib.use('Agg')
 
 SOLVERS = {

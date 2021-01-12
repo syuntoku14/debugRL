@@ -25,8 +25,8 @@ setup(
     extra_requires={
         "solver": [
             "cpprb",
-            "trains",
-            "trains-agent",
+            "clearml",
+            "clearml-agent",
             "torch",
             "torchvision"
         ],
