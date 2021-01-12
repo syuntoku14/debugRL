@@ -194,7 +194,7 @@ class Solver(Solver):
             preference = self.policy_network(tensor_all_obss).reshape(
                 self.dS, self.dA).detach().cpu().numpy()
             policy = self.compute_policy(preference)
-            expected_return = self.compute_expected_return(policy)
+            expected_return = self.env.compute_expected_return(policy)
             self.record_scalar(
                 " Return mean", expected_return, x=k, tag="Policy")
             self.record_array("policy", policy, x=k)
@@ -206,7 +206,7 @@ class Solver(Solver):
             preference = (beta*curr_q).reshape(self.dS,
                                                self.dA).detach().cpu().numpy()
             policy = self.compute_policy(preference)
-            expected_return = self.compute_expected_return(policy)
+            expected_return = self.env.compute_expected_return(policy)
             self.record_scalar(
                 " Return mean", expected_return, x=k, tag="Q Policy")
             values = curr_q.reshape(self.dS, self.dA).detach().cpu().numpy()
@@ -219,7 +219,7 @@ class Solver(Solver):
             preference = (beta*curr_q).reshape(self.dS,
                                                self.dA).detach().cpu().numpy()
             policy = self.compute_policy(preference)
-            expected_return = self.compute_expected_return(policy)
+            expected_return = self.env.compute_expected_return(policy)
             self.record_scalar(
                 " Return mean", expected_return, x=k, tag="Target Q Policy")
 

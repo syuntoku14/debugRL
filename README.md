@@ -16,6 +16,7 @@ Although the `solvers` requires PyTorch, it is possible to install only `envs` f
 
 * `envs`: All environments are subclasses of [TabularEnv](debug_rl/envs/base.py), but have step and reset functions similar to those of OpenAI Gym, so they can be used in the same way as the regular Gym environment.
 Some of the environments support continuous action input and image-based observation modes that enable analysis of continuous action RL and CNN.
+TabularEnv class has useful functions such as ``compute_expected_return`` to calculate true cumulative rewards and ``compute_action_values`` to calculate true action values (see [debug_rl/envs/base.py](debug_rl/envs/base.py) for details).
 Currently, the following environments are supported:
 
 | Environment | Dicrete action | Continuous action | Image Observation | Tuple Observation |
@@ -27,8 +28,7 @@ Currently, the following environments are supported:
 
 * `solvers`: A solver solves MDP by setting the env and the hyperparameters at initialization and then executing the `solve` function. 
 You can also check the training progress by passing the 
-logger of [trains](https://github.com/allegroai/trains) at the initialization, but you can still run the solver without it.
-See [debug_rl/solvers/base.py](debug_rl/solvers/base.py) for useful functions such as ``compute_expected_return`` to calculate true cumulative rewards and ``compute_action_values`` to calculate true action values.
+logger of [clearML](https://github.com/allegroai/clearml) at the initialization, but you can still run the solver without it.
 Currently the following solvers are supported:
 
 | Solver | Sample approximation | Function approximation | Continuous Action | Algorithm |

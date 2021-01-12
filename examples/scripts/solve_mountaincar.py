@@ -58,7 +58,6 @@ def main():
     print(solver_name, "starts...")
     solver.solve()
     solver.compute_policy(solver.values)
-    solver.compute_visitation(solver.policy)
 
     # dir_name = os.path.join("results", solver_name)
     # if not os.path.exists(dir_name):

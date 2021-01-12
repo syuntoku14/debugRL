@@ -18,11 +18,11 @@ def setUp():
 
 
 def compute_visitation(solver, policy):
-    return solver.compute_visitation(policy)
+    return solver.env.compute_visitation(policy)
 
 
 def compute_expected_return(solver, policy):
-    return solver.compute_expected_return(policy)
+    return solver.env.compute_expected_return(policy)
 
 
 def test_compute_visitation(setUp, benchmark):

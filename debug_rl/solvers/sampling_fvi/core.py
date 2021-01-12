@@ -175,10 +175,10 @@ class Solver(Solver):
     def record_performance(self, k, eval_policy, tensor_all_obss, force=True):
         if k % self.solve_options["record_performance_interval"] == 0 or force:
             expected_return = \
-                self.compute_expected_return(eval_policy)
+                self.env.compute_expected_return(eval_policy)
             self.record_scalar("Return mean", expected_return, x=k)
 
-            aval = self.compute_action_values(
+            aval = self.env.compute_action_values(
                 eval_policy, self.solve_options["discount"])
             values = self.value_network(tensor_all_obss).reshape(
                 self.dS, self.dA).detach().cpu().numpy()

@@ -12,6 +12,7 @@ debug_rlは行列形式で表現された`envs`と, その`envs`を解く`solver
 
 * `envs`: 全ての環境は[TabularEnv](debug_rl/envs/base.py)のサブクラスですが, OpenAI Gymと同様にstepやreset関数が備わっているため, 通常のGym環境と同様の使い方ができます. 
 いくつかの環境では連続行動入力と画像形式の観測のモードを対応しており, 連続行動RLやCNNの解析も可能にしています.
+真の累積報酬を計算する``compute_expected_return``や真の行動価値観数を計算する``compute_action_values``などの便利な関数は[debug_rl/envs/base.py](debug_rl/envs/base.py)を参照してください.
 現在は以下の環境をサポートしています:
 
 | Environment | Dicrete action | Continuous action | Image Observation | Tuple Observation |
@@ -23,8 +24,7 @@ debug_rlは行列形式で表現された`envs`と, その`envs`を解く`solver
 
 
 * `solvers`: Solverはenvとソルバのハイパーパラメータである`options`を初期化時に設定し, `solve`関数を実行することでMDPを解きます. 
-また, 初期化時にtrainsのloggerを渡すことで[trains](https://github.com/allegroai/trains)による学習の確認もできますが, 渡さなくても実行は可能です.
-真の累積報酬を計算する``compute_expected_return``や真の行動価値観数を計算する``compute_action_values``などの便利な関数は[debug_rl/solvers/base.py](debug_rl/solvers/base.py)を参照してください.
+また, 初期化時にclearMLのloggerを渡すことで[clearML](https://github.com/allegroai/clearml)による学習の確認もできますが, 渡さなくても実行は可能です.
 現在は以下のソルバをサポートしています:
 
 | Solver | Sample approximation | Function approximation | Continuous Action | Algorithm |

@@ -28,8 +28,8 @@ def test_cvi(setUp):
 def run_solver(solver, env):
     solver.solve()
     policy = solver.compute_policy(solver.values)
-    action_values = solver.compute_action_values(solver.policy)
-    visitation = solver.compute_visitation(solver.policy)
+    action_values = solver.env.compute_action_values(solver.policy)
+    visitation = env.compute_visitation(solver.policy)
     assert solver.values.shape \
         == solver.policy.shape \
         == action_values.shape \

@@ -132,7 +132,7 @@ class Solver(Solver):
     def record_performance(self, k, values, force=False):
         if k % self.solve_options["record_performance_interval"] == 0 or force:
             policy = self.compute_policy(values)
-            expected_return = self.compute_expected_return(policy)
+            expected_return = self.env.compute_expected_return(policy)
             self.record_array("policy", policy, x=k)
             self.record_array("values", values, x=k)
             self.record_scalar(

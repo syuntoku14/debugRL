@@ -247,7 +247,7 @@ class Solver(Solver):
                 policy_probs = torch.softmax(log_policy, dim=-1).reshape(
                     self.dS, self.dA).detach().cpu().numpy()
                 policy = self.compute_policy(policy_probs)
-                expected_return = self.compute_expected_return(
+                expected_return = self.env.compute_expected_return(
                     policy)
                 self.record_scalar(
                     " Return mean", expected_return, x=k, tag=name)

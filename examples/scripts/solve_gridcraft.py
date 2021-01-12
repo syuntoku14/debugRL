@@ -75,16 +75,15 @@ def main():
     print(solver_name, "starts...")
     solver.solve()
     solver.compute_policy(solver.values)
-    solver.compute_visitation(solver.policy)
 
     # draw results
-    plot_grid_values(solver.env.gs, solver.values, title="Values")
+    plot_grid_values(env.gs, solver.values, title="Values")
     plot_grid_values(
-        solver.env.gs,
-        solver.compute_action_values(solver.policy),
+        env.gs,
+        env.compute_action_values(solver.policy),
         title="Q values")
-    plot_grid_values(solver.env.gs, solver.policy, title="Policy")
-    plot_grid_values(solver.env.gs, np.sum(
+    plot_grid_values(env.gs, solver.policy, title="Policy")
+    plot_grid_values(env.gs, np.sum(
         solver.visitation, axis=0), title="Visitation")
 
 

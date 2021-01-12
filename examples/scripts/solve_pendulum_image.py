@@ -59,11 +59,10 @@ def main():
     solver_name = solver.__class__.__name__
     print(solver_name, "starts...")
     solver.solve()
-    solver.compute_policy(solver.values)
-    solver.compute_visitation(solver.policy)
+    env.compute_policy(solver.values)
 
     # draw results
-    q_values = solver.compute_action_values(solver.policy)
+    q_values = env.compute_action_values(solver.policy)
     v_values = np.sum(solver.policy*q_values, axis=-1)
     vmin = v_values.min()
     vmax = v_values.max()

@@ -55,9 +55,6 @@ class Solver(ABC):
             self.horizon = env.horizon
             self.all_obss = env.all_observations
             self.all_actions = env.all_actions if env.action_mode == "continuous" else None
-            self.compute_visitation = env.compute_visitation
-            self.compute_action_values = env.compute_action_values
-            self.compute_expected_return = env.compute_expected_return
         self.init_history()
         self.set_options(solve_options)
 
