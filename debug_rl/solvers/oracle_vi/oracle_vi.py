@@ -38,7 +38,7 @@ class OracleViSolver(OracleSolver):
         # Bellman Operator to update q values
         discount = self.solve_options["discount"]
         curr_v_val = np.max(curr_q_val, axis=-1)  # S
-        prev_q = self.trr_rew_sum \
+        prev_q = self.trans_rew_sum \
             + discount*(self.transition_matrix *
                         curr_v_val).reshape(self.dS, self.dA)
         return prev_q
@@ -62,7 +62,7 @@ class OracleCviSolver(OracleSolver):
         mP = self.max_operator(curr_pref, beta)
         prev_preference = \
             alpha * (curr_pref - mP.reshape(-1, 1)) \
-            + self.trr_rew_sum \
+            + self.trans_rew_sum \
             + discount*(self.transition_matrix * mP).reshape(self.dS, self.dA)
         return prev_preference
 

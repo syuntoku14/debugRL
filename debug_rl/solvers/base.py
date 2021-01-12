@@ -51,7 +51,7 @@ class Solver(ABC):
             self.dA = env.dA
             self.transition_matrix = env.transition_matrix  # (SxA)xS
             self.reward_matrix = env.reward_matrix  # (SxA)x1
-            self.trr_rew_sum = env.trr_rew_sum
+            self.trans_rew_sum = env.trans_rew_sum
             self.horizon = env.horizon
             self.all_obss = env.all_observations
             self.all_actions = env.all_actions if env.action_mode == "continuous" else None

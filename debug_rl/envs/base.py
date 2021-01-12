@@ -189,7 +189,7 @@ class TabularEnv(gym.Env):
         return sparse.csr_matrix((data, (row, col)), shape=(ds*da, 1))
 
     @lazy_property
-    def trr_rew_sum(self):
+    def trans_rew_sum(self):
         # matrix for speeding up computation
         return np.sum(self.transition_matrix.multiply(
             self.reward_matrix), axis=-1).reshape(self.dS, self.dA)  # SxA
@@ -205,7 +205,40 @@ class TabularEnv(gym.Env):
 
         def backup(curr_q_val, policy):
             curr_v_val = np.sum(policy * curr_q_val, axis=-1)  # S
-            prev_q = self.trr_rew_sum \
+            prev_q = self.trans_rew_sum \
+                + discount*(self.transition_matrix *
+                            curr_v_val).reshape(self.dS, self.dA)
+            prev_q = np.asarray(prev_q)
+            return prev_q
+
+        for _ in range(self.horizon):
+            values = backup(values, policy)  # SxA
+
+        return values
+
+    def compute_er_action_values(self, policy, base_policy=None,
+                                 er_coef=0.1, kl_coef=0.1, discount=0.99):
+        """
+        Compute entropy regularized action values using bellman operator.
+        Returns:
+            ER Q values: SxA matrix
+        """
+        values = np.zeros((self.dS, self.dA))  # SxA
+        entropy = -np.sum(policy * np.log(policy+1e-8), axis=-1)  # Sx1
+        entropy = np.repeat(entropy, self.dA).reshape(-1, 1)  # (SxA)x1
+        if base_policy is not None:
+            kl = np.sum(policy * (np.log(policy+1e-8)-np.log(base_policy+1e-8)),
+                        axis=-1, keepdims=True)  # Sx1
+            kl = np.repeat(kl, self.dA).reshape(-1, 1)  # (SxA)x1
+            reward_matrix = self.reward_matrix + er_coef*entropy - kl_coef*kl
+        else:
+            reward_matrix = self.reward_matrix + er_coef*entropy
+        trans_er_rew_sum = np.sum(self.transition_matrix.multiply(
+            reward_matrix), axis=-1).reshape(self.dS, self.dA)  # SxA
+
+        def backup(curr_q_val, policy):
+            curr_v_val = np.sum(policy * curr_q_val, axis=-1)  # S
+            prev_q = trans_er_rew_sum \
                 + discount*(self.transition_matrix *
                             curr_v_val).reshape(self.dS, self.dA)
             prev_q = np.asarray(prev_q)
@@ -261,7 +294,7 @@ class TabularEnv(gym.Env):
             curr_vval = np.sum(policy * q_values, axis=-1)  # S
             prev_q = (self.transition_matrix *
                       curr_vval).reshape(self.dS, self.dA)  # SxA
-            q_values = np.asarray(prev_q + self.trr_rew_sum)  # SxA
+            q_values = np.asarray(prev_q + self.trans_rew_sum)  # SxA
 
         init_vval = np.sum(policy*q_values, axis=-1)  # S
         init_probs = np.zeros(self.dS)  # S

@@ -9,7 +9,9 @@ def setUp():
     env.reset()
     policy = np.random.rand(env.dS, env.dA)
     policy /= policy.sum(axis=1, keepdims=True)
-    yield env, policy
+    base_policy = np.random.rand(env.dS, env.dA)
+    base_policy /= base_policy.sum(axis=1, keepdims=True)
+    yield env, policy, base_policy
 
 
 def test_all_observations():
@@ -35,13 +37,33 @@ def compute_expected_return(env, policy):
     return env.compute_expected_return(policy)
 
 
+def compute_action_values(env, policy):
+    return env.compute_action_values(policy)
+
+
+def compute_er_action_values(env, policy, base_policy):
+    return env.compute_er_action_values(policy, base_policy)
+
+
 def test_compute_visitation(setUp, benchmark):
-    env, policy = setUp
+    env, policy, _ = setUp
     benchmark.pedantic(compute_visitation,
                        kwargs={"env": env, "policy": policy})
 
 
 def test_compute_expected_return(setUp, benchmark):
-    env, policy = setUp
+    env, policy, _ = setUp
     benchmark.pedantic(compute_expected_return,
                        kwargs={"env": env, "policy": policy})
+
+
+def test_compute_action_values(setUp, benchmark):
+    env, policy, _ = setUp
+    benchmark.pedantic(compute_action_values,
+                       kwargs={"env": env, "policy": policy})
+
+
+def test_er_compute_action_values(setUp, benchmark):
+    env, policy, base_policy = setUp
+    benchmark.pedantic(compute_er_action_values,
+                       kwargs={"env": env, "policy": policy, "base_policy": base_policy})

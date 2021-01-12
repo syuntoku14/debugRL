@@ -15,8 +15,7 @@ from debug_rl.utils import (
 OPTIONS = {
     "num_samples": 4,
     # CVI settings
-    "alpha": 0.9,
-    "beta": 1.0,
+    "sigma": 0.2,
     "max_operator": "mellow_max",
     # Fitted iteration settings
     "num_trains": 10000,
@@ -188,8 +187,7 @@ class Solver(Solver):
                     p_targ.data.add_((1 - polyak) * p.data)
 
     def record_performance(self, k, tensor_all_obss):
-        alpha = self.solve_options["alpha"]
-        beta = self.solve_options["beta"]
+        sigma = self.solve_options["sigma"]
         if k % self.solve_options["record_performance_interval"] == 0:
             preference = self.policy_network(tensor_all_obss).reshape(
                 self.dS, self.dA).detach().cpu().numpy()
@@ -203,8 +201,8 @@ class Solver(Solver):
             curr_q = self.value_network(tensor_all_obss)
             curr_q2 = self.value_network2(tensor_all_obss)
             curr_q = torch.min(curr_q, curr_q)
-            preference = (beta*curr_q).reshape(self.dS,
-                                               self.dA).detach().cpu().numpy()
+            preference = (curr_q/sigma).reshape(
+                self.dS, self.dA).detach().cpu().numpy()
             policy = self.compute_policy(preference)
             expected_return = self.env.compute_expected_return(policy)
             self.record_scalar(
@@ -216,8 +214,8 @@ class Solver(Solver):
             curr_q = self.target_value_network(tensor_all_obss)
             curr_q2 = self.target_value_network2(tensor_all_obss)
             curr_q = torch.min(curr_q, curr_q)
-            preference = (beta*curr_q).reshape(self.dS,
-                                               self.dA).detach().cpu().numpy()
+            preference = (curr_q / sigma).reshape(
+                self.dS, self.dA).detach().cpu().numpy()
             policy = self.compute_policy(preference)
             expected_return = self.env.compute_expected_return(policy)
             self.record_scalar(

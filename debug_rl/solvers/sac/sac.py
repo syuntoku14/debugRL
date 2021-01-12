@@ -75,9 +75,7 @@ class SacSolver(Solver):
     # This implementation does not use reparameterization trick
     def backup(self, tensor_traj):
         discount = self.solve_options["discount"]
-        alpha = self.solve_options["alpha"]
-        beta = self.solve_options["beta"]
-        sigma = (1-alpha) / beta
+        sigma = self.solve_options["sigma"]
 
         obss = tensor_traj["obs"]
         actions = tensor_traj["act"]
@@ -102,9 +100,7 @@ class SacSolver(Solver):
 
     def policy_backup(self, tensor_traj):
         obss = tensor_traj["obs"]
-        alpha = self.solve_options["alpha"]
-        beta = self.solve_options["beta"]
-        sigma = (1-alpha) / beta
+        sigma = self.solve_options["sigma"]
 
         with torch.no_grad():
             # compute policy target
