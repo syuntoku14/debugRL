@@ -36,6 +36,76 @@ debug_rlは行列形式で表現された`envs`と, その`envs`を解く`solver
 | [SacSolver](debug_rl/solvers/sac) | ✓ | ✓ | - | [Discrete Soft Actor Critic](https://arxiv.org/abs/1910.07207) |
 | [SacContinuousSolver](debug_rl/solvers/sac_continuous) | ✓ | ✓ | ✓ | [Soft Actor Critic](https://arxiv.org/abs/1801.01290) |
 
+
+# デバッグの流れ
+
+以下で, 簡単な例通してdebug_rlを使ったデバッグの流れを見てみましょう. 
+ここで紹介するコードは
+```
+python examples/simple_debug.py
+```
+で実行することができます.
+
+TabularEnvには真の値を計算するためのモジュールが搭載されており, これを利用して学習したモデルが正しくMDPを解けているか確認できます.
+
+* ```env.compute_action_values(policy)```関数は方策の行列 (`状態数`x`行動数`のnumpy.array) から真のQ値を計算します.
+* ```env.compute_visitation(policy, discount=1.0)```関数は方策の行列 (`状態数`x`行動数`のnumpy.array)と割引率から正規化された割引定常分布を計算します.
+* ```env.compute_expected_return(policy)```関数は方策の行列 (`状態数`x`行動数`のnumpy.array) から真の累積報酬和を計算します.
+
+今回はPendulum環境でDQNを学習させ, ```compute_action_values```を使って学習したモデルが正しくQ値を学習できているか確認します.
+Pendulum環境ではQ値ではなく状態価値しか描画できないため, 今回はQ値の内最大値をV値として描画してみます.
+
+Q値のデバッグは以下のような流れで行います.
+
+1. 学習したモデルを用意します. 今回はdebug_rlのSAC実装を使いますが, 観測に対してQ値や行動の確率を返すモデルであれば任意のモデルに簡単に拡張できます.
+2. モデルに対して, TabularEnvのall_observations変数 (`状態数`x`観測の次元`)に格納されている全状態に対する観測をを利用して, 方策行列を回帰します.
+3. env.compute_action_values関数を使ってモデルが学習したQ値を計算します. 今回はPendulum環境を使っているためV値を描画しますが, GridCraftではQ値をそのまま描画できます (詳しくは[examples/tutorial.ipynb](examples/tutorial.ipynb)を参照してください).
+
+```
+import torch
+import numpy as np
+import matplotlib.pyplot as plt
+from debug_rl.envs.pendulum import Pendulum, plot_pendulum_values, reshape_values
+from debug_rl.solvers import SacSolver
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+# Step 1: train networks
+env = Pendulum()
+solver = SacSolver(env, solve_options={"num_trains": 5000, "device": device})
+solver.solve()
+value_network = solver.value_network
+policy_network = solver.policy_network
+
+# Step 2: create policy matrix
+tensor_all_obss = torch.tensor(
+    env.all_observations, dtype=torch.float32, device=device)
+policy = policy_network(tensor_all_obss).reshape(
+    env.dS, env.dA).detach().cpu().numpy()  # dS x dA
+
+# Step 3: plot Q values
+oracle_Q = env.compute_action_values(policy)  # dS x dA
+oracle_V = np.max(oracle_Q, axis=-1)
+oracle_V = reshape_values(env, oracle_V)  # angles x velocities
+print("Press Q on the image to go next.")
+plot_pendulum_values(env, oracle_V, vmin=oracle_Q.min(),
+                     vmax=oracle_Q.max(), title="Oracle State values: t=0")
+plt.show()
+
+trained_Q = value_network(tensor_all_obss).reshape(
+    env.dS, env.dA).detach().cpu().numpy()  # dS x dA
+trained_V = np.max(trained_Q, axis=-1)
+trained_V = reshape_values(env, trained_V)  # angles x velocities
+plot_pendulum_values(env, trained_V, vmin=trained_Q.min(),
+                     vmax=trained_Q.max(), title="Trained State values: t=0")
+plt.show()
+```
+
+実行すると以下の図が描画されます. 
+上が真のV値, 下が学習されたV値です. 
+
+![](assets/oracle_V.png)
+![](assets/trained_V.png)
+
 # インストール
 
 ```bash

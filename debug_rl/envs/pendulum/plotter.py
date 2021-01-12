@@ -43,5 +43,3 @@ def plot_pendulum_values(
 
     if return_image:
         return make_image()
-    else:
-        plt.show()

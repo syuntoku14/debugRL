@@ -65,6 +65,7 @@ def main():
     v_values = reshape_values(env, v_values)
     plot_pendulum_values(env, v_values, vmin=vmin,
                          vmax=vmax, title="State values")
+    plt.show()
 
     # dir_name = os.path.join("results", solver_name)
     # if not os.path.exists(dir_name):
