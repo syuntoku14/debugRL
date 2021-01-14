@@ -236,14 +236,14 @@ class Solver(Solver):
                     p_targ.data.mul_(polyak)
                     p_targ.data.add_((1 - polyak) * p.data)
 
-    def record_performance(self, k, tensor_all_obss, tensor_all_actions):
+    def record_performance(self, k):
         if k % self.solve_options["record_performance_interval"] == 0:
             nets = {self.policy_network: "Policy"}
             for net, name in nets.items():
-                dist = net.compute_pi_distribution(tensor_all_obss)
-                log_policy = dist.log_prob(tensor_all_actions) \
-                    - (2*(np.log(2) - tensor_all_actions -
-                          F.softplus(-2*tensor_all_actions)))
+                dist = net.compute_pi_distribution(self.all_obss)
+                log_policy = dist.log_prob(self.all_actions) \
+                    - (2*(np.log(2) - self.all_actions -
+                          F.softplus(-2*self.all_actions)))
                 policy_probs = torch.softmax(log_policy, dim=-1).reshape(
                     self.dS, self.dA).detach().cpu().numpy()
                 policy = self.compute_policy(policy_probs)
@@ -253,8 +253,8 @@ class Solver(Solver):
                     " Return mean", expected_return, x=k, tag=name)
                 self.record_array("policy", policy, x=k)
 
-            tensor_all_obss = torch.repeat_interleave(tensor_all_obss, self.dA, 0)  # (SxA) x obss
-            tensor_all_actions = tensor_all_actions.reshape(-1, 1)
+            tensor_all_obss = torch.repeat_interleave(self.all_obss, self.dA, 0)  # (SxA) x obss
+            tensor_all_actions = self.all_actions.reshape(-1, 1)
             q1 = self.value_network(tensor_all_obss, tensor_all_actions)
             q2 = self.value_network2(tensor_all_obss, tensor_all_actions)
             values = torch.min(q1, q2).reshape(self.dS, self.dA)
@@ -262,6 +262,14 @@ class Solver(Solver):
 
     def compute_policy(self, policy_probs):
         # return softmax policy
+        return policy_probs
+
+    def make_policy_probs(self):
+        dist = self.policy_network.compute_pi_distribution(self.all_obss)
+        log_policy = dist.log_prob(self.all_actions) \
+            - (2*(np.log(2) - self.all_actions - F.softplus(-2*self.all_actions)))
+        policy_probs = torch.softmax(log_policy, dim=-1).reshape(
+            self.dS, self.dA).detach().cpu().numpy() 
         return policy_probs
 
     def save(self, path):

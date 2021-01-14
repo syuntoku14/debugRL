@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 from tqdm import tqdm
-from debug_rl.solvers.base import check_tabular_env
 from .core import Solver
 from debug_rl.utils import (
     collect_samples,
@@ -14,7 +13,6 @@ from debug_rl.utils import (
 
 
 class SamplingSolver(Solver):
-    @check_tabular_env
     def solve(self):
         self.init_history()
         values = np.zeros((self.dS, self.dA))  # SxA
@@ -38,7 +36,7 @@ class SamplingSolver(Solver):
             if prev_policy is None:
                 prev_policy = policy
             trajectory = collect_samples(
-                self.env, policy, self.solve_options["num_samples"], self.all_obss)
+                self.env, policy, self.solve_options["num_samples"])
 
             # ----- record performance -----
             self.record_performance(k, values, eval_policy)

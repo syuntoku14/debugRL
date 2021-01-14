@@ -21,23 +21,19 @@ class SacContinuousSolver(Solver):
     def solve(self):
         assert isinstance(self.env.action_space, gym.spaces.Box)
         self.init_history()
-        tensor_all_obss = torch.tensor(
-            self.all_obss, dtype=torch.float32, device=self.device)  # dS x obs_dim
-        tensor_all_actions = torch.tensor(
-            self.all_actions, dtype=torch.float32,
+        self.all_obss = torch.tensor(
+            self.env.all_observations, dtype=torch.float32, device=self.device)
+        self.all_actions = torch.tensor(
+            self.env.all_actions, dtype=torch.float32,
             device=self.device).repeat(self.dS, 1).reshape(self.dS, self.dA)  # dS x dA
-        dist = self.policy_network.compute_pi_distribution(tensor_all_obss)
-        log_policy = dist.log_prob(tensor_all_actions) \
-            - (2*(np.log(2) - tensor_all_actions - F.softplus(-2*tensor_all_actions)))
-        policy_probs = torch.softmax(log_policy, dim=-1).reshape(
-            self.dS, self.dA).detach().cpu().numpy() 
+        policy_probs = self.make_policy_probs()
         prev_policy = None
         self.env.reset()
 
         # Collect random samples in advance
         policy = self.compute_policy(policy_probs)
         trajectory = collect_samples(
-            self.env, policy, self.solve_options["minibatch_size"], self.all_obss)
+            self.env, policy, self.solve_options["minibatch_size"])
         self.buffer.add(**trajectory)
 
         # start training
@@ -46,11 +42,11 @@ class SacContinuousSolver(Solver):
             prev_policy = deepcopy(policy)
             policy = self.compute_policy(policy_probs)
             trajectory = collect_samples(
-                self.env, policy, self.solve_options["num_samples"], self.all_obss)
+                self.env, policy, self.solve_options["num_samples"])
             self.buffer.add(**trajectory)
 
             # # ----- record performance -----
-            self.record_performance(k, tensor_all_obss, tensor_all_actions)
+            self.record_performance(k)
             kl = rel_entr(policy, prev_policy).sum(axis=-1)
             entropy = stats.entropy(policy, axis=1)
             self.record_scalar("KL divergence", kl.mean(), x=k)
@@ -60,7 +56,8 @@ class SacContinuousSolver(Solver):
             trajectory = self.buffer.sample(
                 self.solve_options["minibatch_size"])
             trajectory = squeeze_trajectory(trajectory)
-            tensor_traj = trajectory_to_tensor(trajectory, self.device, is_discrete=False)
+            tensor_traj = trajectory_to_tensor(
+                trajectory, self.device, is_discrete=False)
             tensor_traj["act"] = tensor_traj["act"].unsqueeze(-1)
             target = self.backup(tensor_traj)
             value_loss = self.update_network(
@@ -76,12 +73,7 @@ class SacContinuousSolver(Solver):
             # update policy
             policy_loss = self.update_policy(tensor_traj)
             self.record_scalar("policy loss", policy_loss)
-
-            dist = self.policy_network.compute_pi_distribution(tensor_all_obss)
-            log_policy = dist.log_prob(tensor_all_actions) \
-                - (2*(np.log(2) - tensor_all_actions - F.softplus(-2*tensor_all_actions)))
-            policy_probs = torch.softmax(log_policy, dim=-1).reshape(
-                self.dS, self.dA).detach().cpu().numpy() 
+            policy_probs = self.make_policy_probs()
 
             # ----- update target networks with constant polyak -----
             polyak = self.solve_options["polyak"]
@@ -106,7 +98,8 @@ class SacContinuousSolver(Solver):
             q1_pi_targ = self.target_value_network(next_obss, pi2).squeeze(-1)
             q2_pi_targ = self.target_value_network2(next_obss, pi2).squeeze(-1)
             q_pi_targ = torch.min(q1_pi_targ, q2_pi_targ)
-            backup = rews + discount * (~dones) * (q_pi_targ - sigma * logp_pi2)
+            backup = rews + discount * \
+                (~dones) * (q_pi_targ - sigma * logp_pi2)
             self.record_scalar("Backup logp_pi2", logp_pi2.mean())
             self.record_scalar("Backup q_pi_targ", q_pi_targ.mean())
             self.record_scalar("Backup rews", rews.mean())

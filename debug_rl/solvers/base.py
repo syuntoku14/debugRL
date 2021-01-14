@@ -22,13 +22,6 @@ DEFAULT_OPTIONS = {
 }
 
 
-def check_tabular_env(func):
-    def decorator(self, *args, **kwargs):
-        assert self.is_tabular_env, "self.env is not TabularEnv"
-        return func(self, *args, **kwargs)
-    return decorator
-
-
 class Solver(ABC):
     def __init__(self, env, solve_options={}, logger=None):
         """
@@ -38,23 +31,15 @@ class Solver(ABC):
             solve_options (dict): Parameters for the algorithm, e.g. discount_factor.
             logger (Trains.Logger): logger for Trains
         """
+        assert isinstance(env, TabularEnv), "env must be debug_rl.envs.base.TabularEnv"
+
         # solver options
         self.solve_options = DEFAULT_OPTIONS
         self.logger = logger
 
         # env parameters
         self.env = env
-        self.is_tabular_env = isinstance(self.env, TabularEnv)
-
-        if self.is_tabular_env:
-            self.dS = env.dS
-            self.dA = env.dA
-            self.transition_matrix = env.transition_matrix  # (SxA)xS
-            self.reward_matrix = env.reward_matrix  # (SxA)x1
-            self.trans_rew_sum = env.trans_rew_sum
-            self.horizon = env.horizon
-            self.all_obss = env.all_observations
-            self.all_actions = env.all_actions if env.action_mode == "continuous" else None
+        self.dS, self.dA = env.dS, env.dA
         self.init_history()
         self.set_options(solve_options)
 

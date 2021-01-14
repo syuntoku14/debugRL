@@ -139,13 +139,12 @@ def trajectory_to_tensor(trajectory, device="cpu", is_discrete=True):
     return tensor_traj
 
 
-def collect_samples(env, policy, num_samples, all_obss, render=False):
+def collect_samples(env, policy, num_samples, render=False):
     """
     Args:
         env (debug_rl.envs.base.TabularEnv)
         policy (np.nd_array): SxA matrix
         num_samples (int): Number of samples to collect
-        all_obss (np.nd_array): SxO matrix. Defaults to None.
         render (bool, optional)
     """
     states, next_states = [], []
@@ -155,6 +154,7 @@ def collect_samples(env, policy, num_samples, all_obss, render=False):
     dones = []
     act_prob = []
     times = []
+    all_obss = env.all_observations
     done_obs = np.zeros_like(all_obss[0])
 
     done = False

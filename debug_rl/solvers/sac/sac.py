@@ -14,26 +14,26 @@ from debug_rl.utils import (
 
 class SacSolver(Solver):
     def solve(self):
-        self.init_history()
-        tensor_all_obss = torch.tensor(
-            self.all_obss, dtype=torch.float32, device=self.device)
-        preference = self.policy_network(tensor_all_obss).reshape(
-            self.dS, self.dA).detach().cpu().numpy()
-
+        self.all_obss = torch.tensor(
+            self.env.all_observations, dtype=torch.float32, device=self.device)
         self.env.reset()
         # Collect random samples in advance
+        preference = self.policy_network(self.all_obss).reshape(
+            self.dS, self.dA).detach().cpu().numpy()
         policy = self.compute_policy(preference)
         trajectory = collect_samples(
-            self.env, policy, self.solve_options["minibatch_size"], self.all_obss)
+            self.env, policy, self.solve_options["minibatch_size"])
         self.buffer.add(**trajectory)
 
         # start training
         for k in tqdm(range(self.solve_options["num_trains"])):
             # ------ collect samples by the current policy ------
+            preference = self.policy_network(self.all_obss).reshape(
+                self.dS, self.dA).detach().cpu().numpy()
             policy = self.compute_policy(preference)
             eval_policy = policy
             trajectory = collect_samples(
-                self.env, policy, self.solve_options["num_samples"], self.all_obss)
+                self.env, policy, self.solve_options["num_samples"])
             # ----- generate mini-batch from the replay_buffer -----
             self.buffer.add(**trajectory)
             trajectory = self.buffer.sample(
@@ -41,7 +41,7 @@ class SacSolver(Solver):
             trajectory = squeeze_trajectory(trajectory)
 
             # ----- record performance -----
-            self.record_performance(k, tensor_all_obss)
+            self.record_performance(k)
 
             # ----- update q network -----
             tensor_traj = trajectory_to_tensor(trajectory, self.device)
@@ -61,9 +61,6 @@ class SacSolver(Solver):
                 target, self.policy_network, self.policy_optimizer,
                 self.policy_loss_fn, obss=tensor_traj["obs"])
             self.record_scalar("policy loss", policy_loss)
-
-            preference = self.policy_network(tensor_all_obss).reshape(
-                self.dS, self.dA).detach().cpu().numpy()
 
             # ----- update target network -----
             # soft update

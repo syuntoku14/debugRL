@@ -1,6 +1,5 @@
 import numpy as np
 from tqdm import tqdm
-from debug_rl.solvers.base import check_tabular_env
 from .core import Solver
 from debug_rl.utils import (
     eps_greedy_policy,
@@ -9,7 +8,6 @@ from debug_rl.utils import (
 
 
 class OracleSolver(Solver):
-    @check_tabular_env
     def solve(self):
         """
         Do value iteration from the end of the episode.
@@ -38,8 +36,8 @@ class OracleViSolver(OracleSolver):
         # Bellman Operator to update q values
         discount = self.solve_options["discount"]
         curr_v_val = np.max(curr_q_val, axis=-1)  # S
-        prev_q = self.trans_rew_sum \
-            + discount*(self.transition_matrix *
+        prev_q = self.env.trans_rew_sum \
+            + discount*(self.env.transition_matrix *
                         curr_v_val).reshape(self.dS, self.dA)
         return prev_q
 
@@ -62,8 +60,8 @@ class OracleCviSolver(OracleSolver):
         mP = self.max_operator(curr_pref, beta)
         prev_preference = \
             alpha * (curr_pref - mP.reshape(-1, 1)) \
-            + self.trans_rew_sum \
-            + discount*(self.transition_matrix * mP).reshape(self.dS, self.dA)
+            + self.env.trans_rew_sum \
+            + discount*(self.env.transition_matrix * mP).reshape(self.dS, self.dA)
         return prev_preference
 
     def compute_policy(self, preference):

@@ -19,11 +19,10 @@ from debug_rl.utils import (
 class SamplingFittedSolver(Solver):
     def solve(self):
         self.init_history()
-        if isinstance(self.env, TabularEnv):
-            tensor_all_obss = torch.tensor(
-                self.all_obss, dtype=torch.float32, device=self.device)
-            values = self.value_network(tensor_all_obss).reshape(
-                self.dS, self.dA).detach().cpu().numpy()
+        self.all_obss = torch.tensor(self.env.all_observations,
+                                     dtype=torch.float32, device=self.device)
+        values = self.value_network(self.all_obss).reshape(
+            self.dS, self.dA).detach().cpu().numpy()
 
         self.env.reset()
         if self.solve_options["use_replay_buffer"]:
@@ -33,7 +32,7 @@ class SamplingFittedSolver(Solver):
             else:
                 policy = self.compute_policy(values)
             trajectory = collect_samples(
-                self.env, policy, self.solve_options["minibatch_size"], self.all_obss)
+                self.env, policy, self.solve_options["minibatch_size"])
             self.buffer.add(**trajectory)
 
         # start training
@@ -51,7 +50,7 @@ class SamplingFittedSolver(Solver):
                 policy = self.compute_policy(values)
                 eval_policy = policy
             trajectory = collect_samples(
-                self.env, policy, self.solve_options["num_samples"], self.all_obss)
+                self.env, policy, self.solve_options["num_samples"])
 
             if self.solve_options["use_replay_buffer"]:
                 # ----- generate mini-batch from the replay_buffer -----
@@ -60,7 +59,7 @@ class SamplingFittedSolver(Solver):
                 trajectory = squeeze_trajectory(trajectory)
 
             # ----- record performance -----
-            self.record_performance(k, eval_policy, tensor_all_obss)
+            self.record_performance(k, eval_policy)
 
             # ----- update values -----
             tensor_traj = trajectory_to_tensor(trajectory, self.device)
@@ -75,7 +74,7 @@ class SamplingFittedSolver(Solver):
 
             self.record_scalar("value loss", loss)
 
-            values = self.value_network(tensor_all_obss).reshape(
+            values = self.value_network(self.all_obss).reshape(
                 self.dS, self.dA).detach().cpu().numpy()
 
             # ----- update target network -----
@@ -86,7 +85,7 @@ class SamplingFittedSolver(Solver):
                 self.target_value_network2.load_state_dict(
                     self.value_network2.state_dict())
 
-        self.record_performance(k, eval_policy, tensor_all_obss, force=True)
+        self.record_performance(k, eval_policy, force=True)
 
 
 class SamplingFittedViSolver(SamplingFittedSolver):
