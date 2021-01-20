@@ -23,7 +23,8 @@ debug_rlは行列形式で表現された`envs`と, その`envs`を解く`solver
 | [CartPole](debug_rl/envs/cartpole) | ✓ | ✓ | - | ✓ |
 
 
-* `solvers`: Solverはenvとソルバのハイパーパラメータである`options`を初期化時に設定し, `solve`関数を実行することでMDPを解きます. 
+* `solvers`: Solverはenvとソルバのハイパーパラメータである`options`を初期化時に設定し, `run`関数を実行することでMDPを解きます. 
+solverは`initialize`関数を呼ぶと初期化されます. `run`関数を繰り返し呼んで途中から学習を再開することも可能です.
 また, 初期化時にclearMLのloggerを渡すことで[clearML](https://github.com/allegroai/clearml)による学習の確認もできますが, 渡さなくても実行は可能です.
 現在は以下のソルバをサポートしています:
 

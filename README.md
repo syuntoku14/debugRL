@@ -26,8 +26,9 @@ Currently, the following environments are supported:
 | [Pendulum](debug_rl/envs/pendulum) | ✓ | ✓ | ✓ | ✓ |
 | [CartPole](debug_rl/envs/cartpole) | ✓ | ✓ | - | ✓ |
 
-* `solvers`: A solver solves MDP by setting the env and the hyperparameters at initialization and then executing the `solve` function. 
-You can also check the training progress by passing the 
+* `solvers`: A solver solves MDP by setting the env and the hyperparameters at initialization and then executing the `run` function. 
+A solver can be initialized by calling `initialize` function, but you can continue learning by repeatedly calling `run` function.
+You can check the training progress by passing the 
 logger of [clearML](https://github.com/allegroai/clearml) at the initialization, but you can still run the solver without it.
 Currently the following solvers are supported:
 
