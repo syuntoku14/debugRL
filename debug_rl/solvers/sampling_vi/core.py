@@ -1,4 +1,4 @@
-import pprint
+import numpy as np
 from debug_rl.solvers import Solver
 from debug_rl.utils import (
     boltzmann_softmax,
@@ -18,14 +18,14 @@ OPTIONS = {
     "eps_decay": 200,
     # Tabular settings
     "lr": 0.1,  # learning rate of tabular methods
-    "num_trains": 10000,  # for sampling methods
 }
 
 
 class Solver(Solver):
-    def set_options(self, options={}):
+    def initialize(self, options={}):
         self.solve_options.update(OPTIONS)
-        super().set_options(options)
+        super().initialize(options)
+        self.record_array("values", np.zeros((self.dS, self.dA)))
 
         # set max_operator
         if self.solve_options["max_operator"] == "boltzmann_softmax":
@@ -35,13 +35,9 @@ class Solver(Solver):
         else:
             raise ValueError("Invalid max_operator")
 
-        print("{} solve_options:".format(type(self).__name__))
-        pp = pprint.PrettyPrinter(indent=4)
-        pp.pprint(self.solve_options)
-
-    def record_performance(self, k, values, eval_policy, force=False):
-        if k % self.solve_options["record_performance_interval"] == 0 or force:
+    def record_performance(self, values, eval_policy):
+        if self.step % self.solve_options["record_performance_interval"] == 0:
             expected_return = self.env.compute_expected_return(eval_policy)
-            self.record_scalar("Return mean", expected_return, x=k)
-            self.record_array("policy", eval_policy, x=k)
-            self.record_array("values", values, x=k)
+            self.record_scalar("Return mean", expected_return)
+            self.record_array("policy", eval_policy)
+            self.record_array("values", values)

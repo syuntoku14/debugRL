@@ -26,10 +26,12 @@ def test_cvi(setUp):
 
 
 def run_solver(solver, env):
-    solver.solve()
+    solver.solve_options["record_performance_interval"] = 1
+    solver.solve(num_steps=10)
     policy = solver.compute_policy(solver.values)
     action_values = solver.env.compute_action_values(solver.policy)
     visitation = env.compute_visitation(solver.policy)
+    assert solver.step == 10
     assert solver.values.shape \
         == solver.policy.shape \
         == action_values.shape \

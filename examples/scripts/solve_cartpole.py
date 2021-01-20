@@ -24,7 +24,6 @@ SOLVERS = {
 options = DEFAULT_OPTIONS
 options.update({
     "solver": "SAC",
-    "num_trains": 10000,
     "polyak": 0.995,
     })
 
@@ -45,7 +44,7 @@ def main():
     solver = solver_cls(env, logger=logger, solve_options=options)
     solver_name = solver.__class__.__name__
     print(solver_name, "starts...")
-    solver.solve()
+    solver.solve(10000)
 
 
 if __name__ == "__main__":

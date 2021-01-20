@@ -8,25 +8,20 @@ from debug_rl.utils import (
 
 
 class OracleSolver(Solver):
-    def solve(self):
+    def solve(self, num_steps=10000):
         """
         Do value iteration from the end of the episode.
-
-        Returns:
-            SxA matrix
         """
-        self.init_history()
-        values = np.zeros((self.dS, self.dA))  # SxA
-        error = np.inf
+        values = self.values  # SxA
         # start training
-        for k in tqdm(range(self.solve_options["num_trains"])):
+        for _ in tqdm(range(num_steps)):
             new_values = self.backup(values)  # SxA
             error = np.abs(values - new_values).max()
             values = new_values
-            self.record_performance(k, values)
+            self.record_performance(values)
             if error < 1e-9:
                 break
-        self.record_performance(k, values, force=True)
+            self.step += 1
 
         print("Iteration finished with maximum error: ", error)
 

@@ -1,4 +1,4 @@
-import pprint
+import numpy as np
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -15,7 +15,6 @@ OPTIONS = {
     "beta": 1.0,
     "max_operator": "mellow_max",
     # Fitted iteration settings
-    "num_trains": 10000,
     "activation": "relu",
     "hidden": 128,  # size of hidden layer
     "depth": 2,  # depth of the network
@@ -88,10 +87,13 @@ def conv_net(env, hidden=32, depth=1, activation="tanh"):
 
 
 class Solver(Solver):
-    def set_options(self, options={}):
+    def initialize(self, options={}):
         self.solve_options.update(OPTIONS)
-        super().set_options(options)
+        super().initialize(options)
         self.device = self.solve_options["device"]
+        self.all_obss = torch.tensor(self.env.all_observations,
+                                     dtype=torch.float32, device=self.device)
+        self.record_array("values", np.zeros((self.dS, self.dA)))
 
         # set max_operator
         if self.solve_options["max_operator"] == "boltzmann_softmax":
@@ -129,11 +131,11 @@ class Solver(Solver):
         self.value_optimizer = self.optimizer(self.value_network.parameters(),
                                               lr=self.solve_options["lr"])
 
-    def record_performance(self, k, values, force=False):
-        if k % self.solve_options["record_performance_interval"] == 0 or force:
+    def record_performance(self, values):
+        if self.step % self.solve_options["record_performance_interval"] == 0:
             policy = self.compute_policy(values)
             expected_return = self.env.compute_expected_return(policy)
-            self.record_array("policy", policy, x=k)
-            self.record_array("values", values, x=k)
+            self.record_array("policy", policy)
+            self.record_array("values", values)
             self.record_scalar(
-                " Return mean", expected_return, x=k, tag="Policy")
+                " Return mean", expected_return, tag="Policy")

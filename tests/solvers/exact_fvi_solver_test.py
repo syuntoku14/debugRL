@@ -10,22 +10,16 @@ from .oracle_vi_solver_test import run_solver
 def setUp():
     pend_env = Pendulum(state_disc=5, dA=3, horizon=5)
     pend_env.reset()
-
-    solve_option = {
-        "num_trains": 10,
-    }
-    yield pend_env, solve_option
+    yield pend_env
 
 
 def test_value_iteration(setUp):
-    pend_env, solve_option = setUp
+    pend_env = setUp
     solver = ExactFittedViSolver(pend_env)
-    solver.set_options(solve_option)
     run_solver(solver, pend_env)
 
 
 def test_cvi(setUp):
-    pend_env, solve_option = setUp
+    pend_env = setUp
     solver = ExactFittedCviSolver(pend_env)
-    solver.set_options(solve_option)
     run_solver(solver, pend_env)

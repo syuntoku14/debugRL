@@ -13,33 +13,16 @@ from debug_rl.utils import (
 
 
 class SamplingSolver(Solver):
-    def solve(self):
-        self.init_history()
-        values = np.zeros((self.dS, self.dA))  # SxA
-        prev_policy = None
-
-        self.env.reset()
-
-        # start training
-        for k in tqdm(range(self.solve_options["num_trains"])):
+    def solve(self, num_steps=10000):
+        values = self.values  # SxA
+        for _ in tqdm(range(num_steps)):
             # ------ collect samples by the current policy ------
-            if isinstance(self, SamplingViSolver):
-                eps_greedy = compute_epsilon(
-                    k, self.solve_options["eps_start"],
-                    self.solve_options["eps_end"],
-                    self.solve_options["eps_decay"])
-                policy = self.compute_policy(values, eps_greedy=eps_greedy)
-                eval_policy = self.compute_policy(values, eps_greedy=0)
-            else:
-                policy = self.compute_policy(values)
-                eval_policy = policy
-            if prev_policy is None:
-                prev_policy = policy
+            policy = self.compute_policy(values)
             trajectory = collect_samples(
                 self.env, policy, self.solve_options["num_samples"])
 
             # ----- record performance -----
-            self.record_performance(k, values, eval_policy)
+            self.record_performance(values, policy)
 
             # ----- update values -----
             for state, act, next_state, rew in zip(
@@ -51,9 +34,7 @@ class SamplingSolver(Solver):
                 lr = self.solve_options["lr"]
                 values[state, act] = \
                     (1-lr) * curr_value + lr*target
-
-            prev_policy = policy
-        self.record_performance(k, values, eval_policy, force=True)
+            self.step += 1
 
 
 class SamplingViSolver(SamplingSolver):
@@ -64,8 +45,12 @@ class SamplingViSolver(SamplingSolver):
         target = rew + discount * next_v
         return target
 
-    def compute_policy(self, q_values, eps_greedy=0.0):
+    def compute_policy(self, q_values):
         # return epsilon-greedy policy
+        eps_greedy = compute_epsilon(
+            self.step, self.solve_options["eps_start"],
+            self.solve_options["eps_end"],
+            self.solve_options["eps_decay"])
         return eps_greedy_policy(q_values, eps_greedy=eps_greedy)
 
 

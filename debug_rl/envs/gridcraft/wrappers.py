@@ -1,4 +1,5 @@
 import numpy as np
+from debug_rl.envs.base import TabularEnv
 from .grid_env import GridEnv
 from gym.spaces import Box
 from gym import ObservationWrapper

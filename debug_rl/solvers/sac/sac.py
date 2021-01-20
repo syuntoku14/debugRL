@@ -13,20 +13,8 @@ from debug_rl.utils import (
 
 
 class SacSolver(Solver):
-    def solve(self):
-        self.all_obss = torch.tensor(
-            self.env.all_observations, dtype=torch.float32, device=self.device)
-        self.env.reset()
-        # Collect random samples in advance
-        preference = self.policy_network(self.all_obss).reshape(
-            self.dS, self.dA).detach().cpu().numpy()
-        policy = self.compute_policy(preference)
-        trajectory = collect_samples(
-            self.env, policy, self.solve_options["minibatch_size"])
-        self.buffer.add(**trajectory)
-
-        # start training
-        for k in tqdm(range(self.solve_options["num_trains"])):
+    def solve(self, num_steps=10000):
+        for _ in tqdm(range(num_steps)):
             # ------ collect samples by the current policy ------
             preference = self.policy_network(self.all_obss).reshape(
                 self.dS, self.dA).detach().cpu().numpy()
@@ -41,7 +29,7 @@ class SacSolver(Solver):
             trajectory = squeeze_trajectory(trajectory)
 
             # ----- record performance -----
-            self.record_performance(k)
+            self.record_performance()
 
             # ----- update q network -----
             tensor_traj = trajectory_to_tensor(trajectory, self.device)
@@ -68,6 +56,7 @@ class SacSolver(Solver):
                                        self.target_value_network, self.solve_options["polyak"])
             self.update_target_network(self.value_network2,
                                        self.target_value_network2, self.solve_options["polyak"])
+            self.step += 1
 
     # This implementation does not use reparameterization trick
     def backup(self, tensor_traj):

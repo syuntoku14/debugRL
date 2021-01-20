@@ -1,4 +1,3 @@
-import pprint
 from copy import deepcopy
 import torch
 from torch import nn
@@ -7,7 +6,8 @@ from debug_rl.solvers import Solver
 from debug_rl.utils import (
     boltzmann_softmax,
     mellow_max,
-    make_replay_buffer
+    make_replay_buffer,
+    collect_samples
 )
 
 
@@ -22,7 +22,6 @@ OPTIONS = {
     "eps_end": 0.05,
     "eps_decay": 200,
     # Fitted iteration settings
-    "num_trains": 10000,
     "activation": "relu",
     "hidden": 128,  # size of hidden layer
     "depth": 2,  # depth of the network
@@ -100,10 +99,12 @@ def conv_net(env, hidden=32, depth=1, activation="tanh"):
 
 
 class Solver(Solver):
-    def set_options(self, options={}):
+    def initialize(self, options={}):
         self.solve_options.update(OPTIONS)
-        super().set_options(options)
+        super().initialize(options)
         self.device = self.solve_options["device"]
+        self.all_obss = torch.tensor(self.env.all_observations,
+                                     dtype=torch.float32, device=self.device)
 
         # set max_operator
         if self.solve_options["max_operator"] == "boltzmann_softmax":
@@ -155,10 +156,14 @@ class Solver(Solver):
         # set replay buffer
         self.buffer = make_replay_buffer(
             self.env, self.solve_options["buffer_size"])
-
-        print("{} solve_options:".format(type(self).__name__))
-        pp = pprint.PrettyPrinter(indent=4)
-        pp.pprint(self.solve_options)
+        if self.solve_options["use_replay_buffer"]:
+            # Collect random samples in advance
+            values = self.value_network(self.all_obss).reshape(
+                self.dS, self.dA).detach().cpu().numpy()
+            policy = self.compute_policy(values)
+            trajectory = collect_samples(
+                self.env, policy, self.solve_options["minibatch_size"])
+            self.buffer.add(**trajectory)
 
     def update_network(self, target, network, optimizer, obss, actions):
         values = network(obss)
@@ -172,16 +177,16 @@ class Solver(Solver):
         optimizer.step()
         return loss.detach().cpu().item()
 
-    def record_performance(self, k, eval_policy, force=True):
-        if k % self.solve_options["record_performance_interval"] == 0 or force:
+    def record_performance(self, eval_policy):
+        if self.step % self.solve_options["record_performance_interval"] == 0:
             expected_return = \
                 self.env.compute_expected_return(eval_policy)
-            self.record_scalar("Return mean", expected_return, x=k)
+            self.record_scalar("Return mean", expected_return)
 
             aval = self.env.compute_action_values(
                 eval_policy, self.solve_options["discount"])
             values = self.value_network(self.all_obss).reshape(
                 self.dS, self.dA).detach().cpu().numpy()
-            self.record_scalar("Q error", ((aval-values)**2).mean(), x=k)
-            self.record_array("values", values, x=k)
-            self.record_array("policy", eval_policy, x=k)
+            self.record_scalar("Q error", ((aval-values)**2).mean())
+            self.record_array("values", values)
+            self.record_array("policy", eval_policy)

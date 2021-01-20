@@ -27,7 +27,6 @@ SOLVERS = {
 options = DEFAULT_OPTIONS
 options.update({
     "solver": "SAC",
-    "num_trains": 200000,
     "device": "cuda:0",
     })
 
@@ -56,7 +55,7 @@ def main():
     task_params = task.connect(solver.solve_options)
     solver_name = solver.__class__.__name__
     print(solver_name, "starts...")
-    solver.solve()
+    solver.solve(num_steps=200000)
     solver.compute_policy(solver.values)
 
     # dir_name = os.path.join("results", solver_name)

@@ -22,39 +22,11 @@ SOLVERS = {
 
 options = {
     "solver": "TVI",
-    # general settings
-    "seed": 0,
-    "discount": 0.99,
-    "num_samples": 200,  # number of samples to collect
-    "buffer_size": 1e6,
-    # CVI settings
-    "alpha": 0.9,
-    "beta": 10,
-    "max_operator": "boltzmann_softmax",
-    # Safe CVI settings
-    "use_oracle_distribution": True,  # use compute_visitation to compute d_pi if True
-    "use_oracle_advantage": True,  # use compute_action_values to compute advantage if True
-    # FVI settings
-    "activation": "relu",
-    "hidden": 128,  # size of hidden layer
-    "depth": 2,  # depth of the network
-    "device": "cpu",
-    "lr": 0.001,  # learning rate of a nn
-    "num_trains": 2000,  # for sampling methods
-    "proj_iters": 1,  # num of updates per a minibatch
-    "use_target_network": True,
-    "target_update_interval": 50,
-    "use_replay_buffer": True,
-    "minibatch_size": 128,  # size of minibatch when use_replay_buffer is True
-    # Tabular settings
-    "lr": 0.1,  # learning rate of tabular methods
-    "num_trains": 1000,  # for sampling methods
 }
 
 
 def main():
-    # task_name = '{}-α:{}-β:{}'.format(options["solver"], options["alpha"], options["beta"])
-    task_name = "q-learning"
+    task_name = options["solver"]
     task = Task.init(project_name='gridcraft', task_name=task_name)
     logger = task.get_logger()
     task_params = task.connect(options)
@@ -73,18 +45,19 @@ def main():
     solver = solver_cls(env, logger=logger, solve_options=options)
     solver_name = solver.__class__.__name__
     print(solver_name, "starts...")
-    solver.solve()
+    solver.solve(num_steps=1000)
     solver.compute_policy(solver.values)
 
     # draw results
     plot_grid_values(env.gs, solver.values, title="Values")
+    plt.show()
     plot_grid_values(
         env.gs,
         env.compute_action_values(solver.policy),
         title="Q values")
+    plt.show()
     plot_grid_values(env.gs, solver.policy, title="Policy")
-    plot_grid_values(env.gs, np.sum(
-        solver.visitation, axis=0), title="Visitation")
+    plt.show()
 
 
 if __name__ == "__main__":

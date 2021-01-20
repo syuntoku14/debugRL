@@ -13,49 +13,40 @@ import torch
 def setUp():
     pend_env = Pendulum(state_disc=5, dA=3, horizon=5)
     pend_env.reset()
-
-    solve_options = {
-        "num_trains": 5,
-    }
-    yield pend_env, solve_options
+    yield pend_env
 
 
 def test_value_iteration(setUp):
-    pend_env, solve_options = setUp
-    buffer_options = {"use_replay_buffer": False}
-    buffer_options.update(solve_options)
+    pend_env = setUp
+    solve_options = {"use_replay_buffer": False}
     solver = SamplingFittedViSolver(pend_env)
-    solver.set_options(buffer_options)
+    solver.initialize(solve_options)
     run_solver(solver, pend_env)
 
 
 def test_cvi(setUp):
-    pend_env, solve_options = setUp
-    buffer_options = {"use_replay_buffer": False}
-    buffer_options.update(solve_options)
+    pend_env = setUp
+    solve_options = {"use_replay_buffer": False}
     solver = SamplingFittedCviSolver(pend_env)
-    solver.set_options(buffer_options)
+    solver.initialize(solve_options)
     run_solver(solver, pend_env)
 
 
 def test_image_obs(setUp):
-    _, solve_options = setUp
     pend_env = Pendulum(state_disc=5, dA=3,
                         horizon=5, obs_mode="image")
     pend_env.reset()
     solver = SamplingFittedViSolver(pend_env)
-    buffer_options = {"use_replay_buffer": True}
-    buffer_options.update(solve_options)
-    solver.set_options(buffer_options)
+    solve_options = {"use_replay_buffer": True}
+    solver.initialize(solve_options)
     run_solver(solver, pend_env)
 
 
 def test_target_network(setUp):
-    pend_env, solve_options = setUp
+    pend_env = setUp
     solver = SamplingFittedViSolver(pend_env)
-    buffer_options = {"use_target_network": True, "target_update_interval": 1}
-    buffer_options.update(solve_options)
-    solver.set_options(buffer_options)
+    solve_options = {"use_target_network": True, "target_update_interval": 1}
+    solver.initialize(solve_options)
     run_solver(solver, pend_env)
     net_tensors = solver.value_network.state_dict().values()
     tnet_tensors = solver.target_value_network.state_dict().values()

@@ -1,3 +1,4 @@
+import pprint
 import warnings
 import pickle
 import numpy as np
@@ -8,6 +9,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from scipy import sparse
 from debug_rl.envs.base import TabularEnv
+from debug_rl.envs.gridcraft import OneHotObsWrapper, RandomObsWrapper
 from debug_rl.utils import (
     boltzmann_softmax, mellow_max, make_replay_buffer)
 from copy import deepcopy
@@ -31,7 +33,8 @@ class Solver(ABC):
             solve_options (dict): Parameters for the algorithm, e.g. discount_factor.
             logger (Trains.Logger): logger for Trains
         """
-        assert isinstance(env, TabularEnv), "env must be debug_rl.envs.base.TabularEnv"
+        assert isinstance(env, (TabularEnv, OneHotObsWrapper, RandomObsWrapper)), \
+            "env must be debug_rl.envs.base.TabularEnv"
 
         # solver options
         self.solve_options = DEFAULT_OPTIONS
@@ -40,10 +43,9 @@ class Solver(ABC):
         # env parameters
         self.env = env
         self.dS, self.dA = env.dS, env.dA
-        self.init_history()
-        self.set_options(solve_options)
+        self.initialize(solve_options)
 
-    def set_options(self, options={}):
+    def initialize(self, options={}):
         """
         Update self.solve_options with options.
         """
@@ -55,18 +57,29 @@ class Solver(ABC):
         # set seed
         np.random.seed(self.solve_options["seed"])
         torch.manual_seed(self.solve_options["seed"])
+        self.env.reset()
+        self.init_history()
+        self.print_options()
 
     def init_history(self):
         self.history = defaultdict(lambda: {"x": [], "y": []})
+        self.step = 0
 
     @abstractmethod
-    def solve(self):
+    def solve(self, num_trains=1000):
         """
-        Iterate the backup function and compute value iteration.
+        Run algorithm to solve a MDP.
+            - num_trains: Number of iterations
+            - restart: Reset the solver and run again if True
+        """
+    
+    @property
+    def step(self):
+        return self.history["step"]
 
-        Returns:
-            SxA matrix
-        """
+    @step.setter
+    def step(self, step):
+        self.history["step"] = step
 
     @property
     def values(self):
@@ -80,35 +93,31 @@ class Solver(ABC):
             assert ValueError("\"policy\" has not been recorded yet. Check history.")
         return self.history["policy"]["y"][-1]
 
-    def record_scalar(self, title, y, x=None, tag=None):
+    def record_scalar(self, title, y, tag=None):
         """
         Record a scalar y to self.history. 
         Report to trains also if self.logger is set.
         """
-        if x is None:
-            x = len(self.history[title]["x"])
         if self.logger is not None:
             tag = title if tag is None else tag
-            self.logger.report_scalar(title, tag, y, x)
-        self.history[title]["x"].append(x)
+            self.logger.report_scalar(title, tag, y, self.step)
+        self.history[title]["x"].append(self.step)
         self.history[title]["y"].append(y)
 
-    def record_array(self, title, array, x=None):
-        if x is None:
-            x = len(self.history[title]["x"])
+    def record_array(self, title, array):
         if isinstance(array, torch.Tensor):
             array = array.detach().cpu().numpy()
         assert isinstance(array, np.ndarray), \
             "array must be a torch.tensor or a numpy.ndarray"
 
         if self.solve_options["record_all_array"]:
-            self.history[title]["x"].append(x)
+            self.history[title]["x"].append(self.step)
             self.history[title]["y"].append(array.astype(np.float32))
         else:
             warnings.warn(
                 "The option \"record_all_array\" is False and the record_array \
                 function only record the lastly recorded array", UserWarning)
-            self.history[title]["x"] = [x, ]
+            self.history[title]["x"] = [self.step, ]
             self.history[title]["y"] = [array.astype(np.float32), ]
 
     def save(self, path):
@@ -123,4 +132,9 @@ class Solver(ABC):
         data = torch.load(path)
         self.init_history()
         self.history.update(data["history"])
-        self.set_options(data["options"])
+        self.initialize(data["options"])
+
+    def print_options(self):
+        print("{} solve_options:".format(type(self).__name__))
+        pp = pprint.PrettyPrinter(indent=4)
+        pp.pprint(self.solve_options)

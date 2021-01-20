@@ -1,5 +1,5 @@
-import pprint
 from copy import deepcopy
+import gym
 import numpy as np
 import torch
 from torch import nn
@@ -10,6 +10,7 @@ from debug_rl.utils import (
     boltzmann_softmax,
     mellow_max,
     make_replay_buffer,
+    collect_samples
 )
 
 
@@ -21,7 +22,6 @@ OPTIONS = {
     "sigma": 0.2,
     "max_operator": "mellow_max",
     # Fitted iteration settings
-    "num_trains": 10000,
     "activation": "relu",
     "hidden": 128,  # size of hidden layer
     "depth": 2,  # depth of the network
@@ -160,11 +160,18 @@ class PolicyNet(nn.Module):
 
 
 class Solver(Solver):
-    def set_options(self, options={}):
+    def initialize(self, options={}):
+        assert isinstance(self.env.action_space, gym.spaces.Box)
+
         options = deepcopy(options)
         self.solve_options.update(OPTIONS)
-        super().set_options(options)
+        super().initialize(options)
         self.device = self.solve_options["device"]
+        self.all_obss = torch.tensor(
+            self.env.all_observations, dtype=torch.float32, device=self.device)
+        self.all_actions = torch.tensor(
+            self.env.all_actions, dtype=torch.float32,
+            device=self.device).repeat(self.dS, 1).reshape(self.dS, self.dA)  # dS x dA
 
         # set max_operator
         if self.solve_options["max_operator"] == "boltzmann_softmax":
@@ -209,10 +216,14 @@ class Solver(Solver):
         # set replay buffer
         self.buffer = make_replay_buffer(
             self.env, self.solve_options["buffer_size"])
+        # Collect random samples in advance
+        self.env.reset()
 
-        print("{} solve_options:".format(type(self).__name__))
-        pp = pprint.PrettyPrinter(indent=4)
-        pp.pprint(self.solve_options)
+        policy_probs = self.make_policy_probs()
+        policy = self.compute_policy(policy_probs)
+        trajectory = collect_samples(
+            self.env, policy, self.solve_options["minibatch_size"])
+        self.buffer.add(**trajectory)
 
     def update_network(self, target, network, optimizer, loss_fn, obss, actions):
         values = network(obss, actions).squeeze()
@@ -236,8 +247,8 @@ class Solver(Solver):
                     p_targ.data.mul_(polyak)
                     p_targ.data.add_((1 - polyak) * p.data)
 
-    def record_performance(self, k):
-        if k % self.solve_options["record_performance_interval"] == 0:
+    def record_performance(self):
+        if self.step % self.solve_options["record_performance_interval"] == 0:
             nets = {self.policy_network: "Policy"}
             for net, name in nets.items():
                 dist = net.compute_pi_distribution(self.all_obss)
@@ -250,15 +261,15 @@ class Solver(Solver):
                 expected_return = self.env.compute_expected_return(
                     policy)
                 self.record_scalar(
-                    " Return mean", expected_return, x=k, tag=name)
-                self.record_array("policy", policy, x=k)
+                    " Return mean", expected_return, tag=name)
+                self.record_array("policy", policy)
 
             tensor_all_obss = torch.repeat_interleave(self.all_obss, self.dA, 0)  # (SxA) x obss
             tensor_all_actions = self.all_actions.reshape(-1, 1)
             q1 = self.value_network(tensor_all_obss, tensor_all_actions)
             q2 = self.value_network2(tensor_all_obss, tensor_all_actions)
             values = torch.min(q1, q2).reshape(self.dS, self.dA)
-            self.record_array("values", values, x=k)
+            self.record_array("values", values)
 
     def compute_policy(self, policy_probs):
         # return softmax policy

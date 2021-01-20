@@ -25,7 +25,6 @@ SOLVERS = {
 options = DEFAULT_OPTIONS
 options.update({
     "solver": "SAC-Continuous",
-    "num_trains": 30000,
     "device": "cuda:0",
     })
 
@@ -54,7 +53,7 @@ def main():
     solver_name = solver.__class__.__name__
     print(solver_name, "starts...")
 
-    solver.solve()
+    solver.solve(num_steps=30000)
     env.compute_policy(solver.values)
 
     # draw results

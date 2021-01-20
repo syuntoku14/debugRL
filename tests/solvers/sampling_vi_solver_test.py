@@ -11,22 +11,18 @@ from .oracle_vi_solver_test import run_solver
 def setUp():
     pend_env = Pendulum(state_disc=5, dA=3, horizon=5)
     pend_env.reset()
-
-    solve_options = {
-        "num_trains": 3,
-    }
-    yield pend_env, solve_options
+    yield pend_env
 
 
 def test_value_iteration(setUp):
-    pend_env, solve_options = setUp
+    pend_env = setUp
     solver = SamplingViSolver(pend_env)
-    solver.set_options(solve_options)
+    solver.initialize()
     run_solver(solver, pend_env)
 
 
 def test_cvi(setUp):
-    pend_env, solve_options = setUp
+    pend_env = setUp
     solver = SamplingCviSolver(pend_env)
-    solver.set_options(solve_options)
+    solver.initialize()
     run_solver(solver, pend_env)

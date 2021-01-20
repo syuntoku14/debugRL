@@ -1,7 +1,5 @@
 import gym
 from copy import deepcopy
-from scipy.special import rel_entr
-from scipy import stats
 import numpy as np
 import torch
 from torch.nn import functional as F
@@ -18,39 +16,17 @@ from debug_rl.utils import (
 
 class SacContinuousSolver(Solver):
     # This assumes one-dimensional action_space
-    def solve(self):
-        assert isinstance(self.env.action_space, gym.spaces.Box)
-        self.init_history()
-        self.all_obss = torch.tensor(
-            self.env.all_observations, dtype=torch.float32, device=self.device)
-        self.all_actions = torch.tensor(
-            self.env.all_actions, dtype=torch.float32,
-            device=self.device).repeat(self.dS, 1).reshape(self.dS, self.dA)  # dS x dA
-        policy_probs = self.make_policy_probs()
-        prev_policy = None
-        self.env.reset()
-
-        # Collect random samples in advance
-        policy = self.compute_policy(policy_probs)
-        trajectory = collect_samples(
-            self.env, policy, self.solve_options["minibatch_size"])
-        self.buffer.add(**trajectory)
-
-        # start training
-        for k in tqdm(range(self.solve_options["num_trains"])):
+    def solve(self, num_steps=10000):
+        for _ in tqdm(range(num_steps)):
             # ------ collect samples by the current policy ------
-            prev_policy = deepcopy(policy)
+            policy_probs = self.make_policy_probs()
             policy = self.compute_policy(policy_probs)
             trajectory = collect_samples(
                 self.env, policy, self.solve_options["num_samples"])
             self.buffer.add(**trajectory)
 
-            # # ----- record performance -----
-            self.record_performance(k)
-            kl = rel_entr(policy, prev_policy).sum(axis=-1)
-            entropy = stats.entropy(policy, axis=1)
-            self.record_scalar("KL divergence", kl.mean(), x=k)
-            self.record_scalar("Entropy", entropy.mean(), x=k)
+            # ----- record performance -----
+            self.record_performance()
 
             # ----- update q network -----
             trajectory = self.buffer.sample(
@@ -73,7 +49,6 @@ class SacContinuousSolver(Solver):
             # update policy
             policy_loss = self.update_policy(tensor_traj)
             self.record_scalar("policy loss", policy_loss)
-            policy_probs = self.make_policy_probs()
 
             # ----- update target networks with constant polyak -----
             polyak = self.solve_options["polyak"]
@@ -81,6 +56,7 @@ class SacContinuousSolver(Solver):
                                        self.target_value_network, polyak)
             self.update_target_network(self.value_network2,
                                        self.target_value_network2, polyak)
+            self.step += 1
 
     def backup(self, tensor_traj):
         discount = self.solve_options["discount"]

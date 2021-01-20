@@ -17,38 +17,12 @@ from debug_rl.utils import (
 
 
 class SamplingFittedSolver(Solver):
-    def solve(self):
-        self.init_history()
-        self.all_obss = torch.tensor(self.env.all_observations,
-                                     dtype=torch.float32, device=self.device)
-        values = self.value_network(self.all_obss).reshape(
-            self.dS, self.dA).detach().cpu().numpy()
-
-        self.env.reset()
-        if self.solve_options["use_replay_buffer"]:
-            # Collect random samples in advance
-            if isinstance(self, SamplingFittedViSolver):
-                policy = self.compute_policy(values, eps_greedy=1.0)
-            else:
-                policy = self.compute_policy(values)
-            trajectory = collect_samples(
-                self.env, policy, self.solve_options["minibatch_size"])
-            self.buffer.add(**trajectory)
-
-        # start training
-        for k in tqdm(range(self.solve_options["num_trains"])):
+    def solve(self, num_steps=10000):
+        for _ in tqdm(range(num_steps)):
             # ------ collect samples by the current policy ------
-            if isinstance(self, SamplingFittedViSolver):
-                eps_greedy = compute_epsilon(
-                    k, self.solve_options["eps_start"],
-                    self.solve_options["eps_end"],
-                    self.solve_options["eps_decay"])
-                self.record_scalar("epsilon", eps_greedy, x=k)
-                policy = self.compute_policy(values, eps_greedy=eps_greedy)
-                eval_policy = self.compute_policy(values, eps_greedy=0)
-            else:
-                policy = self.compute_policy(values)
-                eval_policy = policy
+            values = self.value_network(self.all_obss).reshape(
+                self.dS, self.dA).detach().cpu().numpy()
+            policy = self.compute_policy(values)
             trajectory = collect_samples(
                 self.env, policy, self.solve_options["num_samples"])
 
@@ -59,7 +33,7 @@ class SamplingFittedSolver(Solver):
                 trajectory = squeeze_trajectory(trajectory)
 
             # ----- record performance -----
-            self.record_performance(k, eval_policy)
+            self.record_performance(policy)
 
             # ----- update values -----
             tensor_traj = trajectory_to_tensor(trajectory, self.device)
@@ -74,18 +48,14 @@ class SamplingFittedSolver(Solver):
 
             self.record_scalar("value loss", loss)
 
-            values = self.value_network(self.all_obss).reshape(
-                self.dS, self.dA).detach().cpu().numpy()
-
             # ----- update target network -----
             if self.solve_options["use_target_network"] and \
-               (k+1) % self.solve_options["target_update_interval"] == 0:
+               (self.step+1) % self.solve_options["target_update_interval"] == 0:
                 self.target_value_network.load_state_dict(
                     self.value_network.state_dict())
                 self.target_value_network2.load_state_dict(
                     self.value_network2.state_dict())
-
-        self.record_performance(k, eval_policy, force=True)
+            self.step += 1
 
 
 class SamplingFittedViSolver(SamplingFittedSolver):
@@ -116,8 +86,12 @@ class SamplingFittedViSolver(SamplingFittedSolver):
             new_q = rews + discount*next_vval*(~dones)
         return new_q.squeeze()  # S
 
-    def compute_policy(self, q_values, eps_greedy=0.0):
+    def compute_policy(self, q_values):
         # return epsilon-greedy policy
+        eps_greedy = compute_epsilon(
+            self.step, self.solve_options["eps_start"],
+            self.solve_options["eps_end"],
+            self.solve_options["eps_decay"])
         return eps_greedy_policy(q_values, eps_greedy=eps_greedy)
 
 
