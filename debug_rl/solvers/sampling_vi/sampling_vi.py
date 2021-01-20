@@ -13,7 +13,7 @@ from debug_rl.utils import (
 
 
 class SamplingSolver(Solver):
-    def solve(self, num_steps=10000):
+    def run(self, num_steps=10000):
         values = self.values  # SxA
         for _ in tqdm(range(num_steps)):
             # ------ collect samples by the current policy ------

@@ -51,13 +51,13 @@ def test_policy():
 
 def test_collect_samples(setUp):
     env, solver, cont_env, cont_solver = setUp
-    solver.solve()
+    solver.run()
     policy = solver.compute_policy(solver.values)
     traj = collect_samples(env, policy, 10)
     assert len(traj["obs"]) == 10
     assert (traj["act"]).dtype == np.long
 
-    cont_solver.solve()
+    cont_solver.run()
     policy = cont_solver.compute_policy(cont_solver.values)
     traj = collect_samples(cont_env, policy, 10)
     assert (traj["obs"]).dtype == np.float32

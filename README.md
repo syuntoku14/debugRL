@@ -78,7 +78,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 # Step 1: train networks
 env = Pendulum()
 solver = SacSolver(env, solve_options={"device": device})
-solver.solve(num_steps=5000)
+solver.run(num_steps=5000)
 value_network = solver.value_network
 policy_network = solver.policy_network
 

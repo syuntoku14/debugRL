@@ -45,7 +45,7 @@ def main():
     solver = solver_cls(env, logger=logger, solve_options=options)
     solver_name = solver.__class__.__name__
     print(solver_name, "starts...")
-    solver.solve(num_steps=1000)
+    solver.run(num_steps=1000)
     solver.compute_policy(solver.values)
 
     # draw results

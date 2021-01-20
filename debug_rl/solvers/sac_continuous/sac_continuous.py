@@ -16,7 +16,7 @@ from debug_rl.utils import (
 
 class SacContinuousSolver(Solver):
     # This assumes one-dimensional action_space
-    def solve(self, num_steps=10000):
+    def run(self, num_steps=10000):
         for _ in tqdm(range(num_steps)):
             # ------ collect samples by the current policy ------
             policy_probs = self.make_policy_probs()

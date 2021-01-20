@@ -13,7 +13,7 @@ from debug_rl.utils import (
 
 
 class SacSolver(Solver):
-    def solve(self, num_steps=10000):
+    def run(self, num_steps=10000):
         for _ in tqdm(range(num_steps)):
             # ------ collect samples by the current policy ------
             preference = self.policy_network(self.all_obss).reshape(

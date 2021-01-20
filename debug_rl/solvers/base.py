@@ -66,7 +66,7 @@ class Solver(ABC):
         self.step = 0
 
     @abstractmethod
-    def solve(self, num_trains=1000):
+    def run(self, num_trains=1000):
         """
         Run algorithm to solve a MDP.
             - num_trains: Number of iterations
@@ -114,9 +114,6 @@ class Solver(ABC):
             self.history[title]["x"].append(self.step)
             self.history[title]["y"].append(array.astype(np.float32))
         else:
-            warnings.warn(
-                "The option \"record_all_array\" is False and the record_array \
-                function only record the lastly recorded array", UserWarning)
             self.history[title]["x"] = [self.step, ]
             self.history[title]["y"] = [array.astype(np.float32), ]
 
@@ -138,3 +135,6 @@ class Solver(ABC):
         print("{} solve_options:".format(type(self).__name__))
         pp = pprint.PrettyPrinter(indent=4)
         pp.pprint(self.solve_options)
+        if not self.solve_options["record_all_array"]:
+            warnings.warn(
+                "The option \"record_all_array\" is False and the record_array function only record the lastly recorded array", UserWarning)

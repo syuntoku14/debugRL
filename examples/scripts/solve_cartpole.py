@@ -44,7 +44,7 @@ def main():
     solver = solver_cls(env, logger=logger, solve_options=options)
     solver_name = solver.__class__.__name__
     print(solver_name, "starts...")
-    solver.solve(10000)
+    solver.run(10000)
 
 
 if __name__ == "__main__":

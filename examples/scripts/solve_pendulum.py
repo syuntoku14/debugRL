@@ -26,7 +26,7 @@ options = DEFAULT_OPTIONS
 options.update({
     "solver": "SAC-Continuous",
     "device": "cuda:0",
-    })
+})
 
 
 def main():
@@ -53,18 +53,18 @@ def main():
     solver_name = solver.__class__.__name__
     print(solver_name, "starts...")
 
-    solver.solve(num_steps=30000)
-    env.compute_policy(solver.values)
+    for _ in range(10):
+        solver.run(num_steps=3000)
 
-    # draw results
-    q_values = env.compute_action_values(solver.policy)
-    v_values = np.sum(solver.policy*q_values, axis=-1)
-    vmin = v_values.min()
-    vmax = v_values.max()
-    v_values = reshape_values(env, v_values)
-    plot_pendulum_values(env, v_values, vmin=vmin,
-                         vmax=vmax, title="State values")
-    plt.show()
+        # draw results
+        q_values = env.compute_action_values(solver.policy)
+        v_values = np.sum(solver.policy*q_values, axis=-1)
+        vmin = v_values.min()
+        vmax = v_values.max()
+        v_values = reshape_values(env, v_values)
+        plot_pendulum_values(env, v_values, vmin=vmin,
+                             vmax=vmax, title="State values")
+        plt.show()
 
     # dir_name = os.path.join("results", solver_name)
     # if not os.path.exists(dir_name):

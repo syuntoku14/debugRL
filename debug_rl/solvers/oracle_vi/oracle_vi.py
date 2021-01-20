@@ -8,7 +8,7 @@ from debug_rl.utils import (
 
 
 class OracleSolver(Solver):
-    def solve(self, num_steps=10000):
+    def run(self, num_steps=10000):
         """
         Do value iteration from the end of the episode.
         """
