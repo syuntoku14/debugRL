@@ -43,8 +43,7 @@ def main():
         action_mode = "discrete"
         dA = 5
     # Construct the environment
-    env = MountainCar(horizon=200, posdisc=32,
-                      veldisc=32, dA=dA,
+    env = MountainCar(horizon=200, state_disc=32, dA=dA,
                       action_mode=action_mode, obs_mode="image")
 
     # solve tabular MDP

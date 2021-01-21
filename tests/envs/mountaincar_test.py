@@ -4,7 +4,7 @@ from debug_rl.envs.mountaincar import MountainCar
 
 
 def test_mountaincar_env():
-    env = MountainCar(posdisc=5, veldisc=5)
+    env = MountainCar(state_disc=5)
     env.reset()
     for i in range(env.horizon-1):
         a = env.action_space.sample()
@@ -23,7 +23,7 @@ def test_mountaincar_env():
 
 
 def test_mountaincar_continuous_env():
-    env = MountainCar(posdisc=5, veldisc=5, action_mode="continuous")
+    env = MountainCar(state_disc=5, action_mode="continuous")
     env.reset()
     for i in range(env.horizon-1):
         a = env.action_space.sample()
@@ -43,7 +43,7 @@ def test_mountaincar_continuous_env():
 
 
 def test_image_obs():
-    env = MountainCar(posdisc=5, veldisc=5, obs_mode="image")
+    env = MountainCar(state_disc=5, obs_mode="image")
     env.reset()
     for i in range(env.horizon-1):
         a = env.action_space.sample()
