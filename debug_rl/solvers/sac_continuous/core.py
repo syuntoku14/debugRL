@@ -225,17 +225,6 @@ class Solver(Solver):
             self.env, policy, self.solve_options["minibatch_size"])
         self.buffer.add(**trajectory)
 
-    def update_target_network(self, network, target_network, polyak=-1.0):
-        if polyak < 0:
-            # hard update
-            target_network.load_state_dict(network.state_dict())
-        else:
-            # soft update
-            with torch.no_grad():
-                for p, p_targ in zip(network.parameters(), target_network.parameters()):
-                    p_targ.data.mul_(polyak)
-                    p_targ.data.add_((1 - polyak) * p.data)
-
     def record_performance(self):
         if self.step % self.solve_options["record_performance_interval"] == 0:
             nets = {self.policy_network: "Policy"}
@@ -271,31 +260,3 @@ class Solver(Solver):
         policy_probs = torch.softmax(log_policy, dim=-1).reshape(
             self.dS, self.dA).detach().cpu().numpy() 
         return policy_probs
-
-    def save(self, path):
-        data = {
-            "env_name": str(self.env),
-            "history": dict(self.history),
-            "options": self.solve_options,
-            "networks": {},
-        }
-
-        data["networks"]["value_network"] = self.value_network.state_dict()
-        data["networks"]["value_network2"] = self.value_network2.state_dict()
-        data["networks"]["target_value_network"] = self.target_value_network.state_dict()
-        data["networks"]["target_value_network2"] = self.target_value_network.state_dict()
-        data["networks"]["policy_network"] = self.policy_network.state_dict()
-        trans = self.buffer.get_all_transitions()
-        data["transitions"] = trans
-        torch.save(data, path)
-
-    def load(self, path):
-        data = torch.load(path)
-        self.value_network.load_state_dict(data["networks"]["value_network"])
-        self.value_network2.load_state_dict(data["networks"]["value_network2"])
-        self.target_value_network.load_state_dict(
-            data["networks"]["target_value_network"])
-        self.target_value_network2.load_state_dict(
-            data["networks"]["target_value_network2"])
-        self.policy_network.load_state_dict(data["networks"]["policy_network"])
-        self.buffer.add(**data["transitions"])

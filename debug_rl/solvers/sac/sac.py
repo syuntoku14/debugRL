@@ -15,35 +15,36 @@ from debug_rl.utils import (
 class SacSolver(Solver):
     def run(self, num_steps=10000):
         for _ in tqdm(range(num_steps)):
+            # ----- record performance -----
+            self.record_performance()
+
             # ------ collect samples by the current policy ------
             preference = self.policy_network(self.all_obss).reshape(
                 self.dS, self.dA).detach().cpu().numpy()
             policy = self.compute_policy(preference)
             trajectory = collect_samples(
                 self.env, policy, self.solve_options["num_samples"])
+
             # ----- generate mini-batch from the replay_buffer -----
             self.buffer.add(**trajectory)
             trajectory = self.buffer.sample(
                 self.solve_options["minibatch_size"])
             trajectory = squeeze_trajectory(trajectory)
 
-            # ----- record performance -----
-            self.record_performance()
-
             # ----- update q network -----
             tensor_traj = trajectory_to_tensor(trajectory, self.device)
             value_loss = self.update_critic(
                 self.value_network, self.value_optimizer, tensor_traj)
-            self.update_critic(
-                self.value_network2, self.value_optimizer2, tensor_traj)
             self.record_scalar("value loss", value_loss)
+            value_loss2 = self.update_critic(
+                self.value_network2, self.value_optimizer2, tensor_traj)
+            self.record_scalar("value loss 2", value_loss2)
 
             # ----- update policy network -----
             policy_loss = self.update_actor(tensor_traj)
             self.record_scalar("policy loss", policy_loss)
 
             # ----- update target network -----
-            # soft update
             self.update_target_network(self.value_network,
                                        self.target_value_network, self.solve_options["polyak"])
             self.update_target_network(self.value_network2,
@@ -102,7 +103,7 @@ class SacSolver(Solver):
             1e-8  # avoid numerical instability
         log_policy = torch.log(policy)  # BxA
         loss = torch.sum(policy * (log_policy-target.log()),
-                         dim=-1, keepdim=True).mean() 
+                         dim=-1, keepdim=True).mean()
 
         self.policy_optimizer.zero_grad()
         loss.backward()
@@ -111,3 +112,14 @@ class SacSolver(Solver):
                 param.grad.data.clamp_(-1, 1)
         self.policy_optimizer.step()
         return loss.detach().cpu().item()
+
+    def update_target_network(self, network, target_network, polyak=-1.0):
+        if polyak < 0:
+            # hard update
+            target_network.load_state_dict(network.state_dict())
+        else:
+            # soft update
+            with torch.no_grad():
+                for p, p_targ in zip(network.parameters(), target_network.parameters()):
+                    p_targ.data.mul_(polyak)
+                    p_targ.data.add_((1 - polyak) * p.data)

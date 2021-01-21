@@ -29,7 +29,7 @@ SOLVERS = {
 
 options = DEFAULT_OPTIONS
 options.update({
-    "solver": "SAC",
+    "solver": "PPO",
     "device": "cuda:0",
     })
 

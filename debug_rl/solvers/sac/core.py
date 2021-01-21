@@ -29,7 +29,7 @@ OPTIONS = {
     "clip_grad": False,  # clip the gradient if True
     "optimizer": "Adam",
     "buffer_size": 1e6,
-    "polyak": 0.995, 
+    "polyak": 0.995,
 }
 
 
@@ -168,17 +168,6 @@ class Solver(Solver):
             self.env, policy, self.solve_options["minibatch_size"])
         self.buffer.add(**trajectory)
 
-    def update_target_network(self, network, target_network, polyak=-1.0):
-        if polyak < 0:
-            # hard update
-            target_network.load_state_dict(network.state_dict())
-        else:
-            # soft update
-            with torch.no_grad():
-                for p, p_targ in zip(network.parameters(), target_network.parameters()):
-                    p_targ.data.mul_(polyak)
-                    p_targ.data.add_((1 - polyak) * p.data)
-
     def record_performance(self):
         sigma = self.solve_options["sigma"]
         if self.step % self.solve_options["record_performance_interval"] == 0:
@@ -213,15 +202,6 @@ class Solver(Solver):
             expected_return = self.env.compute_expected_return(policy)
             self.record_scalar(
                 " Return mean", expected_return, tag="Target Q Policy")
-
-    def policy_loss_fn(self, target, preference):
-        policy = torch.softmax(preference, dim=-1)  # BxA
-        policy = policy + (policy == 0.0).float() * \
-            1e-8  # avoid numerical instability
-        log_policy = torch.log(policy)  # BxA
-        loss = torch.sum(policy * (log_policy-target.log()),
-                         dim=-1, keepdim=True)  # Bx1
-        return loss.mean()
 
     def compute_policy(self, preference):
         # return softmax policy

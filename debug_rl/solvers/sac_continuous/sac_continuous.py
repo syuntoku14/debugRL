@@ -18,15 +18,15 @@ class SacContinuousSolver(Solver):
     # This assumes one-dimensional action_space
     def run(self, num_steps=10000):
         for _ in tqdm(range(num_steps)):
+            # ----- record performance -----
+            self.record_performance()
+
             # ------ collect samples by the current policy ------
             policy_probs = self.make_policy_probs()
             policy = self.compute_policy(policy_probs)
             trajectory = collect_samples(
                 self.env, policy, self.solve_options["num_samples"])
             self.buffer.add(**trajectory)
-
-            # ----- record performance -----
-            self.record_performance()
 
             # ----- update q network -----
             trajectory = self.buffer.sample(
@@ -37,11 +37,12 @@ class SacContinuousSolver(Solver):
             tensor_traj["act"] = tensor_traj["act"].unsqueeze(-1)
             value_loss = self.update_critic(
                 self.value_network, self.value_optimizer, tensor_traj)
-            self.update_critic(self.value_network2, self.value_optimizer2, tensor_traj)
             self.record_scalar("value loss", value_loss)
+            value_loss2 = self.update_critic(
+                self.value_network2, self.value_optimizer2, tensor_traj)
+            self.record_scalar("value loss 2", value_loss2)
 
             # ----- update policy network -----
-            # update policy
             policy_loss = self.update_actor(tensor_traj)
             self.record_scalar("policy loss", policy_loss)
 
@@ -99,3 +100,14 @@ class SacContinuousSolver(Solver):
         loss.backward()
         self.policy_optimizer.step()
         return loss
+
+    def update_target_network(self, network, target_network, polyak=-1.0):
+        if polyak < 0:
+            # hard update
+            target_network.load_state_dict(network.state_dict())
+        else:
+            # soft update
+            with torch.no_grad():
+                for p, p_targ in zip(network.parameters(), target_network.parameters()):
+                    p_targ.data.mul_(polyak)
+                    p_targ.data.add_((1 - polyak) * p.data)
