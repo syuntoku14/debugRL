@@ -14,26 +14,25 @@ from debug_rl.utils import (
 )
 
 OPTIONS = {
-    "num_samples": 4,
-    # CVI settings
-    "sigma": 0.2,
-    "max_operator": "mellow_max",
+    "num_samples": 20,
     # Fitted iteration settings
     "activation": "relu",
     "hidden": 128,  # size of hidden layer
     "depth": 2,  # depth of the network
     "device": "cuda",
-    "lr": 0.001,
-    "minibatch_size": 32,
     "critic_loss": "mse",  # mse or huber
     "clip_grad": False,  # clip the gradient if True
     "optimizer": "Adam",
-    "buffer_size": 1e6,
-    "polyak": 0.995, 
+    # PPO settings
+    "lr": 3e-4,
+    "lam": 0.95,
+    "target_kl": 0.01,
+    "clip_ratio": 0.2,
+    "entropy_coef": 0.001
 }
 
 
-def fc_net(env, hidden=256, depth=1, activation="tanh"):
+def fc_net(env, num_output, hidden=256, depth=1, activation="tanh"):
     if activation == "tanh":
         act_layer = nn.Tanh
     elif activation == "relu":
@@ -44,8 +43,7 @@ def fc_net(env, hidden=256, depth=1, activation="tanh"):
     modules = []
     if depth == 0:
         modules.append(
-            nn.Linear(env.observation_space.shape[0],
-                      env.action_space.n))
+            nn.Linear(env.observation_space.shape[0], num_output))
     elif depth > 0:
         modules.append(
             nn.Linear(env.observation_space.shape[0], hidden))
@@ -53,13 +51,13 @@ def fc_net(env, hidden=256, depth=1, activation="tanh"):
             modules.append(act_layer())
             modules.append(nn.Linear(hidden, hidden))
         modules.append(act_layer())
-        modules.append(nn.Linear(hidden, env.action_space.n))
+        modules.append(nn.Linear(hidden, num_output))
     else:
         raise ValueError("Invalid depth of fc layer")
     return nn.Sequential(*modules)
 
 
-def conv_net(env, hidden=32, depth=1, activation="tanh"):
+def conv_net(env, num_output, hidden=32, depth=1, activation="tanh"):
     # this assumes image shape == (1, 28, 28)
     if activation == "tanh":
         act_layer = nn.Tanh
@@ -78,7 +76,7 @@ def conv_net(env, hidden=32, depth=1, activation="tanh"):
     # fc layers
     if depth == 0:
         fc_modules.append(
-            nn.Linear(320, env.action_space.n))
+            nn.Linear(320, num_output))
     elif depth > 0:
         fc_modules.append(
             nn.Linear(320, hidden))
@@ -86,7 +84,7 @@ def conv_net(env, hidden=32, depth=1, activation="tanh"):
             fc_modules.append(act_layer())
             fc_modules.append(nn.Linear(hidden, hidden))
         fc_modules.append(act_layer())
-        fc_modules.append(nn.Linear(hidden, env.action_space.n))
+        fc_modules.append(nn.Linear(hidden, num_output))
     else:
         raise ValueError("Invalid depth of fc layer")
     return nn.Sequential(*(conv_modules+fc_modules))
@@ -100,13 +98,6 @@ class Solver(Solver):
         self.all_obss = torch.tensor(
             self.env.all_observations, dtype=torch.float32, device=self.device)
 
-        # set max_operator
-        if self.solve_options["max_operator"] == "boltzmann_softmax":
-            self.max_operator = boltzmann_softmax
-        elif self.solve_options["max_operator"] == "mellow_max":
-            self.max_operator = mellow_max
-        else:
-            raise ValueError("Invalid max_operator")
         # set networks
         if self.solve_options["optimizer"] == "Adam":
             self.optimizer = torch.optim.Adam
@@ -129,58 +120,23 @@ class Solver(Solver):
 
         # set value network
         self.value_network = net(
-            self.env,
+            self.env, 1,
             hidden=self.solve_options["hidden"],
             depth=self.solve_options["depth"],
             activation=self.solve_options["activation"]).to(self.device)
         self.value_optimizer = self.optimizer(self.value_network.parameters(),
                                               lr=self.solve_options["lr"])
-        self.target_value_network = deepcopy(self.value_network)
-
-        # network for double estimation
-        self.value_network2 = net(
-            self.env,
-            hidden=self.solve_options["hidden"],
-            depth=self.solve_options["depth"],
-            activation=self.solve_options["activation"]).to(self.device)
-        self.value_optimizer2 = self.optimizer(self.value_network2.parameters(),
-                                               lr=self.solve_options["lr"])
-        self.target_value_network2 = deepcopy(self.value_network2)
 
         # actor network
         self.policy_network = net(
-            self.env,
+            self.env, self.env.action_space.n,
             hidden=self.solve_options["hidden"],
             depth=self.solve_options["depth"],
             activation=self.solve_options["activation"]).to(self.device)
         self.policy_optimizer = self.optimizer(self.policy_network.parameters(),
                                                lr=self.solve_options["lr"])
 
-        # set replay buffer
-        self.buffer = make_replay_buffer(
-            self.env, self.solve_options["buffer_size"])
-
-        # Collect random samples in advance
-        preference = self.policy_network(self.all_obss).reshape(
-            self.dS, self.dA).detach().cpu().numpy()
-        policy = self.compute_policy(preference)
-        trajectory = collect_samples(
-            self.env, policy, self.solve_options["minibatch_size"])
-        self.buffer.add(**trajectory)
-
-    def update_target_network(self, network, target_network, polyak=-1.0):
-        if polyak < 0:
-            # hard update
-            target_network.load_state_dict(network.state_dict())
-        else:
-            # soft update
-            with torch.no_grad():
-                for p, p_targ in zip(network.parameters(), target_network.parameters()):
-                    p_targ.data.mul_(polyak)
-                    p_targ.data.add_((1 - polyak) * p.data)
-
     def record_performance(self):
-        sigma = self.solve_options["sigma"]
         if self.step % self.solve_options["record_performance_interval"] == 0:
             preference = self.policy_network(self.all_obss).reshape(
                 self.dS, self.dA).detach().cpu().numpy()
@@ -189,39 +145,9 @@ class Solver(Solver):
             self.record_scalar(
                 " Return mean", expected_return, tag="Policy")
             self.record_array("policy", policy)
-
-            # q performance
-            curr_q = self.value_network(self.all_obss)
-            curr_q2 = self.value_network2(self.all_obss)
-            curr_q = torch.min(curr_q, curr_q)
-            preference = (curr_q/sigma).reshape(
-                self.dS, self.dA).detach().cpu().numpy()
-            policy = self.compute_policy(preference)
-            expected_return = self.env.compute_expected_return(policy)
-            self.record_scalar(
-                " Return mean", expected_return, tag="Q Policy")
-            values = curr_q.reshape(self.dS, self.dA).detach().cpu().numpy()
+            values = self.value_network(self.all_obss).reshape(
+                self.dS, 1).repeat(1, self.dA).detach().cpu().numpy()
             self.record_array("values", values)
-
-            # target q performance
-            curr_q = self.target_value_network(self.all_obss)
-            curr_q2 = self.target_value_network2(self.all_obss)
-            curr_q = torch.min(curr_q, curr_q)
-            preference = (curr_q / sigma).reshape(
-                self.dS, self.dA).detach().cpu().numpy()
-            policy = self.compute_policy(preference)
-            expected_return = self.env.compute_expected_return(policy)
-            self.record_scalar(
-                " Return mean", expected_return, tag="Target Q Policy")
-
-    def policy_loss_fn(self, target, preference):
-        policy = torch.softmax(preference, dim=-1)  # BxA
-        policy = policy + (policy == 0.0).float() * \
-            1e-8  # avoid numerical instability
-        log_policy = torch.log(policy)  # BxA
-        loss = torch.sum(policy * (log_policy-target.log()),
-                         dim=-1, keepdim=True)  # Bx1
-        return loss.mean()
 
     def compute_policy(self, preference):
         # return softmax policy

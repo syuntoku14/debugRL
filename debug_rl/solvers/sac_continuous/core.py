@@ -225,17 +225,6 @@ class Solver(Solver):
             self.env, policy, self.solve_options["minibatch_size"])
         self.buffer.add(**trajectory)
 
-    def update_network(self, target, network, optimizer, loss_fn, obss, actions):
-        values = network(obss, actions).squeeze()
-        loss = self.critic_loss(target, values)
-        optimizer.zero_grad()
-        loss.backward()
-        if self.solve_options["clip_grad"]:
-            for param in network.parameters():
-                param.grad.data.clamp_(-1, 1)
-        optimizer.step()
-        return loss.detach().cpu().item()
-
     def update_target_network(self, network, target_network, polyak=-1.0):
         if polyak < 0:
             # hard update

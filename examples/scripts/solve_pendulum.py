@@ -19,7 +19,8 @@ SOLVERS = {
     "FVI": SamplingFittedViSolver,
     "FCVI": SamplingFittedCviSolver,
     "SAC": SacSolver,
-    "SAC-Continuous": SacContinuousSolver
+    "SAC-Continuous": SacContinuousSolver,
+    "PPO": PpoSolver
 }
 
 options = DEFAULT_OPTIONS

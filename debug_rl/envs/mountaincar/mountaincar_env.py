@@ -12,12 +12,11 @@ class MountainCar(TabularEnv):
         - image: Return simple image of mountaincar
     """
 
-    def __init__(self, posdisc=32, veldisc=32, init_dist=None,
+    def __init__(self, state_disc=32, init_dist=None,
                  horizon=200, dA=3,
                  action_mode="discrete", obs_mode="tuple"):
         # env parameters
-        self.pos_disc = posdisc
-        self.vel_disc = veldisc
+        self.state_disc = state_disc
         self.dA = dA
         self.max_vel = 0.07
         self.min_vel = -self.max_vel
@@ -28,8 +27,8 @@ class MountainCar(TabularEnv):
         self.force_list = np.linspace(-self.force_mag, self.force_mag, num=self.dA)
 
         self.action_step = (self.force_mag*2) / self.dA
-        self.state_step = (self.max_pos-self.min_pos) / (self.pos_disc-1)
-        self.vel_step = (self.max_vel-self.min_vel)/(self.vel_disc-1)
+        self.state_step = (self.max_pos-self.min_pos) / (self.state_disc-1)
+        self.vel_step = (self.max_vel-self.min_vel)/(self.state_disc-1)
 
         # for rendering
         gym.make("MountainCar-v0")
@@ -50,7 +49,7 @@ class MountainCar(TabularEnv):
         idxs = set(idxs)
         random_init = {idx: 1/len(idxs) for idx in idxs}
         init_dist = random_init if init_dist is None else init_dist
-        super().__init__(posdisc*veldisc, self.dA, init_dist, horizon=horizon)
+        super().__init__(state_disc**2, self.dA, init_dist, horizon=horizon)
 
         self.action_mode = action_mode
         if action_mode == "discrete":
@@ -122,8 +121,8 @@ class MountainCar(TabularEnv):
             return np.expand_dims(image, axis=0)  # 1x28x28
 
     def pos_vel_from_state_id(self, state):
-        pos_idx = state % self.pos_disc
-        vel_idx = state // self.pos_disc
+        pos_idx = state % self.state_disc
+        vel_idx = state // self.state_disc
         pos = self.min_pos + self.state_step * pos_idx
         vel = self.min_vel + self.vel_step * vel_idx
         return pos, vel
@@ -132,7 +131,17 @@ class MountainCar(TabularEnv):
         # round
         pos_idx = int(np.floor((pos-self.min_pos)/self.state_step))
         vel_idx = int(np.floor((vel-self.min_vel)/self.vel_step))
-        return pos_idx + self.pos_disc * vel_idx
+        return pos_idx + self.state_disc * vel_idx
+
+    def disc_pos_vel(self, pos, vel):
+        pos_round = int(np.floor((pos-self.min_pos)/self.state_step))
+        vel = int(np.floor((vel-self.min_vel)/self.vel_step))
+        return pos_round, vel
+
+    def undisc_pos_vel(self, pos_round, vel):
+        pos = pos_round * self.state_step + self.min_pos
+        vel = vel * self.vel_step + self.min_vel
+        return pos, vel
 
     def render(self):
         state = self.get_state()

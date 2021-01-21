@@ -35,19 +35,14 @@ class SacContinuousSolver(Solver):
             tensor_traj = trajectory_to_tensor(
                 trajectory, self.device, is_discrete=False)
             tensor_traj["act"] = tensor_traj["act"].unsqueeze(-1)
-            target = self.backup(tensor_traj)
-            value_loss = self.update_network(
-                target, self.value_network, self.value_optimizer,
-                self.critic_loss, obss=tensor_traj["obs"], actions=tensor_traj["act"])
+            value_loss = self.update_critic(
+                self.value_network, self.value_optimizer, tensor_traj)
+            self.update_critic(self.value_network2, self.value_optimizer2, tensor_traj)
             self.record_scalar("value loss", value_loss)
-            self.update_network(
-                target, self.value_network2, self.value_optimizer2,
-                self.critic_loss, obss=tensor_traj["obs"],
-                actions=tensor_traj["act"])
 
             # ----- update policy network -----
             # update policy
-            policy_loss = self.update_policy(tensor_traj)
+            policy_loss = self.update_actor(tensor_traj)
             self.record_scalar("policy loss", policy_loss)
 
             # ----- update target networks with constant polyak -----
@@ -58,13 +53,12 @@ class SacContinuousSolver(Solver):
                                        self.target_value_network2, polyak)
             self.step += 1
 
-    def backup(self, tensor_traj):
+    def update_critic(self, network, optimizer, tensor_traj):
         discount = self.solve_options["discount"]
         sigma = self.solve_options["sigma"]
 
-        next_obss = tensor_traj["next_obs"]
-        rews = tensor_traj["rew"]
-        dones = tensor_traj["done"]
+        obss, actions, next_obss, rews, dones = tensor_traj["obs"], tensor_traj[
+            "act"], tensor_traj["next_obs"], tensor_traj["rew"], tensor_traj["done"]
 
         with torch.no_grad():
             # compute q target
@@ -74,14 +68,20 @@ class SacContinuousSolver(Solver):
             q1_pi_targ = self.target_value_network(next_obss, pi2).squeeze(-1)
             q2_pi_targ = self.target_value_network2(next_obss, pi2).squeeze(-1)
             q_pi_targ = torch.min(q1_pi_targ, q2_pi_targ)
-            backup = rews + discount * \
+            target = rews + discount * \
                 (~dones) * (q_pi_targ - sigma * logp_pi2)
-            self.record_scalar("Backup logp_pi2", logp_pi2.mean())
-            self.record_scalar("Backup q_pi_targ", q_pi_targ.mean())
-            self.record_scalar("Backup rews", rews.mean())
-        return backup.squeeze()  # B
 
-    def update_policy(self, tensor_traj):
+        values = network(obss, actions).squeeze()
+        loss = self.critic_loss(target, values)
+        optimizer.zero_grad()
+        loss.backward()
+        if self.solve_options["clip_grad"]:
+            for param in network.parameters():
+                param.grad.data.clamp_(-1, 1)
+        optimizer.step()
+        return loss.detach().cpu().item()
+
+    def update_actor(self, tensor_traj):
         sigma = self.solve_options["sigma"]
         obss = tensor_traj["obs"]
 

@@ -19,7 +19,6 @@ class SacSolver(Solver):
             preference = self.policy_network(self.all_obss).reshape(
                 self.dS, self.dA).detach().cpu().numpy()
             policy = self.compute_policy(preference)
-            eval_policy = policy
             trajectory = collect_samples(
                 self.env, policy, self.solve_options["num_samples"])
             # ----- generate mini-batch from the replay_buffer -----
@@ -33,21 +32,14 @@ class SacSolver(Solver):
 
             # ----- update q network -----
             tensor_traj = trajectory_to_tensor(trajectory, self.device)
-            target = self.backup(tensor_traj)
-            value_loss = self.update_network(
-                target, self.value_network, self.value_optimizer,
-                self.critic_loss, obss=tensor_traj["obs"], actions=tensor_traj["act"])
-            self.update_network(
-                target, self.value_network2, self.value_optimizer2,
-                self.critic_loss, obss=tensor_traj["obs"],
-                actions=tensor_traj["act"])
+            value_loss = self.update_critic(
+                self.value_network, self.value_optimizer, tensor_traj)
+            self.update_critic(
+                self.value_network2, self.value_optimizer2, tensor_traj)
             self.record_scalar("value loss", value_loss)
 
             # ----- update policy network -----
-            target = self.policy_backup(tensor_traj)  # BxA
-            policy_loss = self.update_network(
-                target, self.policy_network, self.policy_optimizer,
-                self.policy_loss_fn, obss=tensor_traj["obs"])
+            policy_loss = self.update_actor(tensor_traj)
             self.record_scalar("policy loss", policy_loss)
 
             # ----- update target network -----
@@ -59,15 +51,12 @@ class SacSolver(Solver):
             self.step += 1
 
     # This implementation does not use reparameterization trick
-    def backup(self, tensor_traj):
+    def update_critic(self, network, optimizer, tensor_traj):
         discount = self.solve_options["discount"]
         sigma = self.solve_options["sigma"]
 
-        obss = tensor_traj["obs"]
-        actions = tensor_traj["act"]
-        next_obss = tensor_traj["next_obs"]
-        rews = tensor_traj["rew"]
-        dones = tensor_traj["done"]
+        obss, actions, next_obss, rews, dones = tensor_traj["obs"], tensor_traj[
+            "act"], tensor_traj["next_obs"], tensor_traj["rew"], tensor_traj["done"]
 
         with torch.no_grad():
             # compute q target
@@ -81,10 +70,20 @@ class SacSolver(Solver):
             log_policy = torch.log(policy)
             next_v = torch.sum(
                 policy * (next_q - sigma*log_policy), dim=-1)  # B
-            target_q = rews + discount*next_v*(~dones)
-        return target_q.squeeze()  # Q
+            target = rews + discount*next_v*(~dones)
 
-    def policy_backup(self, tensor_traj):
+        values = network(obss)
+        values = values.gather(1, actions.reshape(-1, 1)).squeeze()
+        loss = self.critic_loss(target, values)
+        optimizer.zero_grad()
+        loss.backward()
+        if self.solve_options["clip_grad"]:
+            for param in network.parameters():
+                param.grad.data.clamp_(-1, 1)
+        optimizer.step()
+        return loss.detach().cpu().item()
+
+    def update_actor(self, tensor_traj):
         obss = tensor_traj["obs"]
         sigma = self.solve_options["sigma"]
 
@@ -93,7 +92,22 @@ class SacSolver(Solver):
             curr_q = self.value_network(obss)  # BxA
             curr_q2 = self.value_network2(obss)  # BxA
             curr_q = torch.min(curr_q, curr_q)  # BxA
-            policy = torch.softmax(curr_q/sigma, dim=-1)
-            policy = policy + (policy == 0.0).float() * \
+            target = torch.softmax(curr_q/sigma, dim=-1)
+            target = target + (target == 0.0).float() * \
                 1e-8  # avoid numerical instability
-        return policy
+
+        preference = self.policy_network(obss)
+        policy = torch.softmax(preference, dim=-1)  # BxA
+        policy = policy + (policy == 0.0).float() * \
+            1e-8  # avoid numerical instability
+        log_policy = torch.log(policy)  # BxA
+        loss = torch.sum(policy * (log_policy-target.log()),
+                         dim=-1, keepdim=True).mean() 
+
+        self.policy_optimizer.zero_grad()
+        loss.backward()
+        if self.solve_options["clip_grad"]:
+            for param in self.policy_network.parameters():
+                param.grad.data.clamp_(-1, 1)
+        self.policy_optimizer.step()
+        return loss.detach().cpu().item()

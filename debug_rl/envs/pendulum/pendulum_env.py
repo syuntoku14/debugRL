@@ -143,14 +143,6 @@ class Pendulum(TabularEnv):
  
             return np.expand_dims(image, axis=0)  # 1x28x28
 
-    def id_from_torque(self, torque):
-        return int(np.floor((torque-self.min_torque)/self.torque_step))
-
-    def id_from_th_thv(self, theta, thetav):
-        th_round = int(np.floor((theta-self.state_min)/self.state_step))
-        th_vel = int(np.floor((thetav-self.vel_min)/self.vel_step))
-        return th_round + self.state_disc * th_vel
-
     def disc_th_thv(self, theta, thetav):
         th_round = int(np.floor((theta-self.state_min)/self.state_step))
         th_vel = int(np.floor((thetav-self.vel_min)/self.vel_step))

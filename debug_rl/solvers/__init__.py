@@ -19,3 +19,4 @@ from .sampling_fvi.sampling_fvi import (
 
 from .sac.sac import SacSolver
 from .sac_continuous.sac_continuous import SacContinuousSolver
+from .ppo.ppo import PpoSolver
