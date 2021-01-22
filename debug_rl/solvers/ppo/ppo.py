@@ -9,13 +9,14 @@ from debug_rl.utils import (
     trajectory_to_tensor,
     squeeze_trajectory,
     collect_samples,
-    discount_cumsum
 )
 
 
 class PpoSolver(Solver):
     def run(self, num_steps=10000):
         for _ in tqdm(range(num_steps)):
+            self.record_performance()
+
             # ------ collect samples by the current policy ------
             preference = self.policy_network(self.all_obss).reshape(
                 self.dS, self.dA).detach().cpu().numpy()
@@ -27,15 +28,12 @@ class PpoSolver(Solver):
             tensor_traj = trajectory_to_tensor(trajectory, self.device)
             tensor_traj.update({"gae": gaes, "ret": ret})
 
-            # ----- record performance -----
-            self.record_performance()
-
+            # ----- update networks -----
             policy_loss = self.update_actor(tensor_traj)
-            value_loss = self.update_critic(tensor_traj)
             self.record_scalar("policy loss", policy_loss)
+            value_loss = self.update_critic(tensor_traj)
             self.record_scalar("value loss", value_loss)
 
-            self.record_scalar("policy loss", policy_loss)
             self.step += 1
 
     def compute_gae(self, traj):

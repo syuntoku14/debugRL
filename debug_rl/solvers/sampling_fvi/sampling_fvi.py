@@ -19,10 +19,12 @@ from debug_rl.utils import (
 class SamplingFittedSolver(Solver):
     def run(self, num_steps=10000):
         for _ in tqdm(range(num_steps)):
-            # ------ collect samples by the current policy ------
             values = self.value_network(self.all_obss).reshape(
                 self.dS, self.dA).detach().cpu().numpy()
             policy = self.compute_policy(values)
+            self.record_performance(policy)
+
+            # ------ collect samples by the current policy ------
             trajectory = collect_samples(
                 self.env, policy, self.solve_options["num_samples"])
 
@@ -31,22 +33,20 @@ class SamplingFittedSolver(Solver):
                 self.buffer.add(**trajectory)
                 trajectory = self.buffer.sample(self.solve_options["minibatch_size"])
                 trajectory = squeeze_trajectory(trajectory)
-
-            # ----- record performance -----
-            self.record_performance(policy)
+            tensor_traj = trajectory_to_tensor(trajectory, self.device)
 
             # ----- update values -----
-            tensor_traj = trajectory_to_tensor(trajectory, self.device)
             target = self.backup(tensor_traj)
             loss = self.update_network(
                 target, self.value_network, self.value_optimizer,
                 obss=tensor_traj["obs"], actions=tensor_traj["act"])
+            self.record_scalar("value loss", loss)
+
             if self.solve_options["use_double_estimation"]:
-                self.update_network(
+                loss2 = self.update_network(
                     target, self.value_network2, self.value_optimizer2,
                     obss=tensor_traj["obs"], actions=tensor_traj["act"])
-
-            self.record_scalar("value loss", loss)
+                self.record_scalar("value loss 2", loss2)
 
             # ----- update target network -----
             if self.solve_options["use_target_network"] and \

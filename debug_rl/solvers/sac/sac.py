@@ -15,7 +15,6 @@ from debug_rl.utils import (
 class SacSolver(Solver):
     def run(self, num_steps=10000):
         for _ in tqdm(range(num_steps)):
-            # ----- record performance -----
             self.record_performance()
 
             # ------ collect samples by the current policy ------
@@ -24,15 +23,15 @@ class SacSolver(Solver):
             policy = self.compute_policy(preference)
             trajectory = collect_samples(
                 self.env, policy, self.solve_options["num_samples"])
+            self.buffer.add(**trajectory)
 
             # ----- generate mini-batch from the replay_buffer -----
-            self.buffer.add(**trajectory)
             trajectory = self.buffer.sample(
                 self.solve_options["minibatch_size"])
             trajectory = squeeze_trajectory(trajectory)
+            tensor_traj = trajectory_to_tensor(trajectory, self.device)
 
             # ----- update q network -----
-            tensor_traj = trajectory_to_tensor(trajectory, self.device)
             value_loss = self.update_critic(
                 self.value_network, self.value_optimizer, tensor_traj)
             self.record_scalar("value loss", value_loss)

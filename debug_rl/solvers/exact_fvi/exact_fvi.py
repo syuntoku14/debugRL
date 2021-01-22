@@ -11,13 +11,12 @@ from debug_rl.utils import (
 
 class ExactFittedSolver(Solver):
     def run(self, num_steps=10000):
-        """
-        Do value iteration from the end of the episode with a value approximator.
-        """
-
         values = self.values
-        # start training
+
         for _ in tqdm(range(num_steps)):
+            self.record_performance(values)
+
+            # ----- update table -----
             target = self.backup(values)  # SxA
             target = torch.tensor(
                 target, dtype=torch.float32, device=self.device)
@@ -26,7 +25,7 @@ class ExactFittedSolver(Solver):
             error = np.abs(values - projected).max()
             values = projected
             self.record_scalar("error", error)
-            self.record_performance(values)
+
             self.step += 1
 
     def update_network(self, target):

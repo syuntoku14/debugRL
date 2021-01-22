@@ -9,21 +9,18 @@ from debug_rl.utils import (
 
 class OracleSolver(Solver):
     def run(self, num_steps=10000):
-        """
-        Do value iteration from the end of the episode.
-        """
         values = self.values  # SxA
-        # start training
+
         for _ in tqdm(range(num_steps)):
+            self.record_performance(values)
+
+            # ----- update table -----
             new_values = self.backup(values)  # SxA
             error = np.abs(values - new_values).max()
             values = new_values
-            self.record_performance(values)
-            if error < 1e-9:
-                break
-            self.step += 1
+            self.record_scalar("error", error)
 
-        print("Iteration finished with maximum error: ", error)
+            self.step += 1
 
 
 class OracleViSolver(OracleSolver):

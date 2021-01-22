@@ -15,10 +15,9 @@ from debug_rl.utils import (
 
 
 class SacContinuousSolver(Solver):
-    # This assumes one-dimensional action_space
+    # This implementation assumes one-dimensional action_space
     def run(self, num_steps=10000):
         for _ in tqdm(range(num_steps)):
-            # ----- record performance -----
             self.record_performance()
 
             # ------ collect samples by the current policy ------
@@ -28,13 +27,15 @@ class SacContinuousSolver(Solver):
                 self.env, policy, self.solve_options["num_samples"])
             self.buffer.add(**trajectory)
 
-            # ----- update q network -----
+            # ----- generate mini-batch from the replay_buffer -----
             trajectory = self.buffer.sample(
                 self.solve_options["minibatch_size"])
             trajectory = squeeze_trajectory(trajectory)
             tensor_traj = trajectory_to_tensor(
                 trajectory, self.device, is_discrete=False)
             tensor_traj["act"] = tensor_traj["act"].unsqueeze(-1)
+
+            # ----- update q network -----
             value_loss = self.update_critic(
                 self.value_network, self.value_optimizer, tensor_traj)
             self.record_scalar("value loss", value_loss)
@@ -64,7 +65,6 @@ class SacContinuousSolver(Solver):
         with torch.no_grad():
             # compute q target
             raw_pi2, logp_pi2 = self.policy_network(next_obss, return_raw=True)
-            # Target Q-values
             pi2 = self.policy_network.squash_action(raw_pi2)
             q1_pi_targ = self.target_value_network(next_obss, pi2).squeeze(-1)
             q2_pi_targ = self.target_value_network2(next_obss, pi2).squeeze(-1)
