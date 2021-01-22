@@ -14,8 +14,6 @@ from debug_rl.utils import (
 )
 
 OPTIONS = {
-    "num_samples": 20,
-    # Fitted iteration settings
     "activation": "relu",
     "hidden": 128,  # size of hidden layer
     "depth": 2,  # depth of the network
@@ -127,10 +125,10 @@ class Solver(Solver):
                 self.dS, self.dA).detach().cpu().numpy()
             policy = self.compute_policy(preference)
             expected_return = self.env.compute_expected_return(policy)
-            self.record_scalar(" Return mean", expected_return, tag="Policy")
-            self.record_array("policy", policy)
+            self.record_scalar("Return", expected_return, tag="Policy")
+            self.record_array("Policy", policy)
             values = self.env.compute_action_values(policy, self.solve_options["discount"])
-            self.record_array("values", values)
+            self.record_array("Values", values)
 
     def compute_policy(self, preference):
         # return softmax policy

@@ -4,7 +4,6 @@ import pickle
 import numpy as np
 import torch
 import gym
-from torch.nn import functional as F
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from scipy import sparse
@@ -83,15 +82,15 @@ class Solver(ABC):
 
     @property
     def values(self):
-        if len(self.history["values"]["y"]) == 0:
+        if len(self.history["Values"]["y"]) == 0:
             assert ValueError("\"values\" has not been recorded yet. Check history.")
-        return self.history["values"]["y"][-1]
+        return self.history["Values"]["y"][-1]
 
     @property
     def policy(self):
-        if len(self.history["policy"]["y"]) == 0:
+        if len(self.history["Policy"]["y"]) == 0:
             assert ValueError("\"policy\" has not been recorded yet. Check history.")
-        return self.history["policy"]["y"][-1]
+        return self.history["Policy"]["y"][-1]
 
     def record_scalar(self, title, y, tag=None):
         """
@@ -101,6 +100,7 @@ class Solver(ABC):
         if self.logger is not None:
             tag = title if tag is None else tag
             self.logger.report_scalar(title, tag, y, self.step)
+            title += tag
         self.history[title]["x"].append(self.step)
         self.history[title]["y"].append(y)
 

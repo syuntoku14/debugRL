@@ -239,15 +239,15 @@ class Solver(Solver):
                 expected_return = self.env.compute_expected_return(
                     policy)
                 self.record_scalar(
-                    " Return mean", expected_return, tag=name)
-                self.record_array("policy", policy)
+                    "Return", expected_return, tag=name)
+                self.record_array("Policy", policy)
 
             tensor_all_obss = torch.repeat_interleave(self.all_obss, self.dA, 0)  # (SxA) x obss
             tensor_all_actions = self.all_actions.reshape(-1, 1)
             q1 = self.value_network(tensor_all_obss, tensor_all_actions)
             q2 = self.value_network2(tensor_all_obss, tensor_all_actions)
             values = torch.min(q1, q2).reshape(self.dS, self.dA)
-            self.record_array("values", values)
+            self.record_array("Values", values)
 
     def compute_policy(self, policy_probs):
         # return softmax policy

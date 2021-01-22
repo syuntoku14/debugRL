@@ -18,7 +18,7 @@ class OracleSolver(Solver):
             new_values = self.backup(values)  # SxA
             error = np.abs(values - new_values).max()
             values = new_values
-            self.record_scalar("error", error)
+            self.record_scalar("Error", error)
 
             self.step += 1
 

@@ -173,5 +173,5 @@ class Solver(Solver):
             values = self.value_network(self.all_obss).reshape(
                 self.dS, self.dA).detach().cpu().numpy()
             self.record_scalar("Q error", ((aval-values)**2).mean())
-            self.record_array("values", values)
-            self.record_array("policy", eval_policy)
+            self.record_array("Values", values)
+            self.record_array("Policy", eval_policy)

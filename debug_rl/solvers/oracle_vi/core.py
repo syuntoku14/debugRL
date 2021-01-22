@@ -18,7 +18,7 @@ class Solver(Solver):
     def initialize(self, options={}):
         self.solve_options.update(OPTIONS)
         super().initialize(options)
-        self.record_array("values", np.zeros((self.dS, self.dA)))
+        self.record_array("Values", np.zeros((self.dS, self.dA)))
 
         # set max_operator
         if self.solve_options["max_operator"] == "boltzmann_softmax":
@@ -33,6 +33,6 @@ class Solver(Solver):
             values = np.asarray(values)
             policy = self.compute_policy(values)
             expected_return = self.env.compute_expected_return(policy)
-            self.record_array("policy", policy)
-            self.record_array("values", values)
-            self.record_scalar(" Return mean", expected_return, tag="Policy")
+            self.record_array("Policy", policy)
+            self.record_array("Values", values)
+            self.record_scalar("Return", expected_return, tag="Policy")

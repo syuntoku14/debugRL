@@ -3,6 +3,7 @@ os.environ["MKL_NUM_THREADS"] = "1"  # NOQA
 os.environ["NUMEXPR_NUM_THREADS"] = "1"  # NOQA
 os.environ["OMP_NUM_THREADS"] = "1"  # NOQA
 import numpy as np
+import argparse
 from debug_rl.envs.pendulum import (
     Pendulum, plot_pendulum_values, reshape_values)
 from debug_rl.solvers import *
@@ -24,17 +25,24 @@ SOLVERS = {
     "PPO": PpoSolver
 }
 
-options = DEFAULT_OPTIONS
-options.update({
-    "solver": "EPG",
-    "device": "cuda:0",
-})
-
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--solver', type=str, default="SAC")
+    parser.add_argument('--device', type=str, default="cpu")
+    parser.add_argument('--exp_name', type=str, default="Pendulum-tuple")
+    parser.add_argument('--seed', type=int, default=0)
+    args = parser.parse_args()
+
+    options = DEFAULT_OPTIONS
+    options.update({
+        "solver": args.solver,
+        "device": args.device,
+        "seed": args.seed
+    })
+
     task_name = options["solver"]
-    project_name = "pendulum-tuple"
-    task = Task.init(project_name=project_name, task_name=task_name)
+    task = Task.init(project_name=args.exp_name, task_name=task_name)
     logger = task.get_logger()
 
     # Construct the environment
@@ -56,7 +64,7 @@ def main():
     print(solver_name, "starts...")
 
     for _ in range(10):
-        solver.run(num_steps=3000)
+        solver.run(num_steps=500)
 
         # draw results
         q_values = env.compute_action_values(solver.policy)
@@ -68,10 +76,11 @@ def main():
                              vmax=vmax, title="State values")
         plt.show()
 
-    # dir_name = os.path.join("results", solver_name)
-    # if not os.path.exists(dir_name):
-    #     os.makedirs(dir_name)
-    # solver.save(os.path.join(dir_name, task.id))
+    env_name = env.__class__.__name__
+    dir_name = os.path.join("results", env_name, solver_name)
+    if not os.path.exists(dir_name):
+        os.makedirs(dir_name)
+    solver.save(os.path.join(dir_name, str(solver.solve_options["seed"])))
 
 
 if __name__ == "__main__":

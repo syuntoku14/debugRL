@@ -40,7 +40,7 @@ class SamplingFittedSolver(Solver):
             loss = self.update_network(
                 target, self.value_network, self.value_optimizer,
                 obss=tensor_traj["obs"], actions=tensor_traj["act"])
-            self.record_scalar("value loss", loss)
+            self.record_scalar("LossCritic", loss)
 
             # ----- update target network -----
             if (self.step+1) % self.solve_options["target_update_interval"] == 0:
@@ -50,6 +50,7 @@ class SamplingFittedSolver(Solver):
 
 
 class SamplingFittedViSolver(SamplingFittedSolver):
+    # SamplingFittedViSolver is the same as DQN
     def backup(self, tensor_traj):
         discount = self.solve_options["discount"]
         next_obss, rews, dones = tensor_traj["next_obs"], tensor_traj[

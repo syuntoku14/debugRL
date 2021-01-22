@@ -13,8 +13,8 @@ class ExactPgSolver(Solver):
             self.record_performance()
 
             # ----- update networks -----
-            policy_loss = self.update_actor()
-            self.record_scalar("policy loss", policy_loss)
+            actor_loss = self.update_actor()
+            self.record_scalar("LossActor", actor_loss)
 
             self.step += 1
 

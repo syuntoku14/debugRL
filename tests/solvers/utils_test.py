@@ -51,13 +51,34 @@ def test_policy():
 
 def test_collect_samples(setUp):
     env, solver, cont_env, cont_solver = setUp
-    solver.run()
+
+    # discrete
+    solver.run(num_steps=10)
     policy = solver.compute_policy(solver.values)
     traj = collect_samples(env, policy, 10)
     assert len(traj["obs"]) == 10
     assert (traj["act"]).dtype == np.long
 
-    cont_solver.run()
+    # continuous
+    cont_solver.run(num_steps=10)
     policy = cont_solver.compute_policy(cont_solver.values)
     traj = collect_samples(cont_env, policy, 10)
+    assert (traj["obs"]).dtype == np.float32
+
+
+def test_collect_samples_episodic(setUp):
+    env, solver, cont_env, cont_solver = setUp
+
+    # discrete
+    solver.run(num_steps=10)
+    policy = solver.compute_policy(solver.values)
+    traj = collect_samples(env, policy, 10, num_episodes=5)
+    assert np.sum(traj["done"]) == 5
+    assert (traj["act"]).dtype == np.long
+
+    # continuous
+    cont_solver.run(num_steps=10)
+    policy = cont_solver.compute_policy(cont_solver.values)
+    traj = collect_samples(cont_env, policy, 10, num_episodes=5)
+    assert np.sum(traj["done"]) == 5
     assert (traj["obs"]).dtype == np.float32

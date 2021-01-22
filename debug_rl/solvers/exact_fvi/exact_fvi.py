@@ -24,7 +24,7 @@ class ExactFittedSolver(Solver):
             projected = self.value_network(self.all_obss).detach().cpu().numpy()
             error = np.abs(values - projected).max()
             values = projected
-            self.record_scalar("error", error)
+            self.record_scalar("Error", error)
 
             self.step += 1
 

@@ -36,16 +36,16 @@ class SacContinuousSolver(Solver):
             tensor_traj["act"] = tensor_traj["act"].unsqueeze(-1)
 
             # ----- update q network -----
-            value_loss = self.update_critic(
+            critic_loss = self.update_critic(
                 self.value_network, self.value_optimizer, tensor_traj)
-            self.record_scalar("value loss", value_loss)
-            value_loss2 = self.update_critic(
+            self.record_scalar("LossCritic", critic_loss)
+            critic_loss2 = self.update_critic(
                 self.value_network2, self.value_optimizer2, tensor_traj)
-            self.record_scalar("value loss 2", value_loss2)
+            self.record_scalar("LossCritic2", critic_loss2)
 
             # ----- update policy network -----
-            policy_loss = self.update_actor(tensor_traj)
-            self.record_scalar("policy loss", policy_loss)
+            actor_loss = self.update_actor(tensor_traj)
+            self.record_scalar("LossActor", actor_loss)
 
             # ----- update target networks with constant polyak -----
             polyak = self.solve_options["polyak"]

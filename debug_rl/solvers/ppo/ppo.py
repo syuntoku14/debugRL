@@ -29,10 +29,10 @@ class PpoSolver(Solver):
             tensor_traj.update({"gae": gaes, "ret": ret})
 
             # ----- update networks -----
-            policy_loss = self.update_actor(tensor_traj)
-            self.record_scalar("policy loss", policy_loss)
-            value_loss = self.update_critic(tensor_traj)
-            self.record_scalar("value loss", value_loss)
+            actor_loss = self.update_actor(tensor_traj)
+            self.record_scalar("LossActor", actor_loss)
+            critic_loss = self.update_critic(tensor_traj)
+            self.record_scalar("LossCritic", critic_loss)
 
             self.step += 1
 

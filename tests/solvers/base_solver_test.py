@@ -1,46 +1,12 @@
 import pytest
 import numpy as np
 import gym
-from debug_rl.envs.gridcraft import GridEnv, spec_from_string
 from debug_rl.envs.pendulum import Pendulum
 from debug_rl.solvers import (
     OracleViSolver,
-    OracleCviSolver,
     SamplingViSolver,
-    SamplingFittedViSolver)
-
-
-@pytest.fixture
-def setUp():
-    env = Pendulum(state_disc=32, dA=5, horizon=200)
-    env.reset()
-    yield env
-
-
-def compute_visitation(solver, policy):
-    return solver.env.compute_visitation(policy)
-
-
-def compute_expected_return(solver, policy):
-    return solver.env.compute_expected_return(policy)
-
-
-def test_compute_visitation(setUp, benchmark):
-    env = setUp
-    solver = OracleViSolver(env)
-    solver.run(num_steps=10)
-    policy = solver.compute_policy(solver.values)
-    benchmark.pedantic(compute_visitation,
-                       kwargs={"solver": solver, "policy": policy})
-
-
-def test_compute_expected_return(setUp, benchmark):
-    env = setUp
-    solver = OracleViSolver(env)
-    solver.run(num_steps=10)
-    policy = solver.compute_policy(solver.values)
-    benchmark.pedantic(compute_expected_return,
-                       kwargs={"solver": solver, "policy": policy})
+    SamplingFittedViSolver
+)
 
 
 def test_gym_env_raise():
@@ -50,8 +16,9 @@ def test_gym_env_raise():
         solver.run(num_steps=10)
 
 
-def test_seed(setUp):
-    env = setUp
+def test_seed():
+    env = Pendulum(state_disc=32, dA=5, horizon=200)
+    env.reset()
     solver = SamplingViSolver(env)
     fsolver = SamplingFittedViSolver(env)
     solver.initialize({"seed": 0, "record_performance_interval": 1})

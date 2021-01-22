@@ -140,39 +140,45 @@ def trajectory_to_tensor(trajectory, device="cpu", is_discrete=True):
     return tensor_traj
 
 
-def collect_samples(env, policy, num_samples, render=False):
+def collect_samples(env, policy, num_samples, num_episodes=None, render=False):
     """
     Args:
         env (debug_rl.envs.base.TabularEnv)
         policy (np.nd_array): SxA matrix
         num_samples (int): Number of samples to collect
+        num_episodes (int): Number of episodes to collect. Prioritize this if not None.
         render (bool, optional)
     """
-    states, next_states = [], []
-    obss, next_obss = [], []
-    actions = []
-    rewards = []
-    dones = []
-    act_prob = []
-    times = []
+    states, next_states, obss, next_obss = [], [], [], []
+    actions, rewards, dones, act_prob, times = [], [], [], [], []
     all_obss = env.all_observations
     done_obs = np.zeros_like(all_obss[0])
 
     done = False
-    while len(obss) < num_samples:
+    done_count = 0
+
+    # prioritize num_episodes if not None
+    num_samples = -1 if num_episodes is not None else num_samples
+
+    while True:
         if render:
             time.sleep(1/20)
             env.render()
+        # add current info
         s = env.get_state()
         t = env.elapsed_steps
         states.append(s)
         times.append(t)
         obss.append(all_obss[s])
+
+        # do action
         probs = policy[s]
         if np.sum(probs) != 1:
             probs /= np.sum(probs)
         action = np.random.choice(np.arange(0, env.dA), p=probs)
         _, rew, done, _ = env.step(action)
+
+        # add next info
         ns = env.get_state()
         next_states.append(ns)
         if done:
@@ -185,9 +191,12 @@ def collect_samples(env, policy, num_samples, render=False):
         if env.action_mode == "continuous":
             action = env.to_continuous_action(action)
         actions.append(action)
+
         if done:
             env.reset()
-        if len(obss) > num_samples:
+            done_count += 1
+
+        if len(obss) == num_samples or done_count == num_episodes:
             break
 
     trajectory = {

@@ -142,11 +142,11 @@ class Solver(Solver):
                 self.dS, self.dA).detach().cpu().numpy()
             policy = self.compute_policy(preference)
             expected_return = self.env.compute_expected_return(policy)
-            self.record_scalar(" Return mean", expected_return, tag="Policy")
-            self.record_array("policy", policy)
+            self.record_scalar("Return", expected_return, tag="Policy")
+            self.record_array("Policy", policy)
             values = self.value_network(self.all_obss).reshape(
                 self.dS, 1).repeat(1, self.dA).detach().cpu().numpy()
-            self.record_array("values", values)
+            self.record_array("Values", values)
 
     def compute_policy(self, preference):
         # return softmax policy

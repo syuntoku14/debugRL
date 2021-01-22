@@ -175,9 +175,8 @@ class Solver(Solver):
                 self.dS, self.dA).detach().cpu().numpy()
             policy = self.compute_policy(preference)
             expected_return = self.env.compute_expected_return(policy)
-            self.record_scalar(
-                " Return mean", expected_return, tag="Policy")
-            self.record_array("policy", policy)
+            self.record_scalar("Return", expected_return, tag="Policy")
+            self.record_array("Policy", policy)
 
             # q performance
             curr_q = self.value_network(self.all_obss)
@@ -187,10 +186,9 @@ class Solver(Solver):
                 self.dS, self.dA).detach().cpu().numpy()
             policy = self.compute_policy(preference)
             expected_return = self.env.compute_expected_return(policy)
-            self.record_scalar(
-                " Return mean", expected_return, tag="Q Policy")
+            self.record_scalar("Return", expected_return, tag="QPolicy")
             values = curr_q.reshape(self.dS, self.dA).detach().cpu().numpy()
-            self.record_array("values", values)
+            self.record_array("Values", values)
 
             # target q performance
             curr_q = self.target_value_network(self.all_obss)
@@ -200,8 +198,7 @@ class Solver(Solver):
                 self.dS, self.dA).detach().cpu().numpy()
             policy = self.compute_policy(preference)
             expected_return = self.env.compute_expected_return(policy)
-            self.record_scalar(
-                " Return mean", expected_return, tag="Target Q Policy")
+            self.record_scalar("Return", expected_return, tag="TargetQPolicy")
 
     def compute_policy(self, preference):
         # return softmax policy
