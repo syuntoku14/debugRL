@@ -5,15 +5,12 @@ os.environ["OMP_NUM_THREADS"] = "1"  # NOQA
 import argparse
 import numpy as np
 from debug_rl.envs.mountaincar import (
-    MountainCar, plot_mountaincar_values, reshape_values
-)
+    MountainCar, plot_mountaincar_values, reshape_values)
 from debug_rl.solvers import *
-from debug_rl.utils import boltzmann_softmax, mellow_max
 from debug_rl.solvers.base import DEFAULT_OPTIONS
 import matplotlib.pyplot as plt
 import matplotlib
 from clearml import Task
-
 matplotlib.use('Agg')
 
 SOLVERS = {
@@ -21,35 +18,43 @@ SOLVERS = {
     "CVI": SamplingCviSolver,
     "FVI": SamplingFittedViSolver,
     "FCVI": SamplingFittedCviSolver,
+    "EPG": ExactPgSolver,
     "SAC": SacSolver,
     "SAC-Continuous": SacContinuousSolver,
     "PPO": PpoSolver
 }
 
 
-options = DEFAULT_OPTIONS
-options.update({
-    "solver": "PPO",
-    "device": "cuda:0",
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--solver', type=str, default="SAC")
+    parser.add_argument('--device', type=str, default="cpu")
+    parser.add_argument('--exp_name', type=str, default="Mountaincar")
+    parser.add_argument('--obs_mode', type=str,
+                        default="tuple", choices=["tuple", "image"])
+    parser.add_argument('--seed', type=int, default=0)
+    parser.add_argument('--epochs', type=int, default=5)
+    args = parser.parse_args()
+
+    options = DEFAULT_OPTIONS
+    options.update({
+        "solver": args.solver,
+        "device": args.device,
+        "seed": args.seed
     })
 
-
-def main():
     task_name = options["solver"]
-    project_name = "mountaincar-tuple"
+    project_name = args.exp_name + "-" + args.obs_mode
     task = Task.init(project_name=project_name, task_name=task_name)
     logger = task.get_logger()
 
     # Construct the environment
     if "Continuous" in options["solver"]:
-        action_mode = "continuous"
-        dA = 50
+        action_mode, dA = "continuous", 50
     else:
-        action_mode = "discrete"
-        dA = 5
+        action_mode, dA = "discrete", 5
     env = MountainCar(horizon=200, state_disc=32,
-                      dA=dA, obs_mode="tuple",
-                      action_mode=action_mode)
+                      dA=dA, obs_mode=args.obs_mode, action_mode=action_mode)
 
     # solve tabular MDP
     solver_cls = SOLVERS[options["solver"]]
@@ -59,8 +64,8 @@ def main():
     solver_name = solver.__class__.__name__
     print(solver_name, "starts...")
 
-    for _ in range(10):
-        solver.run(num_steps=20000)
+    for _ in range(args.epochs):
+        solver.run(num_steps=1000)
 
         # draw results
         q_values = env.compute_er_action_values(solver.policy)
@@ -72,10 +77,10 @@ def main():
                                 vmax=vmax, title="State values")
         plt.show()
 
-    # dir_name = os.path.join("results", solver_name)
-    # if not os.path.exists(dir_name):
-    #     os.makedirs(dir_name)
-    # solver.save(os.path.join(dir_name, task.id))
+    dir_name = os.path.join("results", project_name, solver_name)
+    if not os.path.exists(dir_name):
+        os.makedirs(dir_name)
+    solver.save(os.path.join(dir_name, str(solver.solve_options["seed"])))
 
 
 if __name__ == "__main__":
