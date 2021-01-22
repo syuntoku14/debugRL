@@ -32,9 +32,6 @@ OPTIONS = {
     "clip_grad": False,  # clip the gradient if True
     "optimizer": "Adam",
     "buffer_size": 1e6,
-    "use_double_estimation": False,
-    "use_replay_buffer": True,
-    "use_target_network": True,
     "target_update_interval": 100,
 }
 
@@ -143,27 +140,15 @@ class Solver(Solver):
                                               lr=self.solve_options["lr"])
         self.target_value_network = deepcopy(self.value_network)
 
-        # network for double estimation
-        self.value_network2 = net(
-            self.env,
-            hidden=self.solve_options["hidden"],
-            depth=self.solve_options["depth"],
-            activation=self.solve_options["activation"]).to(self.device)
-        self.value_optimizer2 = self.optimizer(self.value_network2.parameters(),
-                                               lr=self.solve_options["lr"])
-        self.target_value_network2 = deepcopy(self.value_network2)
-
-        # set replay buffer
+        # Collect random samples in advance
         self.buffer = make_replay_buffer(
             self.env, self.solve_options["buffer_size"])
-        if self.solve_options["use_replay_buffer"]:
-            # Collect random samples in advance
-            values = self.value_network(self.all_obss).reshape(
-                self.dS, self.dA).detach().cpu().numpy()
-            policy = self.compute_policy(values)
-            trajectory = collect_samples(
-                self.env, policy, self.solve_options["minibatch_size"])
-            self.buffer.add(**trajectory)
+        values = self.value_network(self.all_obss).reshape(
+            self.dS, self.dA).detach().cpu().numpy()
+        policy = self.compute_policy(values)
+        trajectory = collect_samples(
+            self.env, policy, self.solve_options["minibatch_size"])
+        self.buffer.add(**trajectory)
 
     def update_network(self, target, network, optimizer, obss, actions):
         values = network(obss)

@@ -18,6 +18,7 @@ SOLVERS = {
     "CVI": SamplingCviSolver,
     "FVI": SamplingFittedViSolver,
     "FCVI": SamplingFittedCviSolver,
+    "EPG": ExactPgSolver,
     "SAC": SacSolver,
     "SAC-Continuous": SacContinuousSolver,
     "PPO": PpoSolver
@@ -25,7 +26,7 @@ SOLVERS = {
 
 options = DEFAULT_OPTIONS
 options.update({
-    "solver": "SAC-Continuous",
+    "solver": "EPG",
     "device": "cuda:0",
 })
 

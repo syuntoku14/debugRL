@@ -21,14 +21,8 @@ OPTIONS = {
     "depth": 2,  # depth of the network
     "device": "cuda",
     "critic_loss": "mse",  # mse or huber
-    "clip_grad": False,  # clip the gradient if True
     "optimizer": "Adam",
-    # PPO settings
     "lr": 3e-4,
-    "lam": 0.95,
-    "target_kl": 0.01,
-    "clip_ratio": 0.2,
-    "entropy_coef": 0.001
 }
 
 
@@ -118,15 +112,6 @@ class Solver(Solver):
         else:
             raise ValueError("Invalid critic_loss")
 
-        # set value network
-        self.value_network = net(
-            self.env, 1,
-            hidden=self.solve_options["hidden"],
-            depth=self.solve_options["depth"],
-            activation=self.solve_options["activation"]).to(self.device)
-        self.value_optimizer = self.optimizer(self.value_network.parameters(),
-                                              lr=self.solve_options["lr"])
-
         # actor network
         self.policy_network = net(
             self.env, self.env.action_space.n,
@@ -144,8 +129,7 @@ class Solver(Solver):
             expected_return = self.env.compute_expected_return(policy)
             self.record_scalar(" Return mean", expected_return, tag="Policy")
             self.record_array("policy", policy)
-            values = self.value_network(self.all_obss).reshape(
-                self.dS, 1).repeat(1, self.dA).detach().cpu().numpy()
+            values = self.env.compute_action_values(policy, self.solve_options["discount"])
             self.record_array("values", values)
 
     def compute_policy(self, preference):
