@@ -21,6 +21,7 @@ setup(
         "autopep8",
         "pytest",
         "pytest-benchmark",
+        "pathlib"
     ],
     extra_requires={
         "solver": [

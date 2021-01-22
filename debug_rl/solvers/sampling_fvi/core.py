@@ -166,7 +166,7 @@ class Solver(Solver):
         if self.step % self.solve_options["record_performance_interval"] == 0:
             expected_return = \
                 self.env.compute_expected_return(eval_policy)
-            self.record_scalar("Return mean", expected_return)
+            self.record_scalar("Return", expected_return, tag="Policy")
 
             aval = self.env.compute_action_values(
                 eval_policy, self.solve_options["discount"])
