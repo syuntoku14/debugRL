@@ -17,7 +17,7 @@ class SacSolver(Solver):
         for _ in tqdm(range(num_steps)):
             self.record_performance()
 
-            # ------ collect samples by the current policy ------
+            # ------ collect samples using the current policy ------
             preference = self.policy_network(self.all_obss).reshape(
                 self.dS, self.dA).detach().cpu().numpy()
             policy = self.compute_policy(preference)

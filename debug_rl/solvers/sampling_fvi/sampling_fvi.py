@@ -24,7 +24,7 @@ class SamplingFittedSolver(Solver):
             policy = self.compute_policy(values)
             self.record_performance(policy)
 
-            # ------ collect samples by the current policy ------
+            # ------ collect samples using the current policy ------
             trajectory = collect_samples(
                 self.env, policy, self.solve_options["num_samples"])
 

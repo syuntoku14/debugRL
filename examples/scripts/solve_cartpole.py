@@ -3,9 +3,9 @@ os.environ["MKL_NUM_THREADS"] = "1"  # NOQA
 os.environ["NUMEXPR_NUM_THREADS"] = "1"  # NOQA
 os.environ["OMP_NUM_THREADS"] = "1"  # NOQA
 import numpy as np
+import argparse
 from debug_rl.envs.cartpole import CartPole
 from debug_rl.solvers import *
-from debug_rl.utils import boltzmann_softmax, mellow_max
 from debug_rl.solvers.base import DEFAULT_OPTIONS
 import matplotlib.pyplot as plt
 import matplotlib
@@ -17,23 +17,32 @@ SOLVERS = {
     "CVI": SamplingCviSolver,
     "FVI": SamplingFittedViSolver,
     "FCVI": SamplingFittedCviSolver,
+    "EPG": ExactPgSolver,
     "SAC": SacSolver,
+    "PPO": PpoSolver
 }
 
 
-options = DEFAULT_OPTIONS
-options.update({
-    "solver": "SAC",
-    "polyak": 0.995,
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--solver', type=str, default="SAC")
+    parser.add_argument('--device', type=str, default="cpu")
+    parser.add_argument('--exp_name', type=str, default="CartPole")
+    parser.add_argument('--seed', type=int, default=0)
+    parser.add_argument('--epochs', type=int, default=5)
+    args = parser.parse_args()
+
+    options = DEFAULT_OPTIONS
+    options.update({
+        "solver": args.solver,
+        "device": args.device,
+        "seed": args.seed
     })
 
-
-def main():
     task_name = options["solver"]
-    project_name = "cartpole-tuple"
+    project_name = args.exp_name
     task = Task.init(project_name=project_name, task_name=task_name)
     logger = task.get_logger()
-    task_params = task.connect(options)
 
     # Construct the environment
     env = CartPole()
@@ -42,9 +51,17 @@ def main():
     solver_cls = SOLVERS[options["solver"]]
     del options["solver"]
     solver = solver_cls(env, logger=logger, solve_options=options)
+    task_params = task.connect(solver.solve_options)
     solver_name = solver.__class__.__name__
     print(solver_name, "starts...")
-    solver.run(10000)
+
+    for _ in range(args.epochs):
+        solver.run(1000)
+
+    dir_name = os.path.join("results", project_name, solver_name)
+    if not os.path.exists(dir_name):
+        os.makedirs(dir_name)
+    solver.save(os.path.join(dir_name, str(solver.solve_options["seed"])))
 
 
 if __name__ == "__main__":

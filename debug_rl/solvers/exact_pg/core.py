@@ -21,6 +21,8 @@ OPTIONS = {
     "critic_loss": "mse",  # mse or huber
     "optimizer": "Adam",
     "lr": 3e-4,
+    # coefficient of PG. "Q" or "A". See https://arxiv.org/abs/1506.02438 for details.
+    "coef": "Q"
 }
 
 
@@ -127,7 +129,8 @@ class Solver(Solver):
             expected_return = self.env.compute_expected_return(policy)
             self.record_scalar("Return", expected_return, tag="Policy")
             self.record_array("Policy", policy)
-            values = self.env.compute_action_values(policy, self.solve_options["discount"])
+            values = self.env.compute_action_values(
+                policy, self.solve_options["discount"])
             self.record_array("Values", values)
 
     def compute_policy(self, preference):

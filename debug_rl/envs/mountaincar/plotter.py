@@ -17,11 +17,12 @@ def reshape_values(env, values):
 
 
 def plot_mountaincar_values(
-        env, reshaped_values, title=None,
+        env, reshaped_values, title=None, ax=None, cbar_ax=None,
         return_image=False, vmin=None, vmax=None):
     # reshaped_values: state_disc x state_disc
-    fig, ax = plt.subplots(nrows=1, ncols=1,
-                           figsize=(8, 6))
+    if ax is None:
+        fig, ax = plt.subplots(nrows=1, ncols=1,
+                               figsize=(8, 6))
     vmin = reshaped_values.min() if vmin is None else vmin
     vmax = reshaped_values.max() if vmax is None else vmax
 
@@ -36,7 +37,7 @@ def plot_mountaincar_values(
         columns=vel_ticks)
     data = data.ffill(downcast='infer', axis=0)
     data = data.ffill(downcast='infer', axis=1)
-    sns.heatmap(data, ax=ax, cbar=True, vmin=vmin, vmax=vmax)
+    sns.heatmap(data, ax=ax, cbar=True, cbar_ax=cbar_ax, vmin=vmin, vmax=vmax)
     ax.set_title(title)
     ax.set_ylabel(r"$x$")
     ax.set_xlabel(r"$\dot{x}$")

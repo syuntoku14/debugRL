@@ -10,6 +10,7 @@ from debug_rl.solvers import *
 from debug_rl.solvers.base import DEFAULT_OPTIONS
 import matplotlib.pyplot as plt
 import matplotlib
+from celluloid import Camera
 from clearml import Task
 matplotlib.use('Agg')
 
@@ -64,23 +65,42 @@ def main():
     solver_name = solver.__class__.__name__
     print(solver_name, "starts...")
 
-    for _ in range(args.epochs):
-        solver.run(num_steps=1000)
+    grid_kws = {"width_ratios": (.49, .49, .02)}
+    fig, axes = plt.subplots(
+        nrows=1, ncols=3, figsize=(20, 6), gridspec_kw=grid_kws)
+    camera = Camera(fig)
 
-        # draw results
-        q_values = env.compute_action_values(solver.policy)
+    for epoch in range(args.epochs):
+        solver.run(num_steps=500)
+        # learned value
+        q_values = solver.values
         v_values = np.sum(solver.policy*q_values, axis=-1)
-        vmin = v_values.min()
-        vmax = v_values.max()
+
+        # oracle value
+        oracle_q_values = env.compute_action_values(solver.policy)
+        oracle_v_values = np.sum(solver.policy*oracle_q_values, axis=-1)
+        vmin = min(v_values.min(), oracle_v_values.min())
+        vmax = max(v_values.max(), oracle_v_values.max())
+
         v_values = reshape_values(env, v_values)
-        plot_pendulum_values(env, v_values, vmin=vmin,
-                             vmax=vmax, title="State values")
-        plt.show()
+        oracle_v_values = reshape_values(env, oracle_v_values)
+
+        plot_pendulum_values(env, v_values, ax=axes[0], cbar_ax=axes[2],
+                             vmin=vmin, vmax=vmax,
+                             title="Learned State Values".format(epoch))
+        plot_pendulum_values(env, oracle_v_values, ax=axes[1], cbar_ax=axes[2],
+                             vmin=vmin, vmax=vmax,
+                             title="Oracle State Values".format(epoch))
+        camera.snap()
 
     dir_name = os.path.join("results", project_name, solver_name)
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
     solver.save(os.path.join(dir_name, str(solver.solve_options["seed"])))
+
+    animation = camera.animate()
+    animation.save(os.path.join(
+        dir_name, "values-{}.mp4".format(solver.solve_options["seed"])))
 
 
 if __name__ == "__main__":

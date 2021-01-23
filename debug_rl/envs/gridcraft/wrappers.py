@@ -3,6 +3,7 @@ from debug_rl.envs.base import TabularEnv
 from .grid_env import GridEnv
 from gym.spaces import Box
 from gym import ObservationWrapper
+from debug_rl.utils import lazy_property
 
 
 def flat_to_one_hot(val, ndim):
@@ -62,6 +63,19 @@ class OneHotObsWrapper(ObservationWrapper):
         obs = np.hstack([x, y])
         return obs
 
+    @lazy_property
+    def all_observations(self):
+        """
+        Returns:
+            S x obs_dim matrix: Observations of the all states.
+        """
+        obss = []
+        for s in range(self.dS):
+            s = self.observation(s)
+            obss.append(np.expand_dims(s, axis=0))
+        obss = np.vstack(obss)  # S x obs_dim
+        return obss
+
     def get_state(self):
         return self.env.get_state()
 
@@ -88,6 +102,19 @@ class RandomObsWrapper(ObservationWrapper):
 
     def observation(self, obs):
         return self.obs_matrix[obs]
+
+    @lazy_property
+    def all_observations(self):
+        """
+        Returns:
+            S x obs_dim matrix: Observations of the all states.
+        """
+        obss = []
+        for s in range(self.dS):
+            s = self.observation(s)
+            obss.append(np.expand_dims(s, axis=0))
+        obss = np.vstack(obss)  # S x obs_dim
+        return obss
 
     def get_state(self):
         return self.env.get_state()

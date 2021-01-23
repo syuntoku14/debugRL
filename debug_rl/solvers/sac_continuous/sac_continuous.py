@@ -20,7 +20,7 @@ class SacContinuousSolver(Solver):
         for _ in tqdm(range(num_steps)):
             self.record_performance()
 
-            # ------ collect samples by the current policy ------
+            # ------ collect samples using the current policy ------
             policy_probs = self.make_policy_probs()
             policy = self.compute_policy(policy_probs)
             trajectory = collect_samples(

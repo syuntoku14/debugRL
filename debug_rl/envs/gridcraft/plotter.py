@@ -90,7 +90,7 @@ class TabularQValuePlotter(object):
         ax.set_yticks(np.arange(-1, self.h+1, 1))
         ax.grid()
         if title is not None:
-            plt.suptitle(title, fontsize=23)
+            ax.set_title(title, fontsize=23)
 
     def show(self):
         plt.show()
@@ -107,7 +107,3 @@ def plot_grid_values(gs, q_values, title=None, return_image=False, ax=None):
     plotter.make_plot(title=title, ax=ax)
     if return_image:
         return make_image()
-    else:
-        plotter.show()
-        plt.close()
-        return None
