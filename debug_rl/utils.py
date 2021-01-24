@@ -110,33 +110,15 @@ def squeeze_trajectory(trajectory):
 
 
 def trajectory_to_tensor(trajectory, device="cpu", is_discrete=True):
-    obss = torch.tensor(trajectory["obs"], dtype=torch.float32, device=device)
-    if is_discrete:
-        acts = torch.tensor(trajectory["act"], dtype=torch.long, device=device)
-    else:
-        acts = torch.tensor(trajectory["act"],
-                            dtype=torch.float32, device=device)
-    next_obss = torch.tensor(
-        trajectory["next_obs"], dtype=torch.float32, device=device)
-    rews = torch.tensor(trajectory["rew"], dtype=torch.float32, device=device)
-    dones = torch.tensor(trajectory["done"], dtype=torch.bool, device=device)
-    states = torch.tensor(trajectory["state"], dtype=torch.long, device=device)
-    next_states = torch.tensor(
-        trajectory["next_state"], dtype=torch.long, device=device)
-    act_prob = torch.tensor(
-        trajectory["act_prob"], dtype=torch.float32, device=device)
-    times = torch.tensor(trajectory["time"], dtype=torch.long, device=device)
-    tensor_traj = {
-        "obs": obss,
-        "act": acts,
-        "next_obs": next_obss,
-        "rew": rews,
-        "done": dones,
-        "state": states,
-        "next_state": next_states,
-        "act_prob": act_prob,
-        "time": times,
-    }
+    tensor_traj = {}
+    for key, value in trajectory.items():
+        if key == "done":
+            dtype = torch.bool
+        elif key in ["state", "next_state", "time"] or (key == "act" and is_discrete):
+            dtype = torch.long
+        else:
+            dtype = torch.float32
+        tensor_traj[key] = torch.tensor(value, dtype=dtype, device=device)
     return tensor_traj
 
 

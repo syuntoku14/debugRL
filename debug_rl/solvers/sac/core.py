@@ -16,7 +16,7 @@ from debug_rl.utils import (
 OPTIONS = {
     "num_samples": 4,
     # CVI settings
-    "sigma": 0.2,
+    "er_coef": 0.2,
     "max_operator": "mellow_max",
     # Fitted iteration settings
     "activation": "relu",
@@ -169,7 +169,7 @@ class Solver(Solver):
         self.buffer.add(**trajectory)
 
     def record_performance(self):
-        sigma = self.solve_options["sigma"]
+        er_coef = self.solve_options["er_coef"]
         if self.step % self.solve_options["record_performance_interval"] == 0:
             preference = self.policy_network(self.all_obss).reshape(
                 self.dS, self.dA).detach().cpu().numpy()
@@ -182,7 +182,7 @@ class Solver(Solver):
             curr_q = self.value_network(self.all_obss)
             curr_q2 = self.value_network2(self.all_obss)
             curr_q = torch.min(curr_q, curr_q)
-            preference = (curr_q/sigma).reshape(
+            preference = (curr_q/er_coef).reshape(
                 self.dS, self.dA).detach().cpu().numpy()
             policy = self.compute_policy(preference)
             expected_return = self.env.compute_expected_return(policy)
@@ -194,7 +194,7 @@ class Solver(Solver):
             curr_q = self.target_value_network(self.all_obss)
             curr_q2 = self.target_value_network2(self.all_obss)
             curr_q = torch.min(curr_q, curr_q)
-            preference = (curr_q / sigma).reshape(
+            preference = (curr_q / er_coef).reshape(
                 self.dS, self.dA).detach().cpu().numpy()
             policy = self.compute_policy(preference)
             expected_return = self.env.compute_expected_return(policy)

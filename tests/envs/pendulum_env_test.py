@@ -19,7 +19,7 @@ def test_pendulum_env():
     assert trans_matrix.shape == (
         env.dS*env.dA, env.dS)
     assert reward_matrix.shape == (
-        env.dS*env.dA, 1)
+        env.dS, env.dA)
 
 
 def test_pendulum_continuous_env():
@@ -39,7 +39,7 @@ def test_pendulum_continuous_env():
     assert trans_matrix.shape == (
         env.dS*env.dA, env.dS)
     assert reward_matrix.shape == (
-        env.dS*env.dA, 1)
+        env.dS, env.dA)
 
 
 def test_image_obs():

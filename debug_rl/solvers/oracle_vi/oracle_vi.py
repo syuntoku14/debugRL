@@ -28,7 +28,7 @@ class OracleViSolver(OracleSolver):
         # Bellman Operator to update q values
         discount = self.solve_options["discount"]
         curr_v_val = np.max(curr_q_val, axis=-1)  # S
-        prev_q = self.env.trans_rew_sum \
+        prev_q = self.env.reward_matrix \
             + discount*(self.env.transition_matrix *
                         curr_v_val).reshape(self.dS, self.dA)
         return prev_q
@@ -47,16 +47,17 @@ class OracleCviSolver(OracleSolver):
 
     def backup(self, curr_pref):
         discount = self.solve_options["discount"]
-        alpha = self.solve_options["alpha"]
-        beta = self.solve_options["beta"]
+        er_coef, kl_coef = self.solve_options["er_coef"], self.solve_options["kl_coef"]
+        alpha, beta = kl_coef / (er_coef+kl_coef), 1 / (er_coef+kl_coef)
         mP = self.max_operator(curr_pref, beta)
         prev_preference = \
             alpha * (curr_pref - mP.reshape(-1, 1)) \
-            + self.env.trans_rew_sum \
+            + self.env.reward_matrix \
             + discount*(self.env.transition_matrix * mP).reshape(self.dS, self.dA)
         return prev_preference
 
     def compute_policy(self, preference):
         # return softmax policy
-        beta = self.solve_options["beta"]
+        er_coef, kl_coef = self.solve_options["er_coef"], self.solve_options["kl_coef"]
+        beta = 1 / (er_coef+kl_coef)
         return softmax_policy(preference, beta=beta)

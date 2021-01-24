@@ -168,9 +168,9 @@ class TabularEnv(gym.Env):
         """Constructs this environment's reward matrix.
 
         Returns:
-          A (dS x dA) x 1 scipy.sparse array where the entry reward_matrix[sa, 1]
+          A dS x dA scipy.sparse array where the entry reward_matrix[s, a]
           reward given to an agent when transitioning into state ns after taking
-          action s from state s.
+          action a from state s.
         """
         ds = self.dS
         da = self.dA
@@ -180,65 +180,40 @@ class TabularEnv(gym.Env):
         for s in range(ds):
             for a in range(da):
                 rew = self.reward(s, a)
-                row.append(da*s + a)
-                col.append(0)
+                row.append(s)
+                col.append(a)
                 data.append(rew)
         row = np.array(row)
         col = np.array(col)
         data = np.array(data)
-        return sparse.csr_matrix((data, (row, col)), shape=(ds*da, 1))
+        return sparse.csr_matrix((data, (row, col)), shape=(ds, da))
 
-    @lazy_property
-    def trans_rew_sum(self):
-        # matrix for speeding up computation
-        return np.sum(self.transition_matrix.multiply(
-            self.reward_matrix), axis=-1).reshape(self.dS, self.dA)  # SxA
-
-    def compute_action_values(self, policy, discount=0.99):
+    def compute_action_values(self, policy, discount=0.99, base_policy=None,
+                              er_coef=None, kl_coef=None):
         """
-        Compute action values using bellman operator.
+        Compute action values of given policy.
+        Args:
+            policy, base_policy: SxA matrix
+            er_coef: entropy regularization coefficient
+            kl_coef: KL regularization coefficient
         Returns:
             Q values: SxA matrix
         """
 
         values = np.zeros((self.dS, self.dA))  # SxA
+        reward_matrix = self.reward_matrix  # SxA
 
-        def backup(curr_q_val, policy):
-            curr_v_val = np.sum(policy * curr_q_val, axis=-1)  # S
-            prev_q = self.trans_rew_sum \
-                + discount*(self.transition_matrix *
-                            curr_v_val).reshape(self.dS, self.dA)
-            prev_q = np.asarray(prev_q)
-            return prev_q
-
-        for _ in range(self.horizon):
-            values = backup(values, policy)  # SxA
-
-        return values
-
-    def compute_er_action_values(self, policy, base_policy=None,
-                                 er_coef=0.1, kl_coef=0.1, discount=0.99):
-        """
-        Compute entropy regularized action values using bellman operator.
-        Returns:
-            ER Q values: SxA matrix
-        """
-        values = np.zeros((self.dS, self.dA))  # SxA
-        entropy = -np.sum(policy * np.log(policy+1e-8), axis=-1)  # Sx1
-        entropy = np.repeat(entropy, self.dA).reshape(-1, 1)  # (SxA)x1
+        if er_coef is not None:
+            entropy = -np.sum(policy * np.log(policy+1e-8), axis=-1, keepdims=True)  # Sx1
+            reward_matrix = reward_matrix + er_coef*entropy  # SxA
         if base_policy is not None:
             kl = np.sum(policy * (np.log(policy+1e-8)-np.log(base_policy+1e-8)),
                         axis=-1, keepdims=True)  # Sx1
-            kl = np.repeat(kl, self.dA).reshape(-1, 1)  # (SxA)x1
-            reward_matrix = self.reward_matrix + er_coef*entropy - kl_coef*kl
-        else:
-            reward_matrix = self.reward_matrix + er_coef*entropy
-        trans_er_rew_sum = np.sum(self.transition_matrix.multiply(
-            reward_matrix), axis=-1).reshape(self.dS, self.dA)  # SxA
+            reward_matrix = reward_matrix - kl_coef*kl  # SxA
 
         def backup(curr_q_val, policy):
             curr_v_val = np.sum(policy * curr_q_val, axis=-1)  # S
-            prev_q = trans_er_rew_sum \
+            prev_q = reward_matrix \
                 + discount*(self.transition_matrix *
                             curr_v_val).reshape(self.dS, self.dA)
             prev_q = np.asarray(prev_q)
@@ -246,7 +221,6 @@ class TabularEnv(gym.Env):
 
         for _ in range(self.horizon):
             values = backup(values, policy)  # SxA
-
         return values
 
     def compute_visitation(self, policy, discount=1.0):
@@ -294,7 +268,7 @@ class TabularEnv(gym.Env):
             curr_vval = np.sum(policy * q_values, axis=-1)  # S
             prev_q = (self.transition_matrix *
                       curr_vval).reshape(self.dS, self.dA)  # SxA
-            q_values = np.asarray(prev_q + self.trans_rew_sum)  # SxA
+            q_values = np.asarray(prev_q + self.reward_matrix)  # SxA
 
         init_vval = np.sum(policy*q_values, axis=-1)  # S
         init_probs = np.zeros(self.dS)  # S

@@ -20,7 +20,7 @@ def test_cartpole_env():
     assert trans_matrix.shape == (
         env.dS*env.dA, env.dS)
     assert reward_matrix.shape == (
-        env.dS*env.dA, 1)
+        env.dS, env.dA)
 
 
 def test_cartpole_continuous_env():
@@ -42,4 +42,4 @@ def test_cartpole_continuous_env():
     assert trans_matrix.shape == (
         env.dS*env.dA, env.dS)
     assert reward_matrix.shape == (
-        env.dS*env.dA, 1)
+        env.dS, env.dA)

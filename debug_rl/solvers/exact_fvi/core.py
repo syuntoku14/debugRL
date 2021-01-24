@@ -11,8 +11,8 @@ from debug_rl.utils import (
 
 OPTIONS = {
     # CVI settings
-    "alpha": 0.9,
-    "beta": 1.0,
+    "er_coef": 0.2,
+    "kl_coef": 0.1,
     "max_operator": "mellow_max",
     # Fitted iteration settings
     "activation": "relu",

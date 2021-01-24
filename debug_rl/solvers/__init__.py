@@ -18,6 +18,7 @@ from .sampling_fvi.sampling_fvi import (
     SamplingFittedCviSolver)
 
 from .exact_pg.exact_pg import ExactPgSolver
+from .sampling_pg.sampling_pg import SamplingPgSolver
 
 from .sac.sac import SacSolver
 from .sac_continuous.sac_continuous import SacContinuousSolver

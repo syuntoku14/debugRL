@@ -73,7 +73,8 @@ class SamplingFittedViSolver(SamplingFittedSolver):
 class SamplingFittedCviSolver(SamplingFittedSolver):
     def backup(self, tensor_traj):
         discount = self.solve_options["discount"]
-        alpha, beta = self.solve_options["alpha"], self.solve_options["beta"]
+        er_coef, kl_coef = self.solve_options["er_coef"], self.solve_options["kl_coef"]
+        alpha, beta = kl_coef / (er_coef+kl_coef), 1 / (er_coef+kl_coef)
         obss, actions, next_obss, rews, dones = tensor_traj["obs"], tensor_traj[
             "act"], tensor_traj["next_obs"], tensor_traj["rew"], tensor_traj["done"]
 
@@ -92,5 +93,6 @@ class SamplingFittedCviSolver(SamplingFittedSolver):
         return new_preference.squeeze()  # S
 
     def compute_policy(self, preference):
-        beta = self.solve_options["beta"]
+        er_coef, kl_coef = self.solve_options["er_coef"], self.solve_options["kl_coef"]
+        beta = 1 / (er_coef+kl_coef)
         return softmax_policy(preference, beta=beta)

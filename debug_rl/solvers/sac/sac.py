@@ -53,7 +53,7 @@ class SacSolver(Solver):
     # This implementation does not use reparameterization trick
     def update_critic(self, network, optimizer, tensor_traj):
         discount = self.solve_options["discount"]
-        sigma = self.solve_options["sigma"]
+        er_coef = self.solve_options["er_coef"]
 
         obss, actions, next_obss, rews, dones = tensor_traj["obs"], tensor_traj[
             "act"], tensor_traj["next_obs"], tensor_traj["rew"], tensor_traj["done"]
@@ -69,7 +69,7 @@ class SacSolver(Solver):
                 1e-8  # avoid numerical instability
             log_policy = torch.log(policy)
             next_v = torch.sum(
-                policy * (next_q - sigma*log_policy), dim=-1)  # B
+                policy * (next_q - er_coef*log_policy), dim=-1)  # B
             target = rews + discount*next_v*(~dones)
 
         values = network(obss)
@@ -85,14 +85,14 @@ class SacSolver(Solver):
 
     def update_actor(self, tensor_traj):
         obss = tensor_traj["obs"]
-        sigma = self.solve_options["sigma"]
+        er_coef = self.solve_options["er_coef"]
 
         with torch.no_grad():
             # compute policy target
             curr_q = self.value_network(obss)  # BxA
             curr_q2 = self.value_network2(obss)  # BxA
             curr_q = torch.min(curr_q, curr_q)  # BxA
-            target = torch.softmax(curr_q/sigma, dim=-1)
+            target = torch.softmax(curr_q/er_coef, dim=-1)
             target = target + (target == 0.0).float() * \
                 1e-8  # avoid numerical instability
 

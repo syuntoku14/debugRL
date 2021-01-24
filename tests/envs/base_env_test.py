@@ -42,7 +42,7 @@ def compute_action_values(env, policy):
 
 
 def compute_er_action_values(env, policy, base_policy):
-    return env.compute_er_action_values(policy, base_policy)
+    return env.compute_action_values(policy, base_policy=base_policy, er_coef=0.1, kl_coef=0.1)
 
 
 def test_compute_visitation(setUp, benchmark):

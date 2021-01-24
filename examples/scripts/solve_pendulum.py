@@ -20,6 +20,7 @@ SOLVERS = {
     "FVI": SamplingFittedViSolver,
     "FCVI": SamplingFittedCviSolver,
     "EPG": ExactPgSolver,
+    "SPG": SamplingPgSolver,
     "SAC": SacSolver,
     "SAC-Continuous": SacContinuousSolver,
     "PPO": PpoSolver
@@ -29,12 +30,11 @@ SOLVERS = {
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--solver', type=str, default="SAC")
-    parser.add_argument('--device', type=str, default="cpu")
     parser.add_argument('--exp_name', type=str, default="Pendulum")
     parser.add_argument('--obs_mode', type=str,
                         default="tuple", choices=["tuple", "image"])
-    parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--epochs', type=int, default=5)
+    parsed, unknown = parser.parse_known_args()
     args = parser.parse_args()
 
     options = DEFAULT_OPTIONS

@@ -9,8 +9,8 @@ from debug_rl.utils import (
 OPTIONS = {
     "num_samples": 4,
     # CVI settings
-    "alpha": 0.9,
-    "beta": 1.0,
+    "er_coef": 0.2,
+    "kl_coef": 0.1,
     "max_operator": "mellow_max",
     # Q settings
     "eps_start": 0.9,

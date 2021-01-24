@@ -7,36 +7,28 @@ from debug_rl.utils import (
     boltzmann_softmax,
     mellow_max,
     make_replay_buffer,
-    collect_samples
+    softmax_policy,
+    collect_samples,
+    trajectory_to_tensor,
+    squeeze_trajectory,
 )
 
-
 OPTIONS = {
-    "num_samples": 4,
-    # CVI settings
-    "er_coef": 0.2,
-    "kl_coef": 0.1,
-    "max_operator": "mellow_max",
-    # Q settings
-    "eps_start": 0.9,
-    "eps_end": 0.05,
-    "eps_decay": 200,
+    "num_episodes": 5,
     # Fitted iteration settings
     "activation": "relu",
     "hidden": 128,  # size of hidden layer
     "depth": 2,  # depth of the network
     "device": "cuda",
-    "lr": 0.001,
-    "minibatch_size": 32,
     "critic_loss": "mse",  # mse or huber
-    "clip_grad": False,  # clip the gradient if True
     "optimizer": "Adam",
-    "buffer_size": 1e6,
-    "target_update_interval": 100,
+    "lr": 3e-4,
+    # coefficient of PG. "Q" or "A". See https://arxiv.org/abs/1506.02438 for details.
+    "coef": "Q"
 }
 
 
-def fc_net(env, hidden=256, depth=1, activation="tanh"):
+def fc_net(env, num_output, hidden=256, depth=1, activation="tanh"):
     if activation == "tanh":
         act_layer = nn.Tanh
     elif activation == "relu":
@@ -47,8 +39,7 @@ def fc_net(env, hidden=256, depth=1, activation="tanh"):
     modules = []
     if depth == 0:
         modules.append(
-            nn.Linear(env.observation_space.shape[0],
-                      env.action_space.n))
+            nn.Linear(env.observation_space.shape[0], num_output))
     elif depth > 0:
         modules.append(
             nn.Linear(env.observation_space.shape[0], hidden))
@@ -56,13 +47,13 @@ def fc_net(env, hidden=256, depth=1, activation="tanh"):
             modules.append(act_layer())
             modules.append(nn.Linear(hidden, hidden))
         modules.append(act_layer())
-        modules.append(nn.Linear(hidden, env.action_space.n))
+        modules.append(nn.Linear(hidden, num_output))
     else:
         raise ValueError("Invalid depth of fc layer")
     return nn.Sequential(*modules)
 
 
-def conv_net(env, hidden=32, depth=1, activation="tanh"):
+def conv_net(env, num_output, hidden=32, depth=1, activation="tanh"):
     # this assumes image shape == (1, 28, 28)
     if activation == "tanh":
         act_layer = nn.Tanh
@@ -81,7 +72,7 @@ def conv_net(env, hidden=32, depth=1, activation="tanh"):
     # fc layers
     if depth == 0:
         fc_modules.append(
-            nn.Linear(320, env.action_space.n))
+            nn.Linear(320, num_output))
     elif depth > 0:
         fc_modules.append(
             nn.Linear(320, hidden))
@@ -89,7 +80,7 @@ def conv_net(env, hidden=32, depth=1, activation="tanh"):
             fc_modules.append(act_layer())
             fc_modules.append(nn.Linear(hidden, hidden))
         fc_modules.append(act_layer())
-        fc_modules.append(nn.Linear(hidden, env.action_space.n))
+        fc_modules.append(nn.Linear(hidden, num_output))
     else:
         raise ValueError("Invalid depth of fc layer")
     return nn.Sequential(*(conv_modules+fc_modules))
@@ -100,16 +91,9 @@ class Solver(Solver):
         self.solve_options.update(OPTIONS)
         super().initialize(options)
         self.device = self.solve_options["device"]
-        self.all_obss = torch.tensor(self.env.all_observations,
-                                     dtype=torch.float32, device=self.device)
+        self.all_obss = torch.tensor(
+            self.env.all_observations, dtype=torch.float32, device=self.device)
 
-        # set max_operator
-        if self.solve_options["max_operator"] == "boltzmann_softmax":
-            self.max_operator = boltzmann_softmax
-        elif self.solve_options["max_operator"] == "mellow_max":
-            self.max_operator = mellow_max
-        else:
-            raise ValueError("Invalid max_operator")
         # set networks
         if self.solve_options["optimizer"] == "Adam":
             self.optimizer = torch.optim.Adam
@@ -130,48 +114,26 @@ class Solver(Solver):
         else:
             raise ValueError("Invalid critic_loss")
 
-        # set value network
-        self.value_network = net(
-            self.env,
+        # actor network
+        self.policy_network = net(
+            self.env, self.env.action_space.n,
             hidden=self.solve_options["hidden"],
             depth=self.solve_options["depth"],
             activation=self.solve_options["activation"]).to(self.device)
-        self.value_optimizer = self.optimizer(self.value_network.parameters(),
-                                              lr=self.solve_options["lr"])
-        self.target_value_network = deepcopy(self.value_network)
+        self.policy_optimizer = self.optimizer(self.policy_network.parameters(),
+                                               lr=self.solve_options["lr"])
 
-        # Collect random samples in advance
-        self.buffer = make_replay_buffer(
-            self.env, self.solve_options["buffer_size"])
-        values = self.value_network(self.all_obss).reshape(
-            self.dS, self.dA).detach().cpu().numpy()
-        policy = self.compute_policy(values)
-        trajectory = collect_samples(
-            self.env, policy, self.solve_options["minibatch_size"])
-        self.buffer.add(**trajectory)
-
-    def update_network(self, target, network, optimizer, obss, actions):
-        values = network(obss)
-        values = values.gather(1, actions.reshape(-1, 1)).squeeze()
-        loss = self.critic_loss(target, values)
-        optimizer.zero_grad()
-        loss.backward()
-        if self.solve_options["clip_grad"]:
-            for param in network.parameters():
-                param.grad.data.clamp_(-1, 1)
-        optimizer.step()
-        return loss.detach().cpu().item()
-
-    def record_performance(self, eval_policy):
+    def record_performance(self):
         if self.step % self.solve_options["record_performance_interval"] == 0:
-            expected_return = \
-                self.env.compute_expected_return(eval_policy)
-            self.record_scalar("Return", expected_return, tag="Policy")
-
-            aval = self.env.compute_action_values(
-                eval_policy, self.solve_options["discount"])
-            values = self.value_network(self.all_obss).reshape(
+            preference = self.policy_network(self.all_obss).reshape(
                 self.dS, self.dA).detach().cpu().numpy()
-            self.record_scalar("QError", ((aval-values)**2).mean())
+            policy = self.compute_policy(preference)
+            expected_return = self.env.compute_expected_return(policy)
+            self.record_scalar("Return", expected_return, tag="Policy")
+            self.record_array("Policy", policy)
+            values = self.env.compute_action_values(policy, self.solve_options["discount"])
             self.record_array("Values", values)
-            self.record_array("Policy", eval_policy)
+
+    def compute_policy(self, preference):
+        # return softmax policy
+        return softmax_policy(preference, beta=1.0)

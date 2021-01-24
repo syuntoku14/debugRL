@@ -77,8 +77,8 @@ def main():
         v_values = np.sum(solver.policy*q_values, axis=-1)
 
         # oracle value
-        oracle_q_values = env.compute_er_action_values(
-            solver.policy, er_coef=solver.solve_options["sigma"])
+        oracle_q_values = env.compute_action_values(
+            solver.policy, er_coef=solver.solve_options["er_coef"])
         oracle_v_values = np.sum(solver.policy*oracle_q_values, axis=-1)
         vmin = min(v_values.min(), oracle_v_values.min())
         vmax = max(v_values.max(), oracle_v_values.max())

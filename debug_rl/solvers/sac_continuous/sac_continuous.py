@@ -57,7 +57,7 @@ class SacContinuousSolver(Solver):
 
     def update_critic(self, network, optimizer, tensor_traj):
         discount = self.solve_options["discount"]
-        sigma = self.solve_options["sigma"]
+        er_coef = self.solve_options["er_coef"]
 
         obss, actions, next_obss, rews, dones = tensor_traj["obs"], tensor_traj[
             "act"], tensor_traj["next_obs"], tensor_traj["rew"], tensor_traj["done"]
@@ -70,7 +70,7 @@ class SacContinuousSolver(Solver):
             q2_pi_targ = self.target_value_network2(next_obss, pi2).squeeze(-1)
             q_pi_targ = torch.min(q1_pi_targ, q2_pi_targ)
             target = rews + discount * \
-                (~dones) * (q_pi_targ - sigma * logp_pi2)
+                (~dones) * (q_pi_targ - er_coef * logp_pi2)
 
         values = network(obss, actions).squeeze()
         loss = self.critic_loss(target, values)
@@ -83,7 +83,7 @@ class SacContinuousSolver(Solver):
         return loss.detach().cpu().item()
 
     def update_actor(self, tensor_traj):
-        sigma = self.solve_options["sigma"]
+        er_coef = self.solve_options["er_coef"]
         obss = tensor_traj["obs"]
 
         raw_pi, logp_pi = self.policy_network(obss, return_raw=True)
@@ -94,7 +94,7 @@ class SacContinuousSolver(Solver):
         q_pi = torch.min(q1_pi, q2_pi)
 
         # Entropy-regularized policy loss
-        loss = (logp_pi - 1/sigma*q_pi).mean()
+        loss = (logp_pi - 1/er_coef*q_pi).mean()
 
         self.policy_optimizer.zero_grad()
         loss.backward()

@@ -54,7 +54,8 @@ class SamplingViSolver(SamplingSolver):
 class SamplingCviSolver(SamplingSolver):
     def backup(self, pref, state, act, next_state, rew):
         discount = self.solve_options["discount"]
-        alpha, beta = self.solve_options["alpha"], self.solve_options["beta"]
+        er_coef, kl_coef = self.solve_options["er_coef"], self.solve_options["kl_coef"]
+        alpha, beta = kl_coef / (er_coef+kl_coef), 1 / (er_coef+kl_coef)
         curr_pref = pref[state, act]
         curr_max = self.max_operator(pref[state], beta)
         next_max = self.max_operator(pref[next_state], beta)
@@ -63,5 +64,6 @@ class SamplingCviSolver(SamplingSolver):
 
     def compute_policy(self, preference):
         # return softmax policy
-        beta = self.solve_options["beta"]
+        er_coef, kl_coef = self.solve_options["er_coef"], self.solve_options["kl_coef"]
+        beta = 1 / (er_coef+kl_coef)
         return softmax_policy(preference, beta=beta)

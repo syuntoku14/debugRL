@@ -34,6 +34,8 @@ solverは`initialize`関数を呼ぶと初期化されます. `run`関数を繰�
 | [ExactFittedViSolver, ExactFittedCviSolver](debug_rl/solvers/exact_fvi) | - | ✓ | - | Fitted Q-learning, Fitted CVI |
 | [SamplingViSolver, SamplingCviSolver](debug_rl/solvers/sampling_vi) | ✓ | - | - | Q-learning, CVI |
 | [SamplingFittedViSolver, SamplingFittedCviSolver](debug_rl/solvers/sampling_fvi) | ✓ | ✓ | - | Fitted Q-learning, Fitted CVI |
+| [ExactPgSolver](debug_rl/solvers/exact_pg) | - | ✓ | - | Policy gradient |
+| [SamplingPgSolver](debug_rl/solvers/exact_pg) | - | ✓ | - | Policy gradient (REINFORCE)|
 | [SacSolver](debug_rl/solvers/sac) | ✓ | ✓ | - | [Discrete Soft Actor Critic](https://arxiv.org/abs/1910.07207) |
 | [SacContinuousSolver](debug_rl/solvers/sac_continuous) | ✓ | ✓ | ✓ | [Soft Actor Critic](https://arxiv.org/abs/1801.01290) |
 | [PpoSolver](debug_rl/solvers/ppo) | ✓ | ✓ | - | [Proximal Policy Optimization Algorithms](https://arxiv.org/abs/1707.06347) |
@@ -51,18 +53,17 @@ python examples/simple_debug.py
 TabularEnvには真の値を計算するためのモジュールが搭載されており, これを利用して学習したモデルが正しくMDPを解けているか確認できます.
 
 * ```env.compute_action_values(policy)```関数は方策の行列 (`状態数`x`行動数`のnumpy.array) から真のQ値を計算します.
-* ```env.compute_er_action_values(policy, base_policy=None)```関数は方策の行列 (`状態数`x`行動数`のnumpy.array) からエントロピー正則化された真のQ値を計算します.
 * ```env.compute_visitation(policy, discount=1.0)```関数は方策の行列 (`状態数`x`行動数`のnumpy.array)と割引率から正規化された割引定常分布を計算します.
 * ```env.compute_expected_return(policy)```関数は方策の行列 (`状態数`x`行動数`のnumpy.array) から真の累積報酬和を計算します.
 
-今回はPendulum環境でDQNを学習させ, ```compute_er_action_values```を使って学習したモデルが正しくsoft Q値を学習できているか確認します.
+今回はPendulum環境でDQNを学習させ, ```compute_action_values```を使って学習したモデルが正しくsoft Q値を学習できているか確認します.
 Pendulum環境ではQ値ではなく状態価値しか描画できないため, 今回はV値を描画してみましょう.
 
 Q値のデバッグは以下のような流れで行います.
 
 1. 学習したモデルを用意します. 今回はdebug_rlのSAC実装を使いますが, 観測に対してQ値や行動の確率を返すモデルであれば任意のモデルに簡単に拡張できます.
 2. モデルに対して, TabularEnvのall_observations変数 (`状態数`x`観測の次元`)に格納されている全状態に対する観測をを利用して, 方策行列を回帰します.
-3. env.compute_er_action_values関数を使ってモデルが学習したQ値を計算します. 今回はPendulum環境を使っているためV値を描画しますが, GridCraftではQ値をそのまま描画できます (詳しくは[examples/tutorial.ipynb](examples/tutorial.ipynb)を参照してください).
+3. env.compute_action_values関数を使ってモデルが学習したQ値を計算します. 今回はPendulum環境を使っているためV値を描画しますが, GridCraftではQ値をそのまま描画できます (詳しくは[examples/tutorial.ipynb](examples/tutorial.ipynb)を参照してください).
 
 ```
 import torch
@@ -89,8 +90,8 @@ policy = special.softmax(preference, axis=-1).astype(np.float64)
 policy /= policy.sum(axis=-1, keepdims=True)  # dS x dA
 
 # Step 3: plot soft Q values
-oracle_Q = env.compute_er_action_values(
-    policy, er_coef=solver.solve_options["sigma"])  # dS x dA
+oracle_Q = env.compute_action_values(
+    policy, er_coef=solver.solve_options["er_coef"])  # dS x dA
 trained_Q = value_network(tensor_all_obss).reshape(
     env.dS, env.dA).detach().cpu().numpy()  # dS x dA
 V_max = max(oracle_Q.max(), trained_Q.max())

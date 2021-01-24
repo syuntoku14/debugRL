@@ -19,7 +19,7 @@ OPTIONS = {
     "log_std_max": 2,
     "log_std_min": -20,
     # CVI settings
-    "sigma": 0.2,
+    "er_coef": 0.2,
     "max_operator": "mellow_max",
     # Fitted iteration settings
     "activation": "relu",

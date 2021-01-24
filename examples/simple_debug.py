@@ -24,8 +24,8 @@ policy = special.softmax(preference, axis=-1).astype(np.float64)
 policy /= policy.sum(axis=-1, keepdims=True)  # dS x dA
 
 # Step 3: plot soft Q values
-oracle_Q = env.compute_er_action_values(
-    policy, er_coef=solver.solve_options["sigma"])  # dS x dA
+oracle_Q = env.compute_action_values(
+    policy, er_coef=solver.solve_options["er_coef"])  # dS x dA
 trained_Q = value_network(tensor_all_obss).reshape(
     env.dS, env.dA).detach().cpu().numpy()  # dS x dA
 V_max = max(oracle_Q.max(), trained_Q.max())

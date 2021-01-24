@@ -100,6 +100,7 @@ class Solver(ABC):
         if self.logger is not None:
             tag = title if tag is None else tag
             self.logger.report_scalar(title, tag, y, self.step)
+        if tag is not None:
             title += tag
         self.history[title]["x"].append(self.step)
         self.history[title]["y"].append(y)

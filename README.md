@@ -36,8 +36,9 @@ Currently the following solvers are supported:
 | :---:| :---: | :---: | :---: | :---: |
 | [OracleViSolver, OracleCviSolver](debug_rl/solvers/oracle_vi) | - | - | - | Q-learning, [Conservative Value Iteration (CVI)](http://proceedings.mlr.press/v89/kozuno19a.html) |
 | [ExactFittedViSolver, ExactFittedCviSolver](debug_rl/solvers/exact_fvi) | - | ✓ | - | Fitted Q-learning, Fitted CVI |
-| [ExactPgSolver](debug_rl/solvers/exact_pg) | - | ✓ | - | Policy gradient |
 | [SamplingViSolver, SamplingCviSolver](debug_rl/solvers/sampling_vi) | ✓ | - | - | Q-learning, CVI |
+| [ExactPgSolver](debug_rl/solvers/exact_pg) | - | ✓ | - | Policy gradient |
+| [SamplingPgSolver](debug_rl/solvers/exact_pg) | - | ✓ | - | Policy gradient (REINFORCE)|
 | [SamplingFittedViSolver, SamplingFittedCviSolver](debug_rl/solvers/sampling_fvi) | ✓ | ✓ | - | Fitted Q-learning (DQN), Fitted CVI |
 | [SacSolver](debug_rl/solvers/sac) | ✓ | ✓ | - | [Discrete Soft Actor Critic](https://arxiv.org/abs/1910.07207) |
 | [SacContinuousSolver](debug_rl/solvers/sac_continuous) | ✓ | ✓ | ✓ | [Soft Actor Critic](https://arxiv.org/abs/1801.01290) |
@@ -56,18 +57,17 @@ TabularEnv has several methods to compute oracle values.
 Using those methods, you can analyze whether trained models actually solve the MDP or not.
 
 * ```env.compute_action_values(policy)``` returns the oracle Q values from a policy matrix (numpy.array with `# of states`x`# of actions`).
-* ```env.compute_er_action_values(policy, base_policy=None)``` returns the oracle entropy regularized Q values from a policy matrix.
 * ```env.compute_visitation(policy, discount=1.0)``` returns the oracle normalized discounted stationary distribution from a policy matrix.
 * ```env.compute_expected_return(policy)``` returns the oracle cumulative rewards from a policy matrix.
 
-In this example, we train a SAC model in Pendulum environment, and check whether the model successfully learns the soft Q values using ```compute_er_action_values``` function.
+In this example, we train a SAC model in Pendulum environment, and check whether the model successfully learns the soft Q values using ```compute_action_values``` function.
 Since Pendulum environment can plot only V values instead Q values, out goal is to plot trained soft V values.
 
 We do debugging as follows:
 
 1. Train a model. We use the SAC implementation from debug_rl in this example. You can use any models as long as it returns Q values or action probabilities from observations.
 2. Using all_observations from TabularEnv, compute the policy matrix.
-3. Compute soft Q values by env.compute_er_action_values. Since Pendulum environment supports only V values plotting, the following code plots V values instead. Check GridCraft environment if you want to see the behavior of Q values (see [examples/tutorial.ipynb](examples/tutorial.ipynb) for details).
+3. Compute soft Q values by env.compute_action_values. Since Pendulum environment supports only V values plotting, the following code plots V values instead. Check GridCraft environment if you want to see the behavior of Q values (see [examples/tutorial.ipynb](examples/tutorial.ipynb) for details).
 
 ```
 import torch
@@ -94,8 +94,8 @@ policy = special.softmax(preference, axis=-1).astype(np.float64)
 policy /= policy.sum(axis=-1, keepdims=True)  # dS x dA
 
 # Step 3: plot soft Q values
-oracle_Q = env.compute_er_action_values(
-    policy, er_coef=solver.solve_options["sigma"])  # dS x dA
+oracle_Q = env.compute_action_values(
+    policy, er_coef=solver.solve_options["er_coef"])  # dS x dA
 trained_Q = value_network(tensor_all_obss).reshape(
     env.dS, env.dA).detach().cpu().numpy()  # dS x dA
 V_max = max(oracle_Q.max(), trained_Q.max())
