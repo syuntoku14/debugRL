@@ -114,7 +114,7 @@ def trajectory_to_tensor(trajectory, device="cpu", is_discrete=True):
     for key, value in trajectory.items():
         if key == "done" or key == "timeout":
             dtype = torch.bool
-        elif key in ["state", "next_state", "time"] or (key == "act" and is_discrete):
+        elif key in ["state", "next_state"] or (key == "act" and is_discrete):
             dtype = torch.long
         else:
             dtype = torch.float32
@@ -132,12 +132,8 @@ def collect_samples(env, policy, num_samples, num_episodes=None, render=False):
         render (bool, optional)
     """
     states, next_states, obss, next_obss = [], [], [], []
-    actions, rewards, dones, act_prob, times, timeouts = [], [], [], [], [], []
-    all_obss = env.all_observations
-    done_obs = np.zeros_like(all_obss[0])
-
-    done = False
-    done_count = 0
+    actions, rewards, dones, act_prob, timeouts = [], [], [], [], []
+    done, done_count = False, 0
 
     # prioritize num_episodes if not None
     num_samples = -1 if num_episodes is not None else num_samples
@@ -148,28 +144,23 @@ def collect_samples(env, policy, num_samples, num_episodes=None, render=False):
             env.render()
         # add current info
         s = env.get_state()
-        t = env.elapsed_steps
         states.append(s)
-        times.append(t)
-        obss.append(all_obss[s])
+        obss.append(env.observation(s))
 
         # do action
         probs = policy[s]
         if np.sum(probs) != 1:
             probs /= np.sum(probs)
         action = np.random.choice(np.arange(0, env.dA), p=probs)
-        _, rew, done, info = env.step(action)
+        next_obs, rew, done, info = env.step(action)
 
         # add next info
         ns = env.get_state()
         next_states.append(ns)
-        if done:
-            next_obss.append(done_obs)
-        else:
-            next_obss.append(all_obss[ns])
+        next_obss.append(next_obs)
         rewards.append(rew)
         dones.append(done)
-        timeouts.append(info["timeout"])
+        timeouts.append(not info["TimeLimit.truncated"])
         act_prob.append(probs[action])
         if env.action_mode == "continuous":
             action = env.to_continuous_action(action)
@@ -191,7 +182,6 @@ def collect_samples(env, policy, num_samples, num_episodes=None, render=False):
         "state": np.array(states),
         "next_state": np.array(next_states),
         "act_prob": np.array(act_prob),
-        "time": np.array(times),
         "timeout": np.array(timeouts)
     }
     return trajectory
@@ -205,7 +195,6 @@ def make_replay_buffer(env, size):
         "state": {'dtype': np.int, 'shape': 1},
         "next_state": {'dtype': np.int, 'shape': 1},
         "act_prob": {'dtype': np.float32, 'shape': 1},
-        "time": {'dtype': np.int, 'shape': 1},
         "timeout": {'dtype': np.bool, 'shape': 1},
     })
     return ReplayBuffer(size, env_dict)

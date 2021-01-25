@@ -50,8 +50,7 @@ class TabularEnv(gym.Env):
         self._elapsed_steps += 1
         if self._elapsed_steps >= self.horizon:
             done = True
-        infos = {'state': self._state, 'time': self.elapsed_steps,
-                 'timeout': self._elapsed_steps >= self.horizon}
+        infos = {'state': self._state, 'TimeLimit.truncated': False}
         return nobs, reward, done, infos
 
     def reset(self):
