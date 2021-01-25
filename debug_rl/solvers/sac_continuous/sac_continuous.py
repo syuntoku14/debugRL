@@ -59,8 +59,10 @@ class SacContinuousSolver(Solver):
         discount = self.solve_options["discount"]
         er_coef = self.solve_options["er_coef"]
 
-        obss, actions, next_obss, rews, dones = tensor_traj["obs"], tensor_traj[
-            "act"], tensor_traj["next_obs"], tensor_traj["rew"], tensor_traj["done"]
+        obss, actions, next_obss, rews, dones, timeouts = tensor_traj["obs"], tensor_traj[
+            "act"], tensor_traj["next_obs"], tensor_traj["rew"], tensor_traj["done"], tensor_traj["timeout"]
+        # Ignore the "done" signal if it comes from hitting the time
+        dones = dones * (~timeouts)
 
         with torch.no_grad():
             # compute q target
@@ -70,7 +72,7 @@ class SacContinuousSolver(Solver):
             q2_pi_targ = self.target_value_network2(next_obss, pi2).squeeze(-1)
             q_pi_targ = torch.min(q1_pi_targ, q2_pi_targ)
             target = rews + discount * \
-                (~dones) * (q_pi_targ - er_coef * logp_pi2)
+                (q_pi_targ - er_coef * logp_pi2) * (~dones)
 
         values = network(obss, actions).squeeze()
         loss = self.critic_loss(target, values)

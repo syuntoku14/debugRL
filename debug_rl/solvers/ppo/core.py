@@ -14,7 +14,7 @@ from debug_rl.utils import (
 )
 
 OPTIONS = {
-    "num_samples": 20,
+    "num_samples": 80,
     # Fitted iteration settings
     "activation": "relu",
     "hidden": 128,  # size of hidden layer
@@ -25,7 +25,7 @@ OPTIONS = {
     "optimizer": "Adam",
     # PPO settings
     "lr": 3e-4,
-    "lam": 0.95,
+    "td_lam": 0.95,
     "target_kl": 0.01,
     "clip_ratio": 0.2,
     "entropy_coef": 0.001

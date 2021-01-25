@@ -14,7 +14,7 @@ from debug_rl.utils import (
 )
 
 OPTIONS = {
-    "num_episodes": 5,
+    "num_samples": 80,
     # Fitted iteration settings
     "activation": "relu",
     "hidden": 128,  # size of hidden layer
@@ -23,8 +23,10 @@ OPTIONS = {
     "critic_loss": "mse",  # mse or huber
     "optimizer": "Adam",
     "lr": 3e-4,
-    # coefficient of PG. "Q" or "A". See https://arxiv.org/abs/1506.02438 for details.
-    "coef": "Q"
+    # coefficient of PG. "Q" or "A" or "GAE". See https://arxiv.org/abs/1506.02438 for details.
+    "coef": "GAE",
+    "last_val": "critic",  # last value of coef calculation. "oracle" or "critic"
+    "td_lam": 0.95
 }
 
 
@@ -114,6 +116,15 @@ class Solver(Solver):
         else:
             raise ValueError("Invalid critic_loss")
 
+        # set value network
+        self.value_network = net(
+            self.env, 1,
+            hidden=self.solve_options["hidden"],
+            depth=self.solve_options["depth"],
+            activation=self.solve_options["activation"]).to(self.device)
+        self.value_optimizer = self.optimizer(self.value_network.parameters(),
+                                              lr=self.solve_options["lr"])
+
         # actor network
         self.policy_network = net(
             self.env, self.env.action_space.n,
@@ -131,7 +142,8 @@ class Solver(Solver):
             expected_return = self.env.compute_expected_return(policy)
             self.record_scalar("Return", expected_return, tag="Policy")
             self.record_array("Policy", policy)
-            values = self.env.compute_action_values(policy, self.solve_options["discount"])
+            values = self.value_network(self.all_obss).reshape(
+                self.dS, 1).repeat(1, self.dA).detach().cpu().numpy()
             self.record_array("Values", values)
 
     def compute_policy(self, preference):

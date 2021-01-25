@@ -41,7 +41,6 @@ class TabularEnv(gym.Env):
           done: A boolean indicating the end of an episode
           info: A debug info dictionary.
         """
-        infos = {'state': self._state}
         transitions = self.transitions(self._state, action)
         next_state = self.sample_int(transitions)
         reward = self.reward(self._state, action)
@@ -51,6 +50,8 @@ class TabularEnv(gym.Env):
         self._elapsed_steps += 1
         if self._elapsed_steps >= self.horizon:
             done = True
+        infos = {'state': self._state, 'time': self.elapsed_steps,
+                 'timeout': self._elapsed_steps >= self.horizon}
         return nobs, reward, done, infos
 
     def reset(self):
@@ -204,7 +205,8 @@ class TabularEnv(gym.Env):
         reward_matrix = self.reward_matrix  # SxA
 
         if er_coef is not None:
-            entropy = -np.sum(policy * np.log(policy+1e-8), axis=-1, keepdims=True)  # Sx1
+            entropy = -np.sum(policy * np.log(policy+1e-8),
+                              axis=-1, keepdims=True)  # Sx1
             reward_matrix = reward_matrix + er_coef*entropy  # SxA
         if base_policy is not None:
             kl = np.sum(policy * (np.log(policy+1e-8)-np.log(base_policy+1e-8)),

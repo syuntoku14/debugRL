@@ -41,7 +41,7 @@ class Solver(ABC):
 
         # env parameters
         self.env = env
-        self.dS, self.dA = env.dS, env.dA
+        self.dS, self.dA, self.horizon = env.dS, env.dA, env.horizon
         self.initialize(solve_options)
 
     def initialize(self, options={}):

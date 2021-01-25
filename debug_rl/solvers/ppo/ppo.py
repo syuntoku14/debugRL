@@ -24,9 +24,8 @@ class PpoSolver(Solver):
             trajectory = collect_samples(
                 self.env, policy, self.solve_options["num_samples"])
             trajectory = squeeze_trajectory(trajectory)
-            gaes, ret = self.compute_gae(trajectory)
+            trajectory = self.compute_coef(trajectory, policy)
             tensor_traj = trajectory_to_tensor(trajectory, self.device)
-            tensor_traj.update({"gae": gaes, "ret": ret})
 
             # ----- update networks -----
             actor_loss = self.update_actor(tensor_traj)
@@ -36,35 +35,49 @@ class PpoSolver(Solver):
 
             self.step += 1
 
-    def compute_gae(self, traj):
-        discount = self.solve_options["discount"]
-        lam = self.solve_options["lam"]
-        obs = torch.tensor(traj["obs"], device=self.device, dtype=torch.float32)
-        last_obs = torch.tensor(
-            traj["next_obs"], device=self.device, dtype=torch.float32)[-1].unsqueeze(0)
-        rew, masks = traj["rew"], ~traj["done"]
-        with torch.no_grad():
-            ret = []
-            gae = 0
-            values = self.value_network(
-                obs).squeeze(-1).detach().cpu().numpy()  # B
-            last_val = self.value_network(
-                last_obs).squeeze(-1).detach().cpu().numpy()  # B
-            values = np.append(values, last_val)
-            for step in reversed(range(len(rew))):
-                delta = rew[step] + discount * \
-                    values[step+1]*masks[step] - values[step]
-                gae = delta + discount*lam*masks[step]*gae
-                ret.insert(0, gae+values[step])
-            gaes = torch.tensor(
-                np.array(ret) - values[:-1], device=self.device, dtype=torch.float32)
-            ret = torch.tensor(ret, device=self.device, dtype=torch.float32)
-        return gaes, ret
+    def compute_coef(self, traj, policy):
+        discount, lam = self.solve_options["discount"], self.solve_options["td_lam"]
+        state, next_state, act, rew, done = traj["state"], traj[
+            "next_state"], traj["act"], traj["rew"], traj["done"]
+        obs = torch.tensor(
+            traj["obs"], dtype=torch.float32, device=self.device)
+        next_obs = torch.tensor(
+            traj["next_obs"], dtype=torch.float32, device=self.device)
+        values = self.value_network(obs).squeeze(1).detach().cpu().numpy()
+        next_values = self.value_network(next_obs).squeeze(1).detach().cpu().numpy()
+        td_err = rew + discount * next_values - values
+        Q_table = self.env.compute_action_values(policy, discount)  # SxA
+
+        # last_val != 0.0 since TabularEnv returns done only at timeout
+        def compute_last_val(step):  
+            return values[step]
+
+        def compute_last_adv(step):
+            return td_err[step]
+
+        Q, GAE, oracle_Q, oracle_V = [], [], [], []
+        ret = compute_last_val(len(rew)-1)
+        gae = compute_last_adv(len(rew)-1)
+        for step in reversed(range(len(rew))):
+            gae = compute_last_adv(step) if done[step] else td_err[step] + discount*lam*gae 
+            ret = compute_last_val(step) if done[step] else rew[step] + discount*ret 
+            GAE.insert(0, gae)
+            Q.insert(0, ret)
+            oracle_Q.insert(0, Q_table[state[step], act[step]])
+            oracle_V.insert(0, np.sum(policy[state[step]] * Q_table[state[step]]))
+        Q, GAE, oracle_Q, oracle_V = np.array(Q), np.array(GAE), np.array(oracle_Q), np.array(oracle_V)
+        self.record_scalar("ReturnError", np.mean((Q-oracle_Q)**2))
+        self.record_scalar("AdvantageError", np.mean(((Q-values) - (oracle_Q-oracle_V))**2), tag="Q-V")
+        self.record_scalar("AdvantageError", np.mean((GAE - (oracle_Q-oracle_V))**2), tag="GAE")
+
+        traj["ret"] = Q
+        traj["coef"] = GAE
+        return traj
 
     def update_actor(self, tensor_traj):
         clip_ratio = self.solve_options["clip_ratio"]
         obss, actions, act_prob = tensor_traj["obs"], tensor_traj["act"], tensor_traj["act_prob"]
-        advantage = tensor_traj["gae"]
+        advantage = tensor_traj["coef"]
 
         preference = self.policy_network(obss)
         policy = torch.softmax(preference, dim=-1)  # BxA

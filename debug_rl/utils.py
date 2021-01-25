@@ -112,7 +112,7 @@ def squeeze_trajectory(trajectory):
 def trajectory_to_tensor(trajectory, device="cpu", is_discrete=True):
     tensor_traj = {}
     for key, value in trajectory.items():
-        if key == "done":
+        if key == "done" or key == "timeout":
             dtype = torch.bool
         elif key in ["state", "next_state", "time"] or (key == "act" and is_discrete):
             dtype = torch.long
@@ -132,7 +132,7 @@ def collect_samples(env, policy, num_samples, num_episodes=None, render=False):
         render (bool, optional)
     """
     states, next_states, obss, next_obss = [], [], [], []
-    actions, rewards, dones, act_prob, times = [], [], [], [], []
+    actions, rewards, dones, act_prob, times, timeouts = [], [], [], [], [], []
     all_obss = env.all_observations
     done_obs = np.zeros_like(all_obss[0])
 
@@ -158,7 +158,7 @@ def collect_samples(env, policy, num_samples, num_episodes=None, render=False):
         if np.sum(probs) != 1:
             probs /= np.sum(probs)
         action = np.random.choice(np.arange(0, env.dA), p=probs)
-        _, rew, done, _ = env.step(action)
+        _, rew, done, info = env.step(action)
 
         # add next info
         ns = env.get_state()
@@ -169,6 +169,7 @@ def collect_samples(env, policy, num_samples, num_episodes=None, render=False):
             next_obss.append(all_obss[ns])
         rewards.append(rew)
         dones.append(done)
+        timeouts.append(info["timeout"])
         act_prob.append(probs[action])
         if env.action_mode == "continuous":
             action = env.to_continuous_action(action)
@@ -190,7 +191,8 @@ def collect_samples(env, policy, num_samples, num_episodes=None, render=False):
         "state": np.array(states),
         "next_state": np.array(next_states),
         "act_prob": np.array(act_prob),
-        "time": np.array(times)
+        "time": np.array(times),
+        "timeout": np.array(timeouts)
     }
     return trajectory
 
@@ -204,5 +206,6 @@ def make_replay_buffer(env, size):
         "next_state": {'dtype': np.int, 'shape': 1},
         "act_prob": {'dtype': np.float32, 'shape': 1},
         "time": {'dtype': np.int, 'shape': 1},
+        "timeout": {'dtype': np.bool, 'shape': 1},
     })
     return ReplayBuffer(size, env_dict)

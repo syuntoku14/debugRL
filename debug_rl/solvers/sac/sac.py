@@ -55,8 +55,10 @@ class SacSolver(Solver):
         discount = self.solve_options["discount"]
         er_coef = self.solve_options["er_coef"]
 
-        obss, actions, next_obss, rews, dones = tensor_traj["obs"], tensor_traj[
-            "act"], tensor_traj["next_obs"], tensor_traj["rew"], tensor_traj["done"]
+        obss, actions, next_obss, rews, dones, timeouts = tensor_traj["obs"], tensor_traj[
+            "act"], tensor_traj["next_obs"], tensor_traj["rew"], tensor_traj["done"], tensor_traj["timeout"]
+        # Ignore the "done" signal if it comes from hitting the time
+        dones = dones * (~timeouts)
 
         with torch.no_grad():
             # compute q target

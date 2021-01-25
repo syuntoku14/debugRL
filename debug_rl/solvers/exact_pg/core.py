@@ -18,7 +18,6 @@ OPTIONS = {
     "hidden": 128,  # size of hidden layer
     "depth": 2,  # depth of the network
     "device": "cuda",
-    "critic_loss": "mse",  # mse or huber
     "optimizer": "Adam",
     "lr": 3e-4,
     # coefficient of PG. "Q" or "A". See https://arxiv.org/abs/1506.02438 for details.
@@ -103,14 +102,6 @@ class Solver(Solver):
             net = fc_net
         else:
             net = conv_net
-
-        # set critic loss
-        if self.solve_options["critic_loss"] == "mse":
-            self.critic_loss = F.mse_loss
-        elif self.solve_options["critic_loss"] == "huber":
-            self.critic_loss = F.smooth_l1_loss
-        else:
-            raise ValueError("Invalid critic_loss")
 
         # actor network
         self.policy_network = net(

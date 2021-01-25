@@ -53,8 +53,10 @@ class SamplingFittedViSolver(SamplingFittedSolver):
     # SamplingFittedViSolver is the same as DQN
     def backup(self, tensor_traj):
         discount = self.solve_options["discount"]
-        next_obss, rews, dones = tensor_traj["next_obs"], tensor_traj[
-            "rew"], tensor_traj["done"]
+        next_obss, rews, dones, timeouts = tensor_traj["next_obs"], tensor_traj[
+            "rew"], tensor_traj["done"], tensor_traj["timeout"]
+        # Ignore the "done" signal if it comes from hitting the time
+        dones = dones * (~timeouts)
 
         with torch.no_grad():
             next_q_val = self.target_value_network(next_obss)  # SxA
@@ -75,8 +77,8 @@ class SamplingFittedCviSolver(SamplingFittedSolver):
         discount = self.solve_options["discount"]
         er_coef, kl_coef = self.solve_options["er_coef"], self.solve_options["kl_coef"]
         alpha, beta = kl_coef / (er_coef+kl_coef), 1 / (er_coef+kl_coef)
-        obss, actions, next_obss, rews, dones = tensor_traj["obs"], tensor_traj[
-            "act"], tensor_traj["next_obs"], tensor_traj["rew"], tensor_traj["done"]
+        obss, actions, next_obss, rews, dones, timeouts = tensor_traj["obs"], tensor_traj[
+            "act"], tensor_traj["next_obs"], tensor_traj["rew"], tensor_traj["done"], tensor_traj["timeout"]
 
         with torch.no_grad():
             curr_preference = self.target_value_network(obss)
