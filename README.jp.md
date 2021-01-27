@@ -35,7 +35,8 @@ solverは`initialize`関数を呼ぶと初期化されます. `run`関数を繰�
 | [SamplingViSolver, SamplingCviSolver](debug_rl/solvers/sampling_vi) | ✓ | - | - | Q-learning, CVI |
 | [SamplingFittedViSolver, SamplingFittedCviSolver](debug_rl/solvers/sampling_fvi) | ✓ | ✓ | - | Fitted Q-learning, Fitted CVI |
 | [ExactPgSolver](debug_rl/solvers/exact_pg) | - | ✓ | - | Policy gradient |
-| [SamplingPgSolver](debug_rl/solvers/exact_pg) | - | ✓ | - | Policy gradient (REINFORCE)|
+| [SamplingPgSolver](debug_rl/solvers/sampling_pg) | - | ✓ | - | Policy gradient (REINFORCE, A2C)|
+| [IpgSolver](debug_rl/solvers/ipg) | - | ✓ | - | [Interpolated policy gradient](https://arxiv.org/abs/1706.00387)|
 | [SacSolver](debug_rl/solvers/sac) | ✓ | ✓ | - | [Discrete Soft Actor Critic](https://arxiv.org/abs/1910.07207) |
 | [SacContinuousSolver](debug_rl/solvers/sac_continuous) | ✓ | ✓ | ✓ | [Soft Actor Critic](https://arxiv.org/abs/1801.01290) |
 | [PpoSolver](debug_rl/solvers/ppo) | ✓ | ✓ | - | [Proximal Policy Optimization Algorithms](https://arxiv.org/abs/1707.06347) |

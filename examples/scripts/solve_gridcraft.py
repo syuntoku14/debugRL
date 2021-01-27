@@ -20,6 +20,8 @@ SOLVERS = {
     "FVI": SamplingFittedViSolver,
     "FCVI": SamplingFittedCviSolver,
     "EPG": ExactPgSolver,
+    "SPG": SamplingPgSolver,
+    "IPG": IpgSolver,
     "SAC": SacSolver,
     "PPO": PpoSolver
 }
