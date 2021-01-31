@@ -8,7 +8,6 @@ from torch.distributions.normal import Normal
 from debug_rl.solvers import Solver
 from debug_rl.utils import (
     boltzmann_softmax,
-    mellow_max,
     make_replay_buffer,
     collect_samples
 )
@@ -20,7 +19,6 @@ OPTIONS = {
     "log_std_min": -20,
     # CVI settings
     "er_coef": 0.2,
-    "max_operator": "mellow_max",
     # Fitted iteration settings
     "activation": "relu",
     "hidden": 128,  # size of hidden layer
@@ -173,13 +171,6 @@ class Solver(Solver):
             self.env.all_actions, dtype=torch.float32,
             device=self.device).repeat(self.dS, 1).reshape(self.dS, self.dA)  # dS x dA
 
-        # set max_operator
-        if self.solve_options["max_operator"] == "boltzmann_softmax":
-            self.max_operator = boltzmann_softmax
-        elif self.solve_options["max_operator"] == "mellow_max":
-            self.max_operator = mellow_max
-        else:
-            raise ValueError("Invalid max_operator")
         # set networks
         if self.solve_options["optimizer"] == "Adam":
             self.optimizer = torch.optim.Adam
