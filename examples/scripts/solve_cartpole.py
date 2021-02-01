@@ -24,20 +24,33 @@ SOLVERS = {
 }
 
 
+def to_numeric(arg):
+    try:
+        float(arg)
+    except ValueError:
+        return arg
+    else:
+        return int(arg) if float(arg).is_integer() else float(arg)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--solver', type=str, default="SAC")
     parser.add_argument('--device', type=str, default="cpu")
     parser.add_argument('--exp_name', type=str, default="CartPole")
     parser.add_argument('--task_name', type=str, default=None)
-    parser.add_argument('--seed', type=int, default=0)
-    parser.add_argument('--epochs', type=int, default=5)
+
+    # for arbitrary options, e.g. --device cpu --seed 0
+    parsed, unknown = parser.parse_known_args() 
+    for arg in unknown:
+        if arg.startswith(("-", "--")):
+            parser.add_argument(arg.split('=')[0])
     args = parser.parse_args()
 
-    options = {
-        "device": args.device,
-        "seed": args.seed
-    }
+    options = {}
+    for key, val in vars(args).items():
+        if key not in ["solver", "exp_name", "task_name", "epochs", "obs_mode"]:
+            options[key] = to_numeric(val)
 
     task_name = args.solver if args.task_name is None else args.task_name
     project_name = args.exp_name

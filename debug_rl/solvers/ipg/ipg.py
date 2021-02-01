@@ -124,11 +124,16 @@ class IpgSolver(Solver):
         off_obss = tensor_off_traj["obs"]
         off_policy = torch.softmax(
             self.policy_network(off_obss), dim=-1)  # BxA
+        off_policy = off_policy + (off_policy == 0.0).float() * \
+            1e-8  # avoid numerical instability
         values = self.value_network(off_obss).detach()  # BxA
-        adv = values - (values * off_policy.detach()).sum(1, keepdims=True)
-        off_loss = - self.solve_options["on_off_coef"] * (adv*off_policy).mean()
+        off_loss = -self.solve_options["on_off_coef"] * ((values * off_policy).sum(1)).mean()
 
-        loss = on_loss + off_loss
+        # entropy bonus
+        off_entropy = - (off_policy * off_policy.log()).sum(1).mean()
+        er_loss = - self.solve_options["er_coef"] * off_entropy
+
+        loss = on_loss + off_loss + er_loss
         self.policy_optimizer.zero_grad()
         loss.backward()
         self.policy_optimizer.step()
