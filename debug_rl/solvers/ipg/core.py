@@ -28,6 +28,7 @@ OPTIONS = {
     "last_val": "critic",  # last value of coef calculation. "oracle" or "critic"
     "on_off_coef": 0.2,
     "td_lam": 0.95,
+    "er_coef": 0.01,
     "buffer_size": 1e6,
     "minibatch_size": 32,
     "target_update_interval": 100,
