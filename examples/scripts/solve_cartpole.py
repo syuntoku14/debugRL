@@ -30,7 +30,7 @@ def to_numeric(arg):
     except ValueError:
         return arg
     else:
-        return int(arg) if float(arg).is_integer() else float(arg)
+        return int(float(arg)) if float(arg).is_integer() else float(arg)
 
 
 def main():
