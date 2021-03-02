@@ -35,3 +35,17 @@ def test_collect_samples(setUp):
     traj = collect_samples(cont_env, get_tb_action, 10, policy=cont_policy)
     buf.add(**traj)
     assert (traj["obs"]).dtype == np.float32
+
+
+def test_collect_samples_episodic(setUp):
+    env, policy, cont_env, cont_policy = setUp
+
+    # discrete
+    traj = collect_samples(env, get_tb_action, 10, num_episodes=5, policy=policy)
+    assert np.sum(traj["done"]) == 5
+    assert (traj["act"]).dtype == np.long
+
+    # continuous
+    traj = collect_samples(cont_env, get_tb_action, 10, num_episodes=5, policy=cont_policy)
+    assert np.sum(traj["done"]) == 5
+    assert (traj["obs"]).dtype == np.float32

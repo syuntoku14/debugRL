@@ -6,7 +6,7 @@ from debug_rl.solvers import (
     SamplingFittedViSolver,
     SamplingFittedCviSolver
 )
-from .oracle_vi_solver_test import run_solver
+from .run_solver import run_solver_tb, run_solver_gym
 import torch
 
 
@@ -20,22 +20,32 @@ def setUp():
     yield pend_env, gym_env
 
 
-def test_value_iteration(setUp):
+def test_vi_tb(setUp):
     pend_env, gym_env = setUp
-    # solver = SamplingFittedViSolver(pend_env)
-    # solver.initialize()
-    # run_solver(solver, pend_env)
+    solver = SamplingFittedViSolver(pend_env)
+    solver.initialize()
+    run_solver_tb(solver, pend_env)
 
+
+def test_vi_gym(setUp):
+    pend_env, gym_env = setUp
     solver = SamplingFittedViSolver(gym_env)
     solver.initialize()
-    run_solver(solver, pend_env)
+    run_solver_gym(solver, gym_env)
 
 
-def test_cvi(setUp):
+def test_cvi_tb(setUp):
     pend_env, gym_env = setUp
     solver = SamplingFittedCviSolver(pend_env)
     solver.initialize()
-    run_solver(solver, pend_env)
+    run_solver_tb(solver, pend_env)
+
+
+def test_cvi_gym(setUp):
+    pend_env, gym_env = setUp
+    solver = SamplingFittedCviSolver(gym_env)
+    solver.initialize()
+    run_solver_gym(solver, gym_env)
 
 
 def test_image_obs(setUp):
@@ -44,4 +54,4 @@ def test_image_obs(setUp):
     pend_env.reset()
     solver = SamplingFittedViSolver(pend_env)
     solver.initialize()
-    run_solver(solver, pend_env)
+    run_solver_tb(solver, pend_env)

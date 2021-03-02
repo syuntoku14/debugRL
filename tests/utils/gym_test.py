@@ -30,22 +30,31 @@ def setUp():
     yield env, net
 
 
+def get_action(env, net):
+    if not hasattr(env, 'obs'):
+        env.obs = env.reset()
+    obs = torch.as_tensor(env.obs, dtype=torch.float32).unsqueeze(0)
+    probs = net(obs).detach().cpu().numpy()  # 1 x dA
+    probs = mock_policy(probs).reshape(-1)
+    log_probs = np.log(probs)
+    action = np.random.choice(np.arange(0, env.action_space.n), p=probs)
+    log_prob = log_probs[action]
+    return action, log_prob
+
+
 def test_collect_samples(setUp):
     env, net = setUp
-
-    def get_action(env):
-        if not hasattr(env, 'obs'):
-            env.obs = env.reset()
-        obs = torch.as_tensor(env.obs, dtype=torch.float32).unsqueeze(0)
-        probs = net(obs).detach().cpu().numpy()  # 1 x dA
-        probs = mock_policy(probs).reshape(-1)
-        log_probs = np.log(probs)
-        action = np.random.choice(np.arange(0, env.action_space.n), p=probs)
-        log_prob = log_probs[action]
-        return action, log_prob
-
     buf = make_replay_buffer(env, 100)
-    traj = collect_samples(env, get_action, 10)
+    traj = collect_samples(env, get_action, 10, net=net)
     buf.add(**traj)
     assert len(traj["obs"]) == 10
+    assert (traj["act"]).dtype == np.long
+
+
+def test_collect_samples_episodic(setUp):
+    env, net = setUp
+    buf = make_replay_buffer(env, 100)
+    traj = collect_samples(env, get_action, 10, num_episodes=5, net=net)
+    buf.add(**traj)
+    assert np.sum(traj["done"]) == 5
     assert (traj["act"]).dtype == np.long

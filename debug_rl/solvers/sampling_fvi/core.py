@@ -3,8 +3,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from debug_rl.solvers import Solver
-from debug_rl.utils import boltzmann_softmax, mellow_max
-import debug_rl.utils as utils
+from debug_rl import utils
 
 
 OPTIONS = {
@@ -71,9 +70,9 @@ class Solver(Solver):
 
         # set max_operator
         if self.solve_options["max_operator"] == "boltzmann_softmax":
-            self.max_operator = boltzmann_softmax
+            self.max_operator = utils.boltzmann_softmax
         elif self.solve_options["max_operator"] == "mellow_max":
-            self.max_operator = mellow_max
+            self.max_operator = utils.mellow_max
         else:
             raise ValueError("Invalid max_operator")
 
@@ -111,45 +110,19 @@ class Solver(Solver):
 
         # Collect random samples in advance
         if self.is_tabular:
-            make_replay_buffer = utils.gym.make_replay_buffer
             self.all_obss = torch.tensor(self.env.all_observations,
                                          dtype=torch.float32, device=self.device)
-            self.set_policy()
-        else:
-            make_replay_buffer = utils.tabular.make_replay_buffer
-        self.buffer = make_replay_buffer(
+            self.set_tb_values_policy()
+        self.buffer = utils.make_replay_buffer(
             self.env, self.solve_options["buffer_size"])
         trajectory = self.collect_samples(self.solve_options["minibatch_size"])
         self.buffer.add(**trajectory)
 
     def collect_samples(self, num_samples):
         if self.is_tabular:
-            trajectory = utils.tabular.collect_samples(
-                self.env, self.policy, num_samples)
+            return utils.collect_samples(
+                self.env, utils.get_tb_action, self.solve_options["num_samples"],
+                policy=self.tb_policy)
         else:
-            trajectory = utils.gym.collect_samples(
-                self.env, self.get_action, num_samples)
-        return trajectory
-
-    def record_performance(self):
-        if self.is_tabular:
-            self.record_performance_tabular()
-        else:
-            self.record_performance_gym()
-
-    def record_performance_tabular(self):
-        self.set_policy()
-        if self.step % self.solve_options["record_performance_interval"] == 0:
-            expected_return = \
-                self.env.compute_expected_return(self.policy)
-            self.record_scalar("Return", expected_return, tag="Policy")
-
-            aval = self.env.compute_action_values(
-                self.policy, self.solve_options["discount"])
-            values = self.value_network(self.all_obss).reshape(
-                self.dS, self.dA).detach().cpu().numpy()
-            self.record_scalar("QError", ((aval-values)**2).mean())
-            self.record_array("Values", values)
-
-    def record_performance_gym(self):
-        pass
+            return utils.collect_samples(
+                self.env, self.get_action, self.solve_options["num_samples"])

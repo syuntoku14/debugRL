@@ -106,19 +106,23 @@ def trajectory_to_tensor(trajectory, device="cpu", is_discrete=True):
     return tensor_traj
 
 
-def collect_samples(env, get_action, num_samples, render=False, **kwargs):
+def collect_samples(env, get_action, num_samples=None, num_episodes=None, render=False, **kwargs):
     """
     Args:
         env (gym.Env or debug_rl.envs.base.TabularEnv)
         get_action (function): take env and return action and log_prob
         num_samples (int): Number of samples to collect
+        num_episodes (int): Number of episodes to collect. Prioritize this if not None.
         render (bool, optional)
     """
     is_tabular = hasattr(env, "get_state")
     assert hasattr(env, "obs"), \
         'env has no attribute "obs". Run env.obs = env.reset() before collect_samples.'
     traj = defaultdict(lambda: [])
-    done = False
+    done, done_count = False, 0
+
+    # prioritize num_episodes if not None
+    num_samples = -1 if num_episodes is not None else num_samples
 
     while True:
         if render:
@@ -155,7 +159,8 @@ def collect_samples(env, get_action, num_samples, render=False, **kwargs):
             traj["timeout"].append(False)
         if done:
             env.reset()
-        if len(traj["obs"]) == num_samples:
+            done_count += 1
+        if len(traj["obs"]) == num_samples or done_count == num_episodes:
             break
     traj = {key: np.array(val) for key, val in traj.items()}
     return traj
