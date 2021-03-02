@@ -9,8 +9,6 @@ from debug_rl.utils import (
     make_replay_buffer,
     softmax_policy,
     collect_samples,
-    trajectory_to_tensor,
-    squeeze_trajectory,
 )
 
 OPTIONS = {

@@ -25,7 +25,6 @@ class OracleSolver(Solver):
 
 class OracleViSolver(OracleSolver):
     def backup(self, curr_q_val):
-        # Bellman Operator to update q values
         discount = self.solve_options["discount"]
         curr_v_val = np.max(curr_q_val, axis=-1)  # S
         prev_q = self.env.reward_matrix \
@@ -33,14 +32,12 @@ class OracleViSolver(OracleSolver):
                         curr_v_val).reshape(self.dS, self.dA)
         return prev_q
 
-    def compute_policy(self, q_values, eps_greedy=0.0):
-        # return epsilon-greedy policy
-        return eps_greedy_policy(q_values, eps_greedy=eps_greedy)
+    def to_policy(self, q_values):
+        return eps_greedy_policy(q_values, eps_greedy=0.0)
 
 
 class OracleCviSolver(OracleSolver):
     """
-    Solver of conservative value iteration.
     This implementation is based on the paper:
     http://proceedings.mlr.press/v89/kozuno19a.html.
     """
@@ -56,8 +53,7 @@ class OracleCviSolver(OracleSolver):
             + discount*(self.env.transition_matrix * mP).reshape(self.dS, self.dA)
         return prev_preference
 
-    def compute_policy(self, preference):
-        # return softmax policy
+    def to_policy(self, preference):
         er_coef, kl_coef = self.solve_options["er_coef"], self.solve_options["kl_coef"]
         beta = 1 / (er_coef+kl_coef)
         return softmax_policy(preference, beta=beta)

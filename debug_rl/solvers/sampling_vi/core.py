@@ -23,6 +23,7 @@ OPTIONS = {
 
 class Solver(Solver):
     def initialize(self, options={}):
+        assert self.is_tabular
         self.solve_options.update(OPTIONS)
         super().initialize(options)
         self.record_array("Values", np.zeros((self.dS, self.dA)))

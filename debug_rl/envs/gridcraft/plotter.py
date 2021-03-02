@@ -4,7 +4,6 @@ from matplotlib.patches import Polygon
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-from debug_rl.utils import make_image
 
 
 NOOP = np.array([[-0.1, 0.1], [-0.1, -0.1], [0.1, -0.1], [0.1, 0.1]])
@@ -96,14 +95,10 @@ class TabularQValuePlotter(object):
         plt.show()
 
 
-def plot_grid_values(gs, q_values, title=None, return_image=False, ax=None):
+def plot_grid_values(gs, q_values, title=None, ax=None):
     import itertools
-    if return_image:
-        matplotlib.use("Agg")
     plotter = TabularQValuePlotter(gs.width, gs.height, text_values=True)
     for i, (x, y, a) in enumerate(itertools.product(range(gs.width), range(gs.height), range(5))):
         plotter.set_value(x, gs.height-y-1, a,
                           q_values[gs.xy_to_idx((x, y)), a])
     plotter.make_plot(title=title, ax=ax)
-    if return_image:
-        return make_image()

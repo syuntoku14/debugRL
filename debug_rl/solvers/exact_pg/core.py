@@ -3,15 +3,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from debug_rl.solvers import Solver
-from debug_rl.utils import (
-    boltzmann_softmax,
-    mellow_max,
-    make_replay_buffer,
-    softmax_policy,
-    collect_samples,
-    trajectory_to_tensor,
-    squeeze_trajectory,
-)
+from debug_rl.utils import softmax_policy
 
 OPTIONS = {
     "activation": "relu",
@@ -85,6 +77,7 @@ def conv_net(env, num_output, hidden=32, depth=1, activation="tanh"):
 
 class Solver(Solver):
     def initialize(self, options={}):
+        assert self.is_tabular
         self.solve_options.update(OPTIONS)
         super().initialize(options)
         self.device = self.solve_options["device"]

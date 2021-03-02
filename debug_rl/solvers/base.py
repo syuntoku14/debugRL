@@ -9,8 +9,6 @@ from collections import defaultdict
 from scipy import sparse
 from debug_rl.envs.base import TabularEnv
 from debug_rl.envs.gridcraft import OneHotObsWrapper, RandomObsWrapper
-from debug_rl.utils import (
-    boltzmann_softmax, mellow_max, make_replay_buffer)
 from copy import deepcopy
 
 
@@ -32,16 +30,16 @@ class Solver(ABC):
             solve_options (dict): Parameters for the algorithm, e.g. discount_factor.
             logger (Trains.Logger): logger for Trains
         """
-        assert isinstance(env, (TabularEnv, OneHotObsWrapper, RandomObsWrapper)), \
-            "env must be debug_rl.envs.base.TabularEnv"
-
         # solver options
         self.solve_options = DEFAULT_OPTIONS
         self.logger = logger
 
         # env parameters
+        self.is_tabular = isinstance(
+            env, (TabularEnv, OneHotObsWrapper, RandomObsWrapper))
+        if self.is_tabular:
+            self.dS, self.dA, self.horizon = env.dS, env.dA, env.horizon
         self.env = env
-        self.dS, self.dA, self.horizon = env.dS, env.dA, env.horizon
         self.initialize(solve_options)
 
     def initialize(self, options={}):
@@ -65,13 +63,13 @@ class Solver(ABC):
         self.step = 0
 
     @abstractmethod
-    def run(self, num_trains=1000):
+    def run(self, num_steps=1000):
         """
         Run algorithm to solve a MDP.
             - num_trains: Number of iterations
             - restart: Reset the solver and run again if True
         """
-    
+
     @property
     def step(self):
         return self.history["step"]
@@ -83,13 +81,15 @@ class Solver(ABC):
     @property
     def values(self):
         if len(self.history["Values"]["y"]) == 0:
-            assert ValueError("\"values\" has not been recorded yet. Check history.")
+            assert ValueError(
+                "\"values\" has not been recorded yet. Check history.")
         return self.history["Values"]["y"][-1]
 
     @property
     def policy(self):
         if len(self.history["Policy"]["y"]) == 0:
-            assert ValueError("\"policy\" has not been recorded yet. Check history.")
+            assert ValueError(
+                "\"policy\" has not been recorded yet. Check history.")
         return self.history["Policy"]["y"][-1]
 
     def record_scalar(self, title, y, tag=None):

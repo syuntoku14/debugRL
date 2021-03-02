@@ -7,7 +7,6 @@ from tqdm import tqdm
 from .core import Solver
 from debug_rl.utils import (
     collect_samples,
-    squeeze_trajectory,
     trajectory_to_tensor
 )
 
@@ -26,7 +25,6 @@ class SamplingPgSolver(Solver):
 
             # ----- compute on-policy gradient coefficient -----
             trajectory = self.compute_coef(trajectory, policy)
-            trajectory = squeeze_trajectory(trajectory)
             tensor_traj = trajectory_to_tensor(trajectory, self.device)
 
             # ----- update networks -----

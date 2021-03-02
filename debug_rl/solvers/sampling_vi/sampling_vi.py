@@ -3,12 +3,13 @@ import torch
 from tqdm import tqdm
 from .core import Solver
 from debug_rl.utils import (
-    collect_samples,
-    make_replay_buffer,
-    squeeze_trajectory,
     compute_epsilon,
     eps_greedy_policy,
     softmax_policy
+)
+from debug_rl.utils.tabular import (
+    collect_samples,
+    make_replay_buffer,
 )
 
 

@@ -7,7 +7,6 @@ from tqdm import tqdm
 from .core import Solver
 from debug_rl.utils import (
     trajectory_to_tensor,
-    squeeze_trajectory,
     collect_samples,
 )
 
@@ -23,7 +22,6 @@ class PpoSolver(Solver):
             policy = self.compute_policy(preference)
             trajectory = collect_samples(
                 self.env, policy, self.solve_options["num_samples"])
-            trajectory = squeeze_trajectory(trajectory)
             trajectory = self.compute_coef(trajectory, policy)
             tensor_traj = trajectory_to_tensor(trajectory, self.device)
 
@@ -76,7 +74,7 @@ class PpoSolver(Solver):
 
     def update_actor(self, tensor_traj):
         clip_ratio = self.solve_options["clip_ratio"]
-        obss, actions, act_prob = tensor_traj["obs"], tensor_traj["act"], tensor_traj["act_prob"]
+        obss, actions, log_probs = tensor_traj["obs"], tensor_traj["act"], tensor_traj["log_prob"]
         advantage = tensor_traj["coef"]
 
         preference = self.policy_network(obss)
@@ -84,8 +82,7 @@ class PpoSolver(Solver):
         entropy = torch.sum(policy * policy.log(), dim=-1)  # B
         log_policy = policy.gather(
             1, actions.reshape(-1, 1)).squeeze().log()  # B
-        log_policy_old = torch.log(act_prob)  # B
-        ratio = torch.exp(log_policy - log_policy_old)  # B
+        ratio = torch.exp(log_policy - log_probs)  # B
         clip_adv = torch.clamp(ratio, 1-clip_ratio, 1+clip_ratio) * advantage
 
         loss = -(torch.min(ratio * advantage, clip_adv)

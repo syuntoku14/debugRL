@@ -11,21 +11,20 @@ from debug_rl.utils import (
 
 class ExactFittedSolver(Solver):
     def run(self, num_steps=10000):
-        values = self.values
-
+        prev_values = self.value_network(self.all_obss).detach().cpu().numpy()
         for _ in tqdm(range(num_steps)):
-            self.record_performance(values)
+            self.record_performance()
 
             # ----- update table -----
+            values = self.value_network(self.all_obss).detach().cpu().numpy()
+            error = np.abs(prev_values - values).max()
+            prev_values = values
+            self.record_scalar("Error", error)
+
             target = self.backup(values)  # SxA
             target = torch.tensor(
                 target, dtype=torch.float32, device=self.device)
             self.update_network(target)
-            projected = self.value_network(self.all_obss).detach().cpu().numpy()
-            error = np.abs(values - projected).max()
-            values = projected
-            self.record_scalar("Error", error)
-
             self.step += 1
 
     def update_network(self, target):
@@ -39,11 +38,6 @@ class ExactFittedSolver(Solver):
         self.value_optimizer.step()
         return loss.detach().cpu().item()
 
-    def reset_weights(self):
-        for layer in self.value_network:
-            if hasattr(layer, 'reset_parameters'):
-                layer.reset_parameters()
-
 
 class ExactFittedViSolver(ExactFittedSolver):
     def backup(self, curr_q_val):
@@ -55,8 +49,7 @@ class ExactFittedViSolver(ExactFittedSolver):
                         curr_v_val).reshape(self.dS, self.dA)
         return prev_q
 
-    def compute_policy(self, q_values, eps_greedy=0.0):
-        # return epsilon-greedy policy
+    def to_policy(self, q_values, eps_greedy=0.0):
         return eps_greedy_policy(q_values, eps_greedy=eps_greedy)
 
 
@@ -72,8 +65,7 @@ class ExactFittedCviSolver(ExactFittedSolver):
             + discount*(self.env.transition_matrix * mP).reshape(self.dS, self.dA)
         return prev_preference
 
-    def compute_policy(self, preference):
-        # return softmax policy
+    def to_policy(self, preference):
         er_coef, kl_coef = self.solve_options["er_coef"], self.solve_options["kl_coef"]
         beta = 1 / (er_coef+kl_coef)
         return softmax_policy(preference, beta=beta)

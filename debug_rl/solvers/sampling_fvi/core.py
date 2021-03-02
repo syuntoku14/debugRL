@@ -3,12 +3,8 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from debug_rl.solvers import Solver
-from debug_rl.utils import (
-    boltzmann_softmax,
-    mellow_max,
-    make_replay_buffer,
-    collect_samples
-)
+from debug_rl.utils import boltzmann_softmax, mellow_max
+import debug_rl.utils as utils
 
 
 OPTIONS = {
@@ -36,62 +32,34 @@ OPTIONS = {
 }
 
 
-def fc_net(env, hidden=256, depth=1, activation="tanh"):
-    if activation == "tanh":
-        act_layer = nn.Tanh
-    elif activation == "relu":
-        act_layer = nn.ReLU
-    else:
-        raise ValueError("Activation layer is not valid.")
-
+def fc_net(env, hidden=256, depth=1, act_layer=nn.ReLU):
     modules = []
-    if depth == 0:
-        modules.append(
-            nn.Linear(env.observation_space.shape[0],
-                      env.action_space.n))
-    elif depth > 0:
-        modules.append(
-            nn.Linear(env.observation_space.shape[0], hidden))
+    obs_shape = env.observation_space.shape[0]
+    n_acts = env.action_space.n
+    if depth > 0:
+        modules.append(nn.Linear(obs_shape, hidden))
         for _ in range(depth-1):
-            modules.append(act_layer())
-            modules.append(nn.Linear(hidden, hidden))
-        modules.append(act_layer())
-        modules.append(nn.Linear(hidden, env.action_space.n))
+            modules += [act_layer(), nn.Linear(hidden, hidden)]
+        modules += [act_layer(), nn.Linear(hidden, n_acts)]
     else:
-        raise ValueError("Invalid depth of fc layer")
+        modules.append(nn.Linear(obs_shape, n_acts))
     return nn.Sequential(*modules)
 
 
-def conv_net(env, hidden=32, depth=1, activation="tanh"):
+def conv_net(env, hidden=32, depth=1, act_layer=nn.ReLU):
     # this assumes image shape == (1, 28, 28)
-    if activation == "tanh":
-        act_layer = nn.Tanh
-    elif activation == "relu":
-        act_layer = nn.ReLU
-    else:
-        raise ValueError("Activation layer is not valid.")
-
-    # conv layers
-    conv_modules = []
-    conv_modules.append(nn.Conv2d(1, 10, kernel_size=5, stride=2))
-    conv_modules.append(nn.Conv2d(10, 20, kernel_size=5, stride=2))
-    conv_modules.append(nn.Flatten())
-
+    n_acts = env.action_space.n
+    conv_modules = [nn.Conv2d(1, 10, kernel_size=5, stride=2),
+                    nn.Conv2d(10, 20, kernel_size=5, stride=2),
+                    nn.Flatten()]
     fc_modules = []
-    # fc layers
-    if depth == 0:
-        fc_modules.append(
-            nn.Linear(320, env.action_space.n))
-    elif depth > 0:
-        fc_modules.append(
-            nn.Linear(320, hidden))
+    if depth > 0:
+        fc_modules.append(nn.Linear(320, hidden))
         for _ in range(depth-1):
-            fc_modules.append(act_layer())
-            fc_modules.append(nn.Linear(hidden, hidden))
-        fc_modules.append(act_layer())
-        fc_modules.append(nn.Linear(hidden, env.action_space.n))
+            fc_modules += [act_layer(), nn.Linear(hidden, hidden)]
+        fc_modules += [act_layer(), nn.Linear(hidden, n_acts)]
     else:
-        raise ValueError("Invalid depth of fc layer")
+        fc_modules.append(nn.Linear(320, n_acts))
     return nn.Sequential(*(conv_modules+fc_modules))
 
 
@@ -100,8 +68,6 @@ class Solver(Solver):
         self.solve_options.update(OPTIONS)
         super().initialize(options)
         self.device = self.solve_options["device"]
-        self.all_obss = torch.tensor(self.env.all_observations,
-                                     dtype=torch.float32, device=self.device)
 
         # set max_operator
         if self.solve_options["max_operator"] == "boltzmann_softmax":
@@ -110,17 +76,12 @@ class Solver(Solver):
             self.max_operator = mellow_max
         else:
             raise ValueError("Invalid max_operator")
+
         # set networks
         if self.solve_options["optimizer"] == "Adam":
             self.optimizer = torch.optim.Adam
-        else:
+        elif self.solve_options["optimizer"] == "RMSprop":
             self.optimizer = torch.optim.RMSprop
-
-        self.device = self.solve_options["device"]
-        if len(self.env.observation_space.shape) == 1:
-            net = fc_net
-        else:
-            net = conv_net
 
         # set critic loss
         if self.solve_options["critic_loss"] == "mse":
@@ -131,47 +92,64 @@ class Solver(Solver):
             raise ValueError("Invalid critic_loss")
 
         # set value network
+        if self.solve_options["activation"] == "tanh":
+            act_layer = nn.Tanh
+        elif self.solve_options["activation"] == "relu":
+            act_layer = nn.ReLU
+        else:
+            raise ValueError("Invalid activation layer.")
+
+        net = fc_net if len(self.env.observation_space.shape) == 1 else conv_net
         self.value_network = net(
             self.env,
             hidden=self.solve_options["hidden"],
             depth=self.solve_options["depth"],
-            activation=self.solve_options["activation"]).to(self.device)
+            act_layer=act_layer).to(self.device)
         self.value_optimizer = self.optimizer(self.value_network.parameters(),
                                               lr=self.solve_options["lr"])
         self.target_value_network = deepcopy(self.value_network)
 
         # Collect random samples in advance
+        if self.is_tabular:
+            make_replay_buffer = utils.gym.make_replay_buffer
+            self.all_obss = torch.tensor(self.env.all_observations,
+                                         dtype=torch.float32, device=self.device)
+            self.set_policy()
+        else:
+            make_replay_buffer = utils.tabular.make_replay_buffer
         self.buffer = make_replay_buffer(
             self.env, self.solve_options["buffer_size"])
-        values = self.value_network(self.all_obss).reshape(
-            self.dS, self.dA).detach().cpu().numpy()
-        policy = self.compute_policy(values)
-        trajectory = collect_samples(
-            self.env, policy, self.solve_options["minibatch_size"])
+        trajectory = self.collect_samples(self.solve_options["minibatch_size"])
         self.buffer.add(**trajectory)
 
-    def update_network(self, target, network, optimizer, obss, actions):
-        values = network(obss)
-        values = values.gather(1, actions.reshape(-1, 1)).squeeze()
-        loss = self.critic_loss(target, values)
-        optimizer.zero_grad()
-        loss.backward()
-        if self.solve_options["clip_grad"]:
-            for param in network.parameters():
-                param.grad.data.clamp_(-1, 1)
-        optimizer.step()
-        return loss.detach().cpu().item()
+    def collect_samples(self, num_samples):
+        if self.is_tabular:
+            trajectory = utils.tabular.collect_samples(
+                self.env, self.policy, num_samples)
+        else:
+            trajectory = utils.gym.collect_samples(
+                self.env, self.get_action, num_samples)
+        return trajectory
 
-    def record_performance(self, eval_policy):
+    def record_performance(self):
+        if self.is_tabular:
+            self.record_performance_tabular()
+        else:
+            self.record_performance_gym()
+
+    def record_performance_tabular(self):
+        self.set_policy()
         if self.step % self.solve_options["record_performance_interval"] == 0:
             expected_return = \
-                self.env.compute_expected_return(eval_policy)
+                self.env.compute_expected_return(self.policy)
             self.record_scalar("Return", expected_return, tag="Policy")
 
             aval = self.env.compute_action_values(
-                eval_policy, self.solve_options["discount"])
+                self.policy, self.solve_options["discount"])
             values = self.value_network(self.all_obss).reshape(
                 self.dS, self.dA).detach().cpu().numpy()
             self.record_scalar("QError", ((aval-values)**2).mean())
             self.record_array("Values", values)
-            self.record_array("Policy", eval_policy)
+
+    def record_performance_gym(self):
+        pass

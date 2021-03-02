@@ -7,7 +7,6 @@ from tqdm import tqdm
 from .core import Solver
 from debug_rl.utils import (
     trajectory_to_tensor,
-    squeeze_trajectory,
     collect_samples,
 )
 
@@ -28,7 +27,6 @@ class SacSolver(Solver):
             # ----- generate mini-batch from the replay_buffer -----
             trajectory = self.buffer.sample(
                 self.solve_options["minibatch_size"])
-            trajectory = squeeze_trajectory(trajectory)
             tensor_traj = trajectory_to_tensor(trajectory, self.device)
 
             # ----- update q network -----

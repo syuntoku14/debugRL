@@ -1,3 +1,4 @@
+import gym
 import pytest
 import numpy as np
 from debug_rl.envs.pendulum import Pendulum
@@ -13,18 +14,25 @@ import torch
 def setUp():
     pend_env = Pendulum(state_disc=5, dA=3, horizon=5)
     pend_env.reset()
-    yield pend_env
+
+    gym_env = gym.make("CartPole-v0")
+    gym_env.reset()
+    yield pend_env, gym_env
 
 
 def test_value_iteration(setUp):
-    pend_env = setUp
-    solver = SamplingFittedViSolver(pend_env)
+    pend_env, gym_env = setUp
+    # solver = SamplingFittedViSolver(pend_env)
+    # solver.initialize()
+    # run_solver(solver, pend_env)
+
+    solver = SamplingFittedViSolver(gym_env)
     solver.initialize()
     run_solver(solver, pend_env)
 
 
 def test_cvi(setUp):
-    pend_env = setUp
+    pend_env, gym_env = setUp
     solver = SamplingFittedCviSolver(pend_env)
     solver.initialize()
     run_solver(solver, pend_env)

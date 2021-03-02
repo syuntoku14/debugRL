@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 import numpy as np
-from debug_rl.utils import make_image
 
 
 def reshape_values(env, values):
@@ -18,7 +17,7 @@ def reshape_values(env, values):
 
 def plot_mountaincar_values(
         env, reshaped_values, title=None, ax=None, cbar_ax=None,
-        return_image=False, vmin=None, vmax=None):
+        vmin=None, vmax=None):
     # reshaped_values: state_disc x state_disc
     if ax is None:
         fig, ax = plt.subplots(nrows=1, ncols=1,
@@ -41,6 +40,3 @@ def plot_mountaincar_values(
     ax.set_title(title)
     ax.set_ylabel(r"$x$")
     ax.set_xlabel(r"$\dot{x}$")
-
-    if return_image:
-        return make_image()
