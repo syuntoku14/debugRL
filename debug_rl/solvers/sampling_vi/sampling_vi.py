@@ -5,24 +5,24 @@ from .core import Solver
 from debug_rl.utils import (
     compute_epsilon,
     eps_greedy_policy,
-    softmax_policy
-)
-from debug_rl.utils.tabular import (
+    softmax_policy,
     collect_samples,
+    get_tb_action,
     make_replay_buffer,
 )
 
 
 class SamplingSolver(Solver):
     def run(self, num_steps=10000):
-        values = self.values  # SxA
-        for _ in tqdm(range(num_steps)):
-            policy = self.compute_policy(values)
-            self.record_performance(values, policy)
+        values = self.tb_values  # SxA
 
-            # ------ collect samples using the current policy ------
+        for _ in tqdm(range(num_steps)):
+            self.record_history(values)
+
+            # ----- collect samples using the current policy -----
             trajectory = collect_samples(
-                self.env, policy, self.solve_options["num_samples"])
+                self.env, get_tb_action, self.solve_options["num_samples"],
+                policy=self.tb_policy)
 
             # ----- update values -----
             for state, act, next_state, rew in zip(
@@ -34,6 +34,13 @@ class SamplingSolver(Solver):
                 values[state, act] = (1-lr) * curr_value + lr*target
             self.step += 1
 
+    def record_history(self, values):
+        self.record_array("Values", values)
+        self.set_tb_policy(values)
+        if self.step % self.solve_options["record_performance_interval"] == 0:
+            expected_return = self.env.compute_expected_return(self.tb_policy)
+            self.record_scalar("Return", expected_return, tag="Policy")
+
 
 class SamplingViSolver(SamplingSolver):
     def backup(self, q_values, state, act, next_state, rew):
@@ -43,13 +50,14 @@ class SamplingViSolver(SamplingSolver):
         target = rew + discount*next_v
         return target
 
-    def compute_policy(self, q_values):
+    def set_tb_policy(self, values):
         # return epsilon-greedy policy
         eps_greedy = compute_epsilon(
             self.step, self.solve_options["eps_start"],
             self.solve_options["eps_end"],
             self.solve_options["eps_decay"])
-        return eps_greedy_policy(q_values, eps_greedy=eps_greedy)
+        policy = eps_greedy_policy(values, eps_greedy=eps_greedy)
+        self.record_array("Policy", policy)
 
 
 class SamplingCviSolver(SamplingSolver):
@@ -63,8 +71,9 @@ class SamplingCviSolver(SamplingSolver):
         target = alpha * (curr_pref-curr_max) + (rew+discount*next_max)
         return target
 
-    def compute_policy(self, preference):
+    def set_tb_policy(self, preference):
         # return softmax policy
         er_coef, kl_coef = self.solve_options["er_coef"], self.solve_options["kl_coef"]
         beta = 1 / (er_coef+kl_coef)
-        return softmax_policy(preference, beta=beta)
+        policy = softmax_policy(preference, beta=beta)
+        self.record_array("Policy", policy)

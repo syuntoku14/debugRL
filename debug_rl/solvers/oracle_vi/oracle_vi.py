@@ -9,10 +9,10 @@ from debug_rl.utils import (
 
 class OracleSolver(Solver):
     def run(self, num_steps=10000):
-        values = self.values  # SxA
+        values = self.tb_values  # SxA
 
         for _ in tqdm(range(num_steps)):
-            self.record_performance(values)
+            self.record_history(np.asarray(values))
 
             # ----- update table -----
             new_values = self.backup(values)  # SxA
@@ -21,6 +21,13 @@ class OracleSolver(Solver):
             self.record_scalar("Error", error)
 
             self.step += 1
+
+    def record_history(self, values):
+        self.record_array("Values", values)
+        self.set_tb_policy(values)
+        if self.step % self.solve_options["record_performance_interval"] == 0:
+            expected_return = self.env.compute_expected_return(self.tb_policy)
+            self.record_scalar("Return", expected_return, tag="Policy")
 
 
 class OracleViSolver(OracleSolver):
@@ -32,8 +39,9 @@ class OracleViSolver(OracleSolver):
                         curr_v_val).reshape(self.dS, self.dA)
         return prev_q
 
-    def to_policy(self, q_values):
-        return eps_greedy_policy(q_values, eps_greedy=0.0)
+    def set_tb_policy(self, values):
+        policy = eps_greedy_policy(values, eps_greedy=0.0)
+        self.record_array("Policy", policy)
 
 
 class OracleCviSolver(OracleSolver):
@@ -53,7 +61,8 @@ class OracleCviSolver(OracleSolver):
             + discount*(self.env.transition_matrix * mP).reshape(self.dS, self.dA)
         return prev_preference
 
-    def to_policy(self, preference):
+    def set_tb_policy(self, values):
         er_coef, kl_coef = self.solve_options["er_coef"], self.solve_options["kl_coef"]
         beta = 1 / (er_coef+kl_coef)
-        return softmax_policy(preference, beta=beta)
+        policy = softmax_policy(values, beta=beta)
+        self.record_array("Policy", policy)

@@ -54,7 +54,7 @@ class Solver(ABC):
         # set seed
         np.random.seed(self.solve_options["seed"])
         torch.manual_seed(self.solve_options["seed"])
-        self.env.reset()
+        self.env.obs = self.env.reset()
         self.init_history()
         self.print_options()
 
@@ -79,14 +79,14 @@ class Solver(ABC):
         self.history["step"] = step
 
     @property
-    def values(self):
+    def tb_values(self):
         if len(self.history["Values"]["y"]) == 0:
             assert ValueError(
                 "\"values\" has not been recorded yet. Check history.")
         return self.history["Values"]["y"][-1]
 
     @property
-    def policy(self):
+    def tb_policy(self):
         if len(self.history["Policy"]["y"]) == 0:
             assert ValueError(
                 "\"policy\" has not been recorded yet. Check history.")

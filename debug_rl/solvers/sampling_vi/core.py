@@ -35,10 +35,3 @@ class Solver(Solver):
             self.max_operator = mellow_max
         else:
             raise ValueError("Invalid max_operator")
-
-    def record_performance(self, values, eval_policy):
-        if self.step % self.solve_options["record_performance_interval"] == 0:
-            expected_return = self.env.compute_expected_return(eval_policy)
-            self.record_scalar("Return", expected_return, tag="Policy")
-            self.record_array("Policy", eval_policy)
-            self.record_array("Values", values)
