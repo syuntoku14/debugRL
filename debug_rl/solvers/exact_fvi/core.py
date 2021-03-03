@@ -3,10 +3,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from debug_rl.solvers import Solver
-from debug_rl.utils import (
-    boltzmann_softmax,
-    mellow_max,
-)
+from debug_rl import utils
 
 
 OPTIONS = {
@@ -64,15 +61,12 @@ class Solver(Solver):
         self.solve_options.update(OPTIONS)
         super().initialize(options)
         self.device = self.solve_options["device"]
-        self.all_obss = torch.tensor(self.env.all_observations,
-                                     dtype=torch.float32, device=self.device)
-        self.record_array("Values", np.zeros((self.dS, self.dA)))
 
         # set max_operator
         if self.solve_options["max_operator"] == "boltzmann_softmax":
-            self.max_operator = boltzmann_softmax
+            self.max_operator = utils.boltzmann_softmax
         elif self.solve_options["max_operator"] == "mellow_max":
-            self.max_operator = mellow_max
+            self.max_operator = utils.mellow_max
         else:
             raise ValueError("Invalid max_operator")
 
@@ -98,7 +92,8 @@ class Solver(Solver):
         else:
             raise ValueError("Invalid activation layer.")
 
-        net = fc_net if len(self.env.observation_space.shape) == 1 else conv_net
+        net = fc_net if len(
+            self.env.observation_space.shape) == 1 else conv_net
         self.value_network = net(
             self.env,
             hidden=self.solve_options["hidden"],
@@ -106,12 +101,17 @@ class Solver(Solver):
             act_layer=act_layer).to(self.device)
         self.value_optimizer = self.optimizer(self.value_network.parameters(),
                                               lr=self.solve_options["lr"])
+        self.all_obss = torch.tensor(self.env.all_observations,
+                                     dtype=torch.float32, device=self.device)
+        self.set_tb_values_policy()
 
-    def record_performance(self):
-        values = self.value_network(self.all_obss).detach().cpu().numpy()
-        policy = self.to_policy(values)
-        self.record_array("Policy", policy)
-        self.record_array("Values", values)
-        if self.step % self.solve_options["record_performance_interval"] == 0:
-            expected_return = self.env.compute_expected_return(policy)
-            self.record_scalar("Return", expected_return, tag="Policy")
+    def update_network(self, target):
+        values = self.value_network(self.all_obss)
+        loss = self.critic_loss(target, values)
+        self.value_optimizer.zero_grad()
+        loss.backward()
+        if self.solve_options["clip_grad"]:
+            for param in self.value_network.parameters():
+                param.grad.data.clamp_(-1, 1)
+        self.value_optimizer.step()
+        return loss.detach().cpu().item()

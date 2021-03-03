@@ -4,7 +4,8 @@ from debug_rl.envs.pendulum import Pendulum
 from debug_rl.solvers import (
     ExactFittedViSolver,
     ExactFittedCviSolver)
-from .oracle_vi_solver_test import run_solver
+from .run_solver import run_solver_tb
+
 
 @pytest.fixture
 def setUp():
@@ -16,10 +17,10 @@ def setUp():
 def test_value_iteration(setUp):
     pend_env = setUp
     solver = ExactFittedViSolver(pend_env)
-    run_solver(solver, pend_env)
+    run_solver_tb(solver, pend_env)
 
 
 def test_cvi(setUp):
     pend_env = setUp
     solver = ExactFittedCviSolver(pend_env)
-    run_solver(solver, pend_env)
+    run_solver_tb(solver, pend_env)

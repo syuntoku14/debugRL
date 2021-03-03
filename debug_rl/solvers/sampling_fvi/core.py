@@ -125,4 +125,4 @@ class Solver(Solver):
                 policy=self.tb_policy)
         else:
             return utils.collect_samples(
-                self.env, self.get_action, self.solve_options["num_samples"])
+                self.env, self.get_action_gym, self.solve_options["num_samples"])

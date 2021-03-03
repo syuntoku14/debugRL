@@ -46,7 +46,7 @@ class SamplingFittedSolver(Solver):
                 self.record_scalar("QError", ((aval-self.tb_values)**2).mean())
             else:
                 traj = utils.collect_samples(
-                    self.env, self.get_action, num_episodes=10)
+                    self.env, self.get_action_gym, num_episodes=10)
                 expected_return = traj["rew"].sum() / 10
                 self.record_scalar("Return", expected_return, tag="Policy")
 
@@ -88,7 +88,7 @@ class SamplingFittedViSolver(SamplingFittedSolver):
         self.record_array("Values", q_values)
         self.record_array("Policy", policy)
 
-    def get_action(self, env):
+    def get_action_gym(self, env):
         obs = torch.as_tensor(env.obs, dtype=torch.float32, device=self.device).unsqueeze(0)
         vals = self.value_network(obs).detach().cpu().numpy()  # 1 x dA
         eps_greedy = utils.compute_epsilon(
@@ -133,9 +133,7 @@ class SamplingFittedCviSolver(SamplingFittedSolver):
         self.record_array("Values", preference)
         self.record_array("Policy", policy)
 
-    def get_action(self, env):
-        if not hasattr(env, 'obs'):
-            env.obs = env.reset()
+    def get_action_gym(self, env):
         obs = torch.as_tensor(env.obs, dtype=torch.float32, device=self.device).unsqueeze(0)
         preference = self.value_network(obs).detach().cpu().numpy()  # 1 x dA
         er_coef, kl_coef = self.solve_options["er_coef"], self.solve_options["kl_coef"]

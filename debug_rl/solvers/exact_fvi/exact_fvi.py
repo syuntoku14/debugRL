@@ -3,17 +3,15 @@ import torch
 from tqdm import tqdm
 from torch.nn import functional as F
 from .core import Solver
-from debug_rl.utils import (
-    eps_greedy_policy,
-    softmax_policy
-)
+from debug_rl import utils
 
 
 class ExactFittedSolver(Solver):
     def run(self, num_steps=10000):
         prev_values = self.value_network(self.all_obss).detach().cpu().numpy()
         for _ in tqdm(range(num_steps)):
-            self.record_performance()
+            self.set_tb_values_policy()
+            self.record_history()
 
             # ----- update table -----
             values = self.value_network(self.all_obss).detach().cpu().numpy()
@@ -27,16 +25,10 @@ class ExactFittedSolver(Solver):
             self.update_network(target)
             self.step += 1
 
-    def update_network(self, target):
-        values = self.value_network(self.all_obss)
-        loss = self.critic_loss(target, values)
-        self.value_optimizer.zero_grad()
-        loss.backward()
-        if self.solve_options["clip_grad"]:
-            for param in self.value_network.parameters():
-                param.grad.data.clamp_(-1, 1)
-        self.value_optimizer.step()
-        return loss.detach().cpu().item()
+    def record_history(self):
+        if self.step % self.solve_options["record_performance_interval"] == 0:
+            expected_return = self.env.compute_expected_return(self.tb_policy)
+            self.record_scalar("Return", expected_return, tag="Policy")
 
 
 class ExactFittedViSolver(ExactFittedSolver):
@@ -49,8 +41,12 @@ class ExactFittedViSolver(ExactFittedSolver):
                         curr_v_val).reshape(self.dS, self.dA)
         return prev_q
 
-    def to_policy(self, q_values, eps_greedy=0.0):
-        return eps_greedy_policy(q_values, eps_greedy=eps_greedy)
+    def set_tb_values_policy(self):
+        q_values = self.value_network(self.all_obss).reshape(
+            self.dS, self.dA).detach().cpu().numpy()
+        policy = utils.eps_greedy_policy(q_values, eps_greedy=0.0)
+        self.record_array("Values", q_values)
+        self.record_array("Policy", policy)
 
 
 class ExactFittedCviSolver(ExactFittedSolver):
@@ -65,7 +61,11 @@ class ExactFittedCviSolver(ExactFittedSolver):
             + discount*(self.env.transition_matrix * mP).reshape(self.dS, self.dA)
         return prev_preference
 
-    def to_policy(self, preference):
+    def set_tb_values_policy(self):
+        preference = self.value_network(self.all_obss).reshape(
+            self.dS, self.dA).detach().cpu().numpy()
         er_coef, kl_coef = self.solve_options["er_coef"], self.solve_options["kl_coef"]
         beta = 1 / (er_coef+kl_coef)
-        return softmax_policy(preference, beta=beta)
+        policy = utils.softmax_policy(preference, beta=beta)
+        self.record_array("Values", preference)
+        self.record_array("Policy", policy)
