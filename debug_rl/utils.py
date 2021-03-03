@@ -95,7 +95,7 @@ def trajectory_to_tensor(trajectory, device="cpu", is_discrete=True):
     tensor_traj = {}
     for key, value in trajectory.items():
         if trajectory[key].shape[-1] == 1:
-            trajectory[key] = np.squeeze(value, axis=-1)
+            value = np.squeeze(value, axis=-1)
         if key == "done" or key == "timeout":
             dtype = torch.bool
         elif key in ["state", "next_state"] or (key == "act" and is_discrete):

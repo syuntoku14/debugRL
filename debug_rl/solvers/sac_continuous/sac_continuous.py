@@ -6,30 +6,24 @@ from torch.nn import functional as F
 from tqdm import tqdm
 import itertools
 from .core import Solver
-from debug_rl.utils import (
-    trajectory_to_tensor,
-    collect_samples,
-    make_replay_buffer,
-)
+from debug_rl import utils
 
 
 class SacContinuousSolver(Solver):
-    # This implementation assumes one-dimensional action_space
     def run(self, num_steps=10000):
         for _ in tqdm(range(num_steps)):
-            self.record_performance()
+            if self.is_tabular:
+                self.set_tb_values_policy()
+            self.record_history()
 
             # ------ collect samples using the current policy ------
-            policy_probs = self.make_policy_probs()
-            policy = self.compute_policy(policy_probs)
-            trajectory = collect_samples(
-                self.env, policy, self.solve_options["num_samples"])
+            trajectory = self.collect_samples(self.solve_options["num_samples"])
             self.buffer.add(**trajectory)
 
             # ----- generate mini-batch from the replay_buffer -----
             trajectory = self.buffer.sample(
                 self.solve_options["minibatch_size"])
-            tensor_traj = trajectory_to_tensor(
+            tensor_traj = utils.trajectory_to_tensor(
                 trajectory, self.device, is_discrete=False)
             tensor_traj["act"] = tensor_traj["act"].unsqueeze(-1)
 
@@ -47,10 +41,13 @@ class SacContinuousSolver(Solver):
 
             # ----- update target networks with constant polyak -----
             polyak = self.solve_options["polyak"]
-            self.update_target_network(self.value_network,
-                                       self.target_value_network, polyak)
-            self.update_target_network(self.value_network2,
-                                       self.target_value_network2, polyak)
+            with torch.no_grad():
+                for p, p_targ in zip(self.value_network.parameters(), self.target_value_network.parameters()):
+                    p_targ.data.mul_(polyak)
+                    p_targ.data.add_((1 - polyak) * p.data)
+                for p, p_targ in zip(self.value_network2.parameters(), self.target_value_network2.parameters()):
+                    p_targ.data.mul_(polyak)
+                    p_targ.data.add_((1 - polyak) * p.data)
             self.step += 1
 
     def update_critic(self, network, optimizer, tensor_traj):
@@ -101,13 +98,36 @@ class SacContinuousSolver(Solver):
         self.policy_optimizer.step()
         return loss
 
-    def update_target_network(self, network, target_network, polyak=-1.0):
-        if polyak < 0:
-            # hard update
-            target_network.load_state_dict(network.state_dict())
-        else:
-            # soft update
-            with torch.no_grad():
-                for p, p_targ in zip(network.parameters(), target_network.parameters()):
-                    p_targ.data.mul_(polyak)
-                    p_targ.data.add_((1 - polyak) * p.data)
+    def set_tb_values_policy(self):
+        tensor_all_obss = torch.repeat_interleave(self.all_obss, self.dA, 0)  # (SxA) x obss
+        tensor_all_actions = self.all_actions.reshape(-1, 1)
+        q1 = self.value_network(tensor_all_obss, tensor_all_actions)
+        q2 = self.value_network2(tensor_all_obss, tensor_all_actions)
+        values = torch.min(q1, q2).reshape(self.dS, self.dA)
+        self.record_array("Values", values)
+
+        dist = self.policy_network.compute_pi_distribution(self.all_obss)
+        log_policy = dist.log_prob(self.all_actions) \
+            - (2*(np.log(2) - self.all_actions - F.softplus(-2*self.all_actions)))
+        policy_probs = torch.softmax(log_policy, dim=-1).reshape(
+            self.dS, self.dA).detach().cpu().numpy() 
+        self.record_array("Policy", policy_probs)
+
+    def get_action_gym(self, env):
+        obs = torch.as_tensor(env.obs, dtype=torch.float32, device=self.device)
+        pi, logp_pi = self.policy_network(obs)
+        pi, logp_pi = pi.detach().cpu().numpy(), logp_pi.detach().cpu().numpy()
+        return pi, logp_pi
+
+    def record_history(self):
+        if self.step % self.solve_options["record_performance_interval"] == 0:
+            if self.is_tabular:
+                expected_return = \
+                    self.env.compute_expected_return(self.tb_policy)
+                self.record_scalar("Return", expected_return, tag="Policy")
+            else:
+                n_episodes = self.solve_options["num_episodes_gym_record"]
+                traj = utils.collect_samples(
+                    self.env, self.get_action_gym, num_episodes=n_episodes)
+                expected_return = traj["rew"].sum() / n_episodes
+                self.record_scalar("Return", expected_return, tag="Policy")

@@ -20,7 +20,7 @@ OPTIONS = {
     "activation": "relu",
     "hidden": 128,  # size of hidden layer
     "depth": 2,  # depth of the network
-    "device": "cuda",
+    "device": "cuda" if torch.cuda.is_available() else "cpu",
     "lr": 0.001,
     "minibatch_size": 32,
     "critic_loss": "mse",  # mse or huber

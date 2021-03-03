@@ -6,7 +6,7 @@ from debug_rl.solvers import (
     SamplingFittedViSolver,
     SamplingFittedCviSolver
 )
-from .run_solver import run_solver_tb, run_solver_gym
+from .misc import run_solver_tb, run_solver_gym
 import torch
 
 

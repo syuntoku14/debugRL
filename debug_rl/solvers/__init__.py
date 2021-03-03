@@ -21,5 +21,5 @@ from .exact_pg.exact_pg import ExactPgSolver
 # from .ipg.ipg import IpgSolver
 
 # from .sac.sac import SacSolver
-# from .sac_continuous.sac_continuous import SacContinuousSolver
+from .sac_continuous.sac_continuous import SacContinuousSolver
 # from .ppo.ppo import PpoSolver

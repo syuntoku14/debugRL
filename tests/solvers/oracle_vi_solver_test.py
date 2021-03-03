@@ -4,7 +4,7 @@ from debug_rl.envs.pendulum import Pendulum
 from debug_rl.solvers import (
     OracleViSolver,
     OracleCviSolver)
-from .run_solver import run_solver_tb
+from .misc import run_solver_tb
 
 
 @pytest.fixture

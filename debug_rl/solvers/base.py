@@ -16,6 +16,7 @@ DEFAULT_OPTIONS = {
     # general settings
     "seed": 0,
     "discount": 0.99,
+    "num_episodes_gym_record": 10,
     "record_performance_interval": 100,
     "record_all_array": False
 }
@@ -46,6 +47,7 @@ class Solver(ABC):
         """
         Update self.solve_options with options.
         """
+        options = deepcopy(options)
         for key in options.keys():
             if key not in self.solve_options:
                 raise KeyError("{} is an invalid option.".format(key))

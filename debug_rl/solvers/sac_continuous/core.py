@@ -6,11 +6,7 @@ from torch import nn
 import torch.nn.functional as F
 from torch.distributions.normal import Normal
 from debug_rl.solvers import Solver
-from debug_rl.utils import (
-    boltzmann_softmax,
-    make_replay_buffer,
-    collect_samples
-)
+from debug_rl import utils
 
 
 OPTIONS = {
@@ -23,7 +19,7 @@ OPTIONS = {
     "activation": "relu",
     "hidden": 128,  # size of hidden layer
     "depth": 2,  # depth of the network
-    "device": "cuda",
+    "device": "cuda" if torch.cuda.is_available() else "cpu",
     "lr": 0.001,
     "minibatch_size": 32,
     "critic_loss": "mse",  # mse or huber
@@ -34,41 +30,36 @@ OPTIONS = {
 }
 
 
-def fc_net(env, in_dim, solve_options):
-    hidden = solve_options["hidden"]
-    depth = solve_options["depth"]
-    if solve_options["activation"] == "tanh":
+def fc_net(env, in_dim, hidden, depth, act_layer):
+    if act_layer == "tanh":
         act_layer = nn.Tanh
-    elif solve_options["activation"] == "relu":
+    elif act_layer == "relu":
         act_layer = nn.ReLU
-    modules = []
-    modules.append(
-        nn.Linear(env.observation_space.shape[0] + in_dim, hidden))
+    else:
+        raise ValueError("Invalid activation layer.")
+    modules = [nn.Linear(env.observation_space.shape[0] + in_dim, hidden), ]
     for _ in range(depth-1):
-        modules.append(act_layer())
-        modules.append(nn.Linear(hidden, hidden))
+        modules += [act_layer(), nn.Linear(hidden, hidden)]
     modules.append(act_layer())
     return nn.Sequential(*modules), None
 
 
-def conv_net(env, in_dim, solve_options):
-    hidden = solve_options["hidden"]
-    depth = solve_options["depth"]
-    if solve_options["activation"] == "tanh":
+def conv_net(env, in_dim, hidden, depth, act_layer):
+    if act_layer == "tanh":
         act_layer = nn.Tanh
-    elif solve_options["activation"] == "relu":
+    elif act_layer == "relu":
         act_layer = nn.ReLU
+    else:
+        raise ValueError("Invalid activation layer.")
     # this assumes image shape == (1, 28, 28)
-    conv_modules = []
-    conv_modules.append(nn.Conv2d(1, 10, kernel_size=5, stride=2))
-    conv_modules.append(nn.Conv2d(10, 20, kernel_size=5, stride=2))
-    conv_modules.append(nn.Flatten())
-
+    n_acts = env.action_space.n
+    conv_modules = [nn.Conv2d(1, 10, kernel_size=5, stride=2),
+                    nn.Conv2d(10, 20, kernel_size=5, stride=2),
+                    nn.Flatten()]
     fc_modules = []
     fc_modules.append(nn.Linear(320+in_dim, hidden))
     for _ in range(depth-1):
-        fc_modules.append(act_layer())
-        fc_modules.append(nn.Linear(hidden, hidden))
+        fc_modules += [act_layer(), nn.Linear(hidden, hidden)]
     fc_modules.append(act_layer())
     conv_modules = nn.Sequential(*conv_modules)
     fc_modules = nn.Sequential(*fc_modules)
@@ -78,32 +69,26 @@ def conv_net(env, in_dim, solve_options):
 class ValueNet(nn.Module):
     def __init__(self, env, solve_options):
         super().__init__()
-        if len(env.observation_space.shape) == 1:
-            net = fc_net
-        else:
-            net = conv_net
+        net = fc_net if len(env.observation_space.shape) == 1 else conv_net
         self.fc, self.conv = net(
-            env, env.action_space.shape[0], solve_options)
+            env, env.action_space.shape[0],
+            solve_options["hidden"], solve_options["depth"],
+            solve_options["activation"])
         self.out = nn.Linear(solve_options["hidden"], 1)
 
     def forward(self, obss, actions=None):
-        if self.conv is not None:
-            x = self.conv(obss)
-        else:
-            x = obss
-        x = torch.cat([x, actions], -1)
-        x = self.fc(x)
+        x = self.conv(obss) if self.conv is not None else obss
+        x = self.fc(torch.cat([x, actions], -1))
         return self.out(x)
 
 
 class PolicyNet(nn.Module):
     def __init__(self, env, solve_options):
         super().__init__()
-        if len(env.observation_space.shape) == 1:
-            net = fc_net
-        else:
-            net = conv_net
-        self.fc, self.conv = net(env, 0, solve_options)
+        net = fc_net if len(env.observation_space.shape) == 1 else conv_net
+        self.fc, self.conv = net(
+            env, 0, solve_options["hidden"], solve_options["depth"],
+            solve_options["activation"])
         act_dim = env.action_space.shape[0]
         act_limit = env.action_space.high[0]
         self.mu_layer = nn.Linear(solve_options["hidden"], act_dim)
@@ -160,16 +145,9 @@ class PolicyNet(nn.Module):
 class Solver(Solver):
     def initialize(self, options={}):
         assert isinstance(self.env.action_space, gym.spaces.Box)
-
-        options = deepcopy(options)
         self.solve_options.update(OPTIONS)
         super().initialize(options)
         self.device = self.solve_options["device"]
-        self.all_obss = torch.tensor(
-            self.env.all_observations, dtype=torch.float32, device=self.device)
-        self.all_actions = torch.tensor(
-            self.env.all_actions, dtype=torch.float32,
-            device=self.device).repeat(self.dS, 1).reshape(self.dS, self.dA)  # dS x dA
 
         # set networks
         if self.solve_options["optimizer"] == "Adam":
@@ -177,7 +155,6 @@ class Solver(Solver):
         else:
             self.optimizer = torch.optim.RMSprop
 
-        self.device = self.solve_options["device"]
         # set critic loss
         if self.solve_options["critic_loss"] == "mse":
             self.critic_loss = F.mse_loss
@@ -199,55 +176,32 @@ class Solver(Solver):
         self.value_optimizer2 = self.optimizer(self.value_network2.parameters(),
                                                lr=self.solve_options["lr"])
         self.target_value_network2 = deepcopy(self.value_network2)
+
         # actor network
         self.policy_network = PolicyNet(
             self.env, self.solve_options).to(self.device)
         self.policy_optimizer = self.optimizer(self.policy_network.parameters(),
                                                lr=self.solve_options["lr"])
-        # set replay buffer
-        self.buffer = make_replay_buffer(
-            self.env, self.solve_options["buffer_size"])
-        # Collect random samples in advance
-        self.env.reset()
 
-        policy_probs = self.make_policy_probs()
-        policy = self.compute_policy(policy_probs)
-        trajectory = collect_samples(
-            self.env, policy, self.solve_options["minibatch_size"])
+        # Collect random samples in advance
+        if self.is_tabular:
+            self.all_obss = torch.tensor(
+                self.env.all_observations, dtype=torch.float32, device=self.device)
+            self.all_actions = torch.tensor(
+                self.env.all_actions, dtype=torch.float32,
+                device=self.device).repeat(self.dS, 1).reshape(self.dS, self.dA)  # dS x dA
+            self.set_tb_values_policy()
+        self.buffer = utils.make_replay_buffer(
+            self.env, self.solve_options["buffer_size"])
+        trajectory = self.collect_samples(self.solve_options["minibatch_size"])
         self.buffer.add(**trajectory)
 
-    def record_performance(self):
-        if self.step % self.solve_options["record_performance_interval"] == 0:
-            nets = {self.policy_network: "Policy"}
-            for net, name in nets.items():
-                dist = net.compute_pi_distribution(self.all_obss)
-                log_policy = dist.log_prob(self.all_actions) \
-                    - (2*(np.log(2) - self.all_actions -
-                          F.softplus(-2*self.all_actions)))
-                policy_probs = torch.softmax(log_policy, dim=-1).reshape(
-                    self.dS, self.dA).detach().cpu().numpy()
-                policy = self.compute_policy(policy_probs)
-                expected_return = self.env.compute_expected_return(
-                    policy)
-                self.record_scalar(
-                    "Return", expected_return, tag=name)
-                self.record_array("Policy", policy)
+    def collect_samples(self, num_samples):
+        if self.is_tabular:
+            return utils.collect_samples(
+                self.env, utils.get_tb_action, self.solve_options["num_samples"],
+                policy=self.tb_policy)
+        else:
+            return utils.collect_samples(
+                self.env, self.get_action_gym, self.solve_options["num_samples"])
 
-            tensor_all_obss = torch.repeat_interleave(self.all_obss, self.dA, 0)  # (SxA) x obss
-            tensor_all_actions = self.all_actions.reshape(-1, 1)
-            q1 = self.value_network(tensor_all_obss, tensor_all_actions)
-            q2 = self.value_network2(tensor_all_obss, tensor_all_actions)
-            values = torch.min(q1, q2).reshape(self.dS, self.dA)
-            self.record_array("Values", values)
-
-    def compute_policy(self, policy_probs):
-        # return softmax policy
-        return policy_probs
-
-    def make_policy_probs(self):
-        dist = self.policy_network.compute_pi_distribution(self.all_obss)
-        log_policy = dist.log_prob(self.all_actions) \
-            - (2*(np.log(2) - self.all_actions - F.softplus(-2*self.all_actions)))
-        policy_probs = torch.softmax(log_policy, dim=-1).reshape(
-            self.dS, self.dA).detach().cpu().numpy() 
-        return policy_probs
