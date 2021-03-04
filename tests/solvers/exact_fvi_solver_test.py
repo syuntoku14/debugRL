@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
-from debug_rl.envs.pendulum import Pendulum
-from debug_rl.solvers import (
+from rlowan.envs.pendulum import Pendulum
+from rlowan.solvers import (
     ExactFittedViSolver,
     ExactFittedCviSolver)
 from .misc import run_solver_tb

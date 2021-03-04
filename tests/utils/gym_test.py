@@ -4,7 +4,7 @@ import torch
 import gym
 from scipy import special
 from torch import nn
-from debug_rl.utils import *
+from rlowan.utils import *
 
 
 def fc_net(env):

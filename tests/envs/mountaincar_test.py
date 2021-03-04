@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from debug_rl.envs.mountaincar import MountainCar
+from rlowan.envs.mountaincar import MountainCar
 
 
 def test_mountaincar_env():

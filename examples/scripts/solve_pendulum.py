@@ -5,9 +5,9 @@ os.environ["OMP_NUM_THREADS"] = "1"  # NOQA
 import numpy as np
 import argparse
 from copy import deepcopy
-from debug_rl.envs.pendulum import (
+from rlowan.envs.pendulum import (
     Pendulum, plot_pendulum_values, reshape_values)
-from debug_rl.solvers import *
+from rlowan.solvers import *
 import matplotlib.pyplot as plt
 import matplotlib
 from celluloid import Camera

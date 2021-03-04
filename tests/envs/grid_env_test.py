@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
-from debug_rl.envs.gridcraft import GridEnv, spec_from_string
-from debug_rl.envs.gridcraft.wrappers import OneHotObsWrapper, RandomObsWrapper
+from rlowan.envs.gridcraft import GridEnv, spec_from_string
+from rlowan.envs.gridcraft.wrappers import OneHotObsWrapper, RandomObsWrapper
 
 
 def test_grid_env():

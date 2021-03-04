@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from debug_rl.envs.pendulum import Pendulum
+from rlowan.envs.pendulum import Pendulum
 
 
 @pytest.fixture

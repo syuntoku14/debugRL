@@ -4,8 +4,8 @@ os.environ["NUMEXPR_NUM_THREADS"] = "1"  # NOQA
 os.environ["OMP_NUM_THREADS"] = "1"  # NOQA
 import numpy as np
 import argparse
-from debug_rl.envs.cartpole import CartPole
-from debug_rl.solvers import *
+from rlowan.envs.cartpole import CartPole
+from rlowan.solvers import *
 import matplotlib.pyplot as plt
 import matplotlib
 from clearml import Task

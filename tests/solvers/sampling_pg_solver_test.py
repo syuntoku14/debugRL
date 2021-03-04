@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
-from debug_rl.envs.pendulum import Pendulum
-from debug_rl.solvers import SamplingPgSolver
+from rlowan.envs.pendulum import Pendulum
+from rlowan.solvers import SamplingPgSolver
 from .oracle_vi_solver_test import run_solver
 
 

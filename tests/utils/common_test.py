@@ -1,8 +1,8 @@
 import pytest
 import numpy as np
 import torch
-from debug_rl.envs.pendulum import Pendulum
-from debug_rl.utils import *
+from rlowan.envs.pendulum import Pendulum
+from rlowan.utils import *
 
 
 def test_policy():

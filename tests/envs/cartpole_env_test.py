@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from debug_rl.envs.cartpole import CartPole
+from rlowan.envs.cartpole import CartPole
 
 
 def test_cartpole_env():
