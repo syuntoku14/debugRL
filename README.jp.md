@@ -1,26 +1,26 @@
-# RLowan: 強化学習アルゴリズムのデバッグ用ライブラリ
+# ShinRL: 強化学習アルゴリズムの解析用ライブラリ
 
 日本語 | [English](README.md)
 
-`rlowan` はDeepRLを含んだ強化学習アルゴリズムの挙動解析をするために開発したライブラリです.
+`shinrl` はDeepRLを含んだ強化学習アルゴリズムの挙動解析をするために開発したライブラリです.
 このライブラリは[diag_q](https://github.com/justinjfu/diagnosing_qlearning)を基に, より使いやすさを重視して開発しています (基本的な設計理念は[Diagnosing Bottlenecks in Deep Q-learning Algorithms](https://arxiv.org/abs/1902.10250)を参照してください).
-rlowanはGym形式の環境のダイナミクスを離散化, 行列形式で表現しており, 行動価値関数や定常分布などの`通常のGym環境では複数回のサンプルによって近似することでしか得られない真値`の計算ができるよう開発されています.
+shinrlはGym形式の環境のダイナミクスを離散化, 行列形式で表現しており, 行動価値関数や定常分布などの`通常のGym環境では複数回のサンプルによって近似することでしか得られない真値`の計算ができるよう開発されています.
 また, 新しいアルゴリズムを容易に追加・修正することができるよう, アルゴリズム同士の依存関係をなるべく少なくした[OpenAI Spinningup](https://github.com/openai/spinningup)形式の設計を意識しています.
 **基本的な使い方は [examples](examples)にあるノートブックを参考にしてください.**
 
-rlowanは行列形式で表現された`envs`と, その`envs`を解く`solvers`の2つによって構築されています.
+shinrlは行列形式で表現された`envs`と, その`envs`を解く`solvers`の2つによって構築されています.
 
-* `envs`: 全ての環境は[TabularEnv](rlowan/envs/base.py)のサブクラスですが, OpenAI Gymと同様にstepやreset関数が備わっているため, 通常のGym環境と同様の使い方ができます. 
+* `envs`: 全ての環境は[TabularEnv](shinrl/envs/base.py)のサブクラスですが, OpenAI Gymと同様にstepやreset関数が備わっているため, 通常のGym環境と同様の使い方ができます. 
 いくつかの環境では連続行動入力と画像形式の観測のモードを対応しており, 連続行動RLやCNNの解析も可能にしています.
-真の累積報酬を計算する``compute_expected_return``や真の行動価値観数を計算する``compute_action_values``などの便利な関数は[rlowan/envs/base.py](rlowan/envs/base.py)を参照してください.
+真の累積報酬を計算する``compute_expected_return``や真の行動価値観数を計算する``compute_action_values``などの便利な関数は[shinrl/envs/base.py](shinrl/envs/base.py)を参照してください.
 現在は以下の環境をサポートしています:
 
 | Environment | Dicrete action | Continuous action | Image Observation | Tuple Observation |
 | :-----: | :-----: | :-----: | :-----: | :-----: |
-| [GridCraft](rlowan/envs/gridcraft) | ✓ | - | - | ✓ |
-| [MountainCar](rlowan/envs/mountaincar) | ✓ | ✓ | ✓ | ✓ |
-| [Pendulum](rlowan/envs/pendulum) | ✓ | ✓ | ✓ | ✓ |
-| [CartPole](rlowan/envs/cartpole) | ✓ | ✓ | - | ✓ |
+| [GridCraft](shinrl/envs/gridcraft) | ✓ | - | - | ✓ |
+| [MountainCar](shinrl/envs/mountaincar) | ✓ | ✓ | ✓ | ✓ |
+| [Pendulum](shinrl/envs/pendulum) | ✓ | ✓ | ✓ | ✓ |
+| [CartPole](shinrl/envs/cartpole) | ✓ | ✓ | - | ✓ |
 
 
 * `solvers`: Solverはenvとソルバのハイパーパラメータである`options`を初期化時に設定し, `run`関数を実行することでMDPを解きます. 
@@ -30,21 +30,21 @@ solverは`initialize`関数を呼ぶと初期化されます. `run`関数を繰�
 
 | Solver | Sample approximation | Function approximation | Continuous Action | Algorithm |
 | :---:| :---: | :---: | :---: | :---: |
-| [OracleViSolver, OracleCviSolver](rlowan/solvers/oracle_vi) | - | - | - | Q-learning, [Conservative Value Iteration (CVI)](http://proceedings.mlr.press/v89/kozuno19a.html) |
-| [ExactFittedViSolver, ExactFittedCviSolver](rlowan/solvers/exact_fvi) | - | ✓ | - | Fitted Q-learning, Fitted CVI |
-| [SamplingViSolver, SamplingCviSolver](rlowan/solvers/sampling_vi) | ✓ | - | - | Q-learning, CVI |
-| [SamplingFittedViSolver, SamplingFittedCviSolver](rlowan/solvers/sampling_fvi) | ✓ | ✓ | - | Fitted Q-learning, Fitted CVI |
-| [ExactPgSolver](rlowan/solvers/exact_pg) | - | ✓ | - | Policy gradient |
-| [SamplingPgSolver](rlowan/solvers/sampling_pg) | - | ✓ | - | Policy gradient (REINFORCE, A2C)|
-| [IpgSolver](rlowan/solvers/ipg) | - | ✓ | - | [Interpolated policy gradient](https://arxiv.org/abs/1706.00387)|
-| [SacSolver](rlowan/solvers/sac) | ✓ | ✓ | - | [Discrete Soft Actor Critic](https://arxiv.org/abs/1910.07207) |
-| [SacContinuousSolver](rlowan/solvers/sac_continuous) | ✓ | ✓ | ✓ | [Soft Actor Critic](https://arxiv.org/abs/1801.01290) |
-| [PpoSolver](rlowan/solvers/ppo) | ✓ | ✓ | - | [Proximal Policy Optimization Algorithms](https://arxiv.org/abs/1707.06347) |
+| [OracleViSolver, OracleCviSolver](shinrl/solvers/oracle_vi) | - | - | - | Q-learning, [Conservative Value Iteration (CVI)](http://proceedings.mlr.press/v89/kozuno19a.html) |
+| [ExactFittedViSolver, ExactFittedCviSolver](shinrl/solvers/exact_fvi) | - | ✓ | - | Fitted Q-learning, Fitted CVI |
+| [SamplingViSolver, SamplingCviSolver](shinrl/solvers/sampling_vi) | ✓ | - | - | Q-learning, CVI |
+| [SamplingFittedViSolver, SamplingFittedCviSolver](shinrl/solvers/sampling_fvi) | ✓ | ✓ | - | Fitted Q-learning, Fitted CVI |
+| [ExactPgSolver](shinrl/solvers/exact_pg) | - | ✓ | - | Policy gradient |
+| [SamplingPgSolver](shinrl/solvers/sampling_pg) | - | ✓ | - | Policy gradient (REINFORCE, A2C)|
+| [IpgSolver](shinrl/solvers/ipg) | - | ✓ | - | [Interpolated policy gradient](https://arxiv.org/abs/1706.00387)|
+| [SacSolver](shinrl/solvers/sac) | ✓ | ✓ | - | [Discrete Soft Actor Critic](https://arxiv.org/abs/1910.07207) |
+| [SacContinuousSolver](shinrl/solvers/sac_continuous) | ✓ | ✓ | ✓ | [Soft Actor Critic](https://arxiv.org/abs/1801.01290) |
+| [PpoSolver](shinrl/solvers/ppo) | ✓ | ✓ | - | [Proximal Policy Optimization Algorithms](https://arxiv.org/abs/1707.06347) |
 
 
 # デバッグの流れ
 
-以下で, 簡単な例通してrlowanを使ったデバッグの流れを見てみましょう. 
+以下で, 簡単な例通してshinrlを使ったデバッグの流れを見てみましょう. 
 ここで紹介するコードは
 ```
 python examples/simple.py
@@ -62,7 +62,7 @@ Pendulum環境ではQ値ではなく状態価値しか描画できないため, 
 
 Q値のデバッグは以下のような流れで行います.
 
-1. 学習したモデルを用意します. 今回はrlowanのSAC実装を使いますが, 観測に対してQ値や行動の確率を返すモデルであれば任意のモデルに簡単に拡張できます.
+1. 学習したモデルを用意します. 今回はshinrlのSAC実装を使いますが, 観測に対してQ値や行動の確率を返すモデルであれば任意のモデルに簡単に拡張できます.
 2. モデルに対して, TabularEnvのall_observations変数 (`状態数`x`観測の次元`)に格納されている全状態に対する観測をを利用して, 方策行列を回帰します.
 3. env.compute_action_values関数を使ってモデルが学習したQ値を計算します. 今回はPendulum環境を使っているためV値を描画しますが, GridCraftではQ値をそのまま描画できます (詳しくは[examples/tutorial.ipynb](examples/tutorial.ipynb)を参照してください).
 
@@ -71,8 +71,8 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import special
-from rlowan.envs.pendulum import Pendulum, plot_pendulum_values, reshape_values
-from rlowan.solvers import SacSolver
+from shinrl.envs.pendulum import Pendulum, plot_pendulum_values, reshape_values
+from shinrl.solvers import SacSolver
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Step 1: train networks
@@ -123,7 +123,7 @@ plt.show()
 # インストール
 
 ```bash
-$ git clone git@github.com:syuntoku14/RLowan.git
-$ cd RLowan
+$ git clone git@github.com:syuntoku14/ShinRL.git
+$ cd ShinRL
 $ pip install -e .
 ```

@@ -1,8 +1,8 @@
 import pytest
 import gym
 import numpy as np
-from rlowan.envs.pendulum import Pendulum
-from rlowan.solvers import SacContinuousSolver
+from shinrl.envs.pendulum import Pendulum
+from shinrl.solvers import SacContinuousSolver
 from .misc import run_solver_tb, run_solver_gym
 import torch
 

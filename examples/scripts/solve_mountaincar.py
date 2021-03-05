@@ -4,9 +4,9 @@ os.environ["NUMEXPR_NUM_THREADS"] = "1"  # NOQA
 os.environ["OMP_NUM_THREADS"] = "1"  # NOQA
 import argparse
 import numpy as np
-from rlowan.envs.mountaincar import (
+from shinrl.envs.mountaincar import (
     MountainCar, plot_mountaincar_values, reshape_values)
-from rlowan.solvers import *
+from shinrl.solvers import *
 import matplotlib.pyplot as plt
 import matplotlib
 from celluloid import Camera

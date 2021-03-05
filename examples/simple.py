@@ -2,8 +2,8 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import special
-from rlowan.envs.pendulum import Pendulum, plot_pendulum_values, reshape_values
-from rlowan.solvers import SacSolver
+from shinrl.envs.pendulum import Pendulum, plot_pendulum_values, reshape_values
+from shinrl.solvers import SacSolver
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 

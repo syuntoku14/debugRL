@@ -2,8 +2,8 @@ import pytest
 import numpy as np
 import torch
 from torch import nn
-from rlowan.envs.pendulum import Pendulum
-from rlowan.utils import *
+from shinrl.envs.pendulum import Pendulum
+from shinrl.utils import *
 
 
 @pytest.fixture

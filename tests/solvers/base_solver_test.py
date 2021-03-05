@@ -1,8 +1,8 @@
 import pytest
 import numpy as np
 import gym
-from rlowan.envs.pendulum import Pendulum
-from rlowan.solvers import Solver
+from shinrl.envs.pendulum import Pendulum
+from shinrl.solvers import Solver
 
 
 class MockSolver(Solver):

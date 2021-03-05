@@ -1,8 +1,8 @@
 import gym
 import pytest
 import numpy as np
-from rlowan.envs.pendulum import Pendulum
-from rlowan.solvers import (
+from shinrl.envs.pendulum import Pendulum
+from shinrl.solvers import (
     SamplingFittedViSolver,
     SamplingFittedCviSolver
 )
