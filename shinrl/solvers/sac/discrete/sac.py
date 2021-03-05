@@ -5,29 +5,25 @@ import torch
 from torch.nn import functional as F
 from tqdm import tqdm
 from .core import Solver
-from shinrl.utils import (
-    trajectory_to_tensor,
-    collect_samples,
-)
+from shinrl import utils
 
 
 class SacSolver(Solver):
     def run(self, num_steps=10000):
         for _ in tqdm(range(num_steps)):
-            self.record_performance()
+            if self.is_tabular:
+                self.set_tb_values_policy()
+            self.record_history()
 
             # ------ collect samples using the current policy ------
-            preference = self.policy_network(self.all_obss).reshape(
-                self.dS, self.dA).detach().cpu().numpy()
-            policy = self.compute_policy(preference)
-            trajectory = collect_samples(
-                self.env, policy, self.solve_options["num_samples"])
+            trajectory = self.collect_samples(
+                self.solve_options["num_samples"])
             self.buffer.add(**trajectory)
 
             # ----- generate mini-batch from the replay_buffer -----
             trajectory = self.buffer.sample(
                 self.solve_options["minibatch_size"])
-            tensor_traj = trajectory_to_tensor(trajectory, self.device)
+            tensor_traj = utils.trajectory_to_tensor(trajectory, self.device)
 
             # ----- update q network -----
             critic_loss = self.update_critic(
@@ -41,14 +37,17 @@ class SacSolver(Solver):
             actor_loss = self.update_actor(tensor_traj)
             self.record_scalar("LossActor", actor_loss)
 
-            # ----- update target network -----
-            self.update_target_network(self.value_network,
-                                       self.target_value_network, self.solve_options["polyak"])
-            self.update_target_network(self.value_network2,
-                                       self.target_value_network2, self.solve_options["polyak"])
+            # ----- update target networks with constant polyak -----
+            polyak = self.solve_options["polyak"]
+            with torch.no_grad():
+                for p, p_targ in zip(self.value_network.parameters(), self.target_value_network.parameters()):
+                    p_targ.data.mul_(polyak)
+                    p_targ.data.add_((1 - polyak) * p.data)
+                for p, p_targ in zip(self.value_network2.parameters(), self.target_value_network2.parameters()):
+                    p_targ.data.mul_(polyak)
+                    p_targ.data.add_((1 - polyak) * p.data)
             self.step += 1
 
-    # This implementation does not use reparameterization trick
     def update_critic(self, network, optimizer, tensor_traj):
         discount = self.solve_options["discount"]
         er_coef = self.solve_options["er_coef"]
@@ -112,13 +111,34 @@ class SacSolver(Solver):
         self.policy_optimizer.step()
         return loss.detach().cpu().item()
 
-    def update_target_network(self, network, target_network, polyak=-1.0):
-        if polyak < 0:
-            # hard update
-            target_network.load_state_dict(network.state_dict())
-        else:
-            # soft update
-            with torch.no_grad():
-                for p, p_targ in zip(network.parameters(), target_network.parameters()):
-                    p_targ.data.mul_(polyak)
-                    p_targ.data.add_((1 - polyak) * p.data)
+    def set_tb_values_policy(self):
+        q1 = self.value_network(self.all_obss)
+        q2 = self.value_network2(self.all_obss)
+        values = torch.min(q1, q2).reshape(self.dS, self.dA)
+        self.record_array("Values", values)
+
+        prefs = self.policy_network(self.all_obss).detach().cpu().numpy()
+        policy = utils.softmax_policy(prefs, beta=1/self.solve_options["er_coef"])
+        self.record_array("Policy", policy)
+
+    def get_action_gym(self, env):
+        obs = torch.as_tensor(env.obs, dtype=torch.float32, device=self.device)
+        prefs = self.policy_network(obs).detach().cpu().numpy()
+        probs = utils.softmax_policy(prefs, beta=1/self.solve_options["er_coef"])
+        log_probs = np.log(probs)
+        action = np.random.choice(np.arange(0, env.action_space.n), p=probs)
+        log_prob = log_probs[action]
+        return action, log_prob
+
+    def record_history(self):
+        if self.step % self.solve_options["record_performance_interval"] == 0:
+            if self.is_tabular:
+                expected_return = \
+                    self.env.compute_expected_return(self.tb_policy)
+                self.record_scalar("Return", expected_return, tag="Policy")
+            else:
+                n_episodes = self.solve_options["num_episodes_gym_record"]
+                traj = utils.collect_samples(
+                    self.env, self.get_action_gym, num_episodes=n_episodes)
+                expected_return = traj["rew"].sum() / n_episodes
+                self.record_scalar("Return", expected_return, tag="Policy")

@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+import gym
 from shinrl.envs.pendulum import Pendulum
 from shinrl.solvers.sac.discrete import SacSolver
 from ..misc import run_solver_tb, run_solver_gym
@@ -13,10 +14,10 @@ def setUp():
     yield pend_env
 
 
-def test_sac(setUp):
+def test_tb(setUp):
     pend_env = setUp
     solver = SacSolver(pend_env)
-    run_solver(solver, pend_env)
+    run_solver_tb(solver, pend_env)
 
 
 def test_image_obs(setUp):
@@ -24,4 +25,11 @@ def test_image_obs(setUp):
                         horizon=5, obs_mode="image")
     pend_env.reset()
     solver = SacSolver(pend_env)
-    run_solver(solver, pend_env)
+    run_solver_tb(solver, pend_env)
+
+
+def test_gym(setUp):
+    gym_env = gym.make("CartPole-v0")
+    gym_env.reset()
+    solver = SacSolver(gym_env)
+    run_solver_gym(solver, gym_env)

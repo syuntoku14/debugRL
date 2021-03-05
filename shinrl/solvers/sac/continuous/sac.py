@@ -4,7 +4,6 @@ import numpy as np
 import torch
 from torch.nn import functional as F
 from tqdm import tqdm
-import itertools
 from .core import Solver
 from shinrl import utils
 
@@ -112,8 +111,7 @@ class SacSolver(Solver):
         dist = self.policy_network.compute_pi_distribution(self.all_obss)
         log_policy = dist.log_prob(self.all_actions) \
             - (2*(np.log(2) - self.all_actions - F.softplus(-2*self.all_actions)))
-        policy_probs = torch.softmax(log_policy, dim=-1).reshape(
-            self.dS, self.dA).detach().cpu().numpy()
+        policy_probs = torch.softmax(log_policy, dim=-1).reshape(self.dS, self.dA)
         self.record_array("Policy", policy_probs)
 
     def get_action_gym(self, env):

@@ -98,6 +98,8 @@ class Solver(ABC):
         Record a scalar y to self.history. 
         Report to trains also if self.logger is set.
         """
+        if isinstance(y, torch.Tensor):
+            y = y.detach().cpu().item()
         if self.logger is not None:
             tag = title if tag is None else tag
             self.logger.report_scalar(title, tag, y, self.step)
