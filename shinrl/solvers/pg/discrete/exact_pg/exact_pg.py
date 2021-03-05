@@ -5,12 +5,14 @@ import torch
 from torch.nn import functional as F
 from tqdm import tqdm
 from .core import Solver
+from shinrl import utils
 
 
 class ExactPgSolver(Solver):
     def run(self, num_steps=10000):
         for _ in tqdm(range(num_steps)):
-            self.record_performance()
+            self.set_tb_values_policy()
+            self.record_history()
 
             # ----- update networks -----
             actor_loss = self.update_actor()
@@ -49,3 +51,16 @@ class ExactPgSolver(Solver):
         loss.backward()
         self.policy_optimizer.step()
         return loss.detach().cpu().item()
+
+    def set_tb_values_policy(self):
+        prefs = self.policy_network(self.all_obss).detach().cpu().numpy()
+        policy = utils.softmax_policy(prefs)
+        self.record_array("Policy", policy)
+        values = self.env.compute_action_values(policy)
+        self.record_array("Values", values)
+
+    def record_history(self):
+        if self.step % self.solve_options["record_performance_interval"] == 0:
+            expected_return = \
+                self.env.compute_expected_return(self.tb_policy)
+            self.record_scalar("Return", expected_return, tag="Policy")

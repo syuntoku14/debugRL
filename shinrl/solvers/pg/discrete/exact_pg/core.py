@@ -17,67 +17,37 @@ OPTIONS = {
 }
 
 
-def fc_net(env, num_output, hidden=256, depth=1, activation="tanh"):
-    if activation == "tanh":
-        act_layer = nn.Tanh
-    elif activation == "relu":
-        act_layer = nn.ReLU
-    else:
-        raise ValueError("Activation layer is not valid.")
-
+def fc_net(env, num_output, hidden=256, depth=1, act_layer=nn.ReLU):
     modules = []
-    if depth == 0:
-        modules.append(
-            nn.Linear(env.observation_space.shape[0], num_output))
-    elif depth > 0:
-        modules.append(
-            nn.Linear(env.observation_space.shape[0], hidden))
+    obs_shape = env.observation_space.shape[0]
+    if depth > 0:
+        modules.append(nn.Linear(obs_shape, hidden))
         for _ in range(depth-1):
-            modules.append(act_layer())
-            modules.append(nn.Linear(hidden, hidden))
-        modules.append(act_layer())
-        modules.append(nn.Linear(hidden, num_output))
+            modules += [act_layer(), nn.Linear(hidden, hidden)]
+        modules += [act_layer(), nn.Linear(hidden, num_output)]
     else:
-        raise ValueError("Invalid depth of fc layer")
+        modules.append(nn.Linear(obs_shape, num_output))
     return nn.Sequential(*modules)
 
 
-def conv_net(env, num_output, hidden=32, depth=1, activation="tanh"):
+def conv_net(env, num_output, hidden=32, depth=1, act_layer=nn.ReLU):
     # this assumes image shape == (1, 28, 28)
-    if activation == "tanh":
-        act_layer = nn.Tanh
-    elif activation == "relu":
-        act_layer = nn.ReLU
-    else:
-        raise ValueError("Activation layer is not valid.")
-
-    # conv layers
-    conv_modules = []
-    conv_modules.append(nn.Conv2d(1, 10, kernel_size=5, stride=2))
-    conv_modules.append(nn.Conv2d(10, 20, kernel_size=5, stride=2))
-    conv_modules.append(nn.Flatten())
-
+    conv_modules = [nn.Conv2d(1, 10, kernel_size=5, stride=2),
+                    nn.Conv2d(10, 20, kernel_size=5, stride=2),
+                    nn.Flatten()]
     fc_modules = []
-    # fc layers
-    if depth == 0:
-        fc_modules.append(
-            nn.Linear(320, num_output))
-    elif depth > 0:
-        fc_modules.append(
-            nn.Linear(320, hidden))
+    if depth > 0:
+        fc_modules.append(nn.Linear(320, hidden))
         for _ in range(depth-1):
-            fc_modules.append(act_layer())
-            fc_modules.append(nn.Linear(hidden, hidden))
-        fc_modules.append(act_layer())
-        fc_modules.append(nn.Linear(hidden, num_output))
+            fc_modules += [act_layer(), nn.Linear(hidden, hidden)]
+        fc_modules += [act_layer(), nn.Linear(hidden, num_output)]
     else:
-        raise ValueError("Invalid depth of fc layer")
+        fc_modules.append(nn.Linear(320, num_output))
     return nn.Sequential(*(conv_modules+fc_modules))
 
 
 class Solver(Solver):
     def initialize(self, options={}):
-        assert self.is_tabular
         self.solve_options.update(OPTIONS)
         super().initialize(options)
         self.device = self.solve_options["device"]
@@ -90,33 +60,18 @@ class Solver(Solver):
         else:
             self.optimizer = torch.optim.RMSprop
 
-        self.device = self.solve_options["device"]
-        if len(self.env.observation_space.shape) == 1:
-            net = fc_net
+        if self.solve_options["activation"] == "tanh":
+            act_layer = nn.Tanh
+        elif self.solve_options["activation"] == "relu":
+            act_layer = nn.ReLU
         else:
-            net = conv_net
+            raise ValueError("Invalid activation layer.")
 
-        # actor network
+        net = fc_net if len(self.env.observation_space.shape) == 1 else conv_net
         self.policy_network = net(
             self.env, self.env.action_space.n,
             hidden=self.solve_options["hidden"],
             depth=self.solve_options["depth"],
-            activation=self.solve_options["activation"]).to(self.device)
+            act_layer=act_layer).to(self.device)
         self.policy_optimizer = self.optimizer(self.policy_network.parameters(),
                                                lr=self.solve_options["lr"])
-
-    def record_performance(self):
-        if self.step % self.solve_options["record_performance_interval"] == 0:
-            preference = self.policy_network(self.all_obss).reshape(
-                self.dS, self.dA).detach().cpu().numpy()
-            policy = self.compute_policy(preference)
-            expected_return = self.env.compute_expected_return(policy)
-            self.record_scalar("Return", expected_return, tag="Policy")
-            self.record_array("Policy", policy)
-            values = self.env.compute_action_values(
-                policy, self.solve_options["discount"])
-            self.record_array("Values", values)
-
-    def compute_policy(self, preference):
-        # return softmax policy
-        return softmax_policy(preference, beta=1.0)

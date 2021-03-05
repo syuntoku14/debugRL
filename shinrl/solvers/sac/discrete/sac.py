@@ -118,13 +118,13 @@ class SacSolver(Solver):
         self.record_array("Values", values)
 
         prefs = self.policy_network(self.all_obss).detach().cpu().numpy()
-        policy = utils.softmax_policy(prefs, beta=1/self.solve_options["er_coef"])
+        policy = utils.softmax_policy(prefs)
         self.record_array("Policy", policy)
 
     def get_action_gym(self, env):
         obs = torch.as_tensor(env.obs, dtype=torch.float32, device=self.device)
         prefs = self.policy_network(obs).detach().cpu().numpy()
-        probs = utils.softmax_policy(prefs, beta=1/self.solve_options["er_coef"])
+        probs = utils.softmax_policy(prefs)
         log_probs = np.log(probs)
         action = np.random.choice(np.arange(0, env.action_space.n), p=probs)
         log_prob = log_probs[action]

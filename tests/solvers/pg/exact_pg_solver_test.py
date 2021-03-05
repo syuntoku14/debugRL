@@ -1,8 +1,8 @@
 import pytest
 import numpy as np
 from shinrl.envs.pendulum import Pendulum
-from shinrl.solvers import ExactPgSolver
-from .oracle_vi_solver_test import run_solver
+from shinrl.solvers.pg.discrete import ExactPgSolver
+from ..misc import run_solver_tb
 
 
 @pytest.fixture
@@ -16,7 +16,7 @@ def test_pg(setUp):
     pend_env = setUp
     solver = ExactPgSolver(pend_env)
     solver.initialize(options={"coef": "Q"})
-    run_solver(solver, pend_env)
+    run_solver_tb(solver, pend_env)
 
     solver.initialize(options={"coef": "A"})
-    run_solver(solver, pend_env)
+    run_solver_tb(solver, pend_env)
