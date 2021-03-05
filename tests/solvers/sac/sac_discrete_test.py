@@ -1,8 +1,8 @@
 import pytest
 import numpy as np
 from shinrl.envs.pendulum import Pendulum
-from shinrl.solvers import *
-from .oracle_vi_solver_test import run_solver
+from shinrl.solvers.sac.discrete import SacSolver
+from ..misc import run_solver_tb, run_solver_gym
 import torch
 
 

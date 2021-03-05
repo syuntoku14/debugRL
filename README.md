@@ -131,7 +131,7 @@ You can install both the shinrl.envs and shinrl.solvers by:
 
 ```bash
 git clone git@github.com:syuntoku14/ShinRL.git
-cd shinrl
+cd ShinRL
 pip install -e .[solver]
 ```
 
@@ -139,7 +139,7 @@ If you want to use only the shinrl.envs, install shinrl by:
 
 ```bash
 git clone git@github.com:syuntoku14/ShinRL.git
-cd shinrl
+cd ShinRL
 pip install -e .
 ```
 

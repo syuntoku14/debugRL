@@ -1,10 +1,10 @@
 import pytest
 import numpy as np
 from shinrl.envs.pendulum import Pendulum
-from shinrl.solvers import (
-    OracleViSolver,
-    OracleCviSolver)
-from .misc import run_solver_tb
+from shinrl.solvers.vi.discrete import (
+    SamplingViSolver,
+    SamplingCviSolver)
+from ..misc import run_solver_tb
 
 
 @pytest.fixture
@@ -16,11 +16,13 @@ def setUp():
 
 def test_value_iteration(setUp):
     pend_env = setUp
-    solver = OracleViSolver(pend_env)
+    solver = SamplingViSolver(pend_env)
+    solver.initialize()
     run_solver_tb(solver, pend_env)
 
 
 def test_cvi(setUp):
     pend_env = setUp
-    solver = OracleCviSolver(pend_env)
+    solver = SamplingCviSolver(pend_env)
+    solver.initialize()
     run_solver_tb(solver, pend_env)

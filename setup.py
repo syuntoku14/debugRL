@@ -22,7 +22,8 @@ setup(
         "pytest",
         "pytest-benchmark",
         "pathlib",
-        "tqdm"
+        "tqdm",
+        "pybullet"
     ],
     extra_requires={
         "solver": [

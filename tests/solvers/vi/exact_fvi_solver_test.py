@@ -1,10 +1,10 @@
 import pytest
 import numpy as np
 from shinrl.envs.pendulum import Pendulum
-from shinrl.solvers import (
+from shinrl.solvers.vi.discrete import (
     ExactFittedViSolver,
     ExactFittedCviSolver)
-from .misc import run_solver_tb
+from ..misc import run_solver_tb
 
 
 @pytest.fixture

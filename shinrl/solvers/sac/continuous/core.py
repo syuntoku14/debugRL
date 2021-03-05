@@ -204,4 +204,3 @@ class Solver(Solver):
         else:
             return utils.collect_samples(
                 self.env, self.get_action_gym, self.solve_options["num_samples"])
-

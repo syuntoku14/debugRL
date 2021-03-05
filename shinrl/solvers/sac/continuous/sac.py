@@ -9,7 +9,7 @@ from .core import Solver
 from shinrl import utils
 
 
-class SacContinuousSolver(Solver):
+class SacSolver(Solver):
     def run(self, num_steps=10000):
         for _ in tqdm(range(num_steps)):
             if self.is_tabular:
@@ -17,7 +17,8 @@ class SacContinuousSolver(Solver):
             self.record_history()
 
             # ------ collect samples using the current policy ------
-            trajectory = self.collect_samples(self.solve_options["num_samples"])
+            trajectory = self.collect_samples(
+                self.solve_options["num_samples"])
             self.buffer.add(**trajectory)
 
             # ----- generate mini-batch from the replay_buffer -----
@@ -25,7 +26,8 @@ class SacContinuousSolver(Solver):
                 self.solve_options["minibatch_size"])
             tensor_traj = utils.trajectory_to_tensor(
                 trajectory, self.device, is_discrete=False)
-            tensor_traj["act"] = tensor_traj["act"].unsqueeze(-1)
+            if len(tensor_traj["act"].shape) == 1:
+                tensor_traj["act"] = tensor_traj["act"].unsqueeze(-1)
 
             # ----- update q network -----
             critic_loss = self.update_critic(
@@ -99,7 +101,8 @@ class SacContinuousSolver(Solver):
         return loss
 
     def set_tb_values_policy(self):
-        tensor_all_obss = torch.repeat_interleave(self.all_obss, self.dA, 0)  # (SxA) x obss
+        tensor_all_obss = torch.repeat_interleave(
+            self.all_obss, self.dA, 0)  # (SxA) x obss
         tensor_all_actions = self.all_actions.reshape(-1, 1)
         q1 = self.value_network(tensor_all_obss, tensor_all_actions)
         q2 = self.value_network2(tensor_all_obss, tensor_all_actions)
@@ -110,7 +113,7 @@ class SacContinuousSolver(Solver):
         log_policy = dist.log_prob(self.all_actions) \
             - (2*(np.log(2) - self.all_actions - F.softplus(-2*self.all_actions)))
         policy_probs = torch.softmax(log_policy, dim=-1).reshape(
-            self.dS, self.dA).detach().cpu().numpy() 
+            self.dS, self.dA).detach().cpu().numpy()
         self.record_array("Policy", policy_probs)
 
     def get_action_gym(self, env):

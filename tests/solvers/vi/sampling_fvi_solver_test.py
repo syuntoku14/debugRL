@@ -2,11 +2,11 @@ import gym
 import pytest
 import numpy as np
 from shinrl.envs.pendulum import Pendulum
-from shinrl.solvers import (
+from shinrl.solvers.vi.discrete import (
     SamplingFittedViSolver,
     SamplingFittedCviSolver
 )
-from .misc import run_solver_tb, run_solver_gym
+from ..misc import run_solver_tb, run_solver_gym
 import torch
 
 
