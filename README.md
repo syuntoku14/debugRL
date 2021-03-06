@@ -1,24 +1,18 @@
 **Status:** Under development (expect bug fixes and huge updates)
 
-# ShinRL: A python library for analyzing RL algorithms
+# ShinRL: A python library for analyzing reinforcement learning
 
-[日本語](assets/README.jp.md) | English
+`ShinRL` is a reinforcement learning (RL) library with useful analysis tools.
+It allows you to analyze the *shin* (*shin* means oracle in Japanese) behaviors of RL.
 
-`shinrl` is a library for analyzing the behavior of reinforcement learning algorithms, including DeepRL.
-This library is inspired by [diag_q](https://github.com/justinjfu/diagnosing_qlearning) (See [Diagnosing Bottlenecks in Deep Q-learning Algorithms](https://arxiv.org/abs/1902.10250)), but has been developed with an emphasis on ease of use.
-Using matrix-form representation of the dynamics of environments, shinrl allows you to calculate the *shin* (*shin* means oracle in Japanese) values such as action-value functions and stationary distributions that can only be approximated by multiple samples in the usual Gym environment.
-To facilitate the addition and modification of new algorithms, the codes follow [OpenAI Spinningup](https://github.com/openai/spinningup)-style to minimize the dependencies between the algorithms.
-See the notebook [examples/tutorial.ipynb](examples/tutorial.ipynb) for the basic usage.
+## Key features
 
-The shinrl is constructed of two parts: the `envs` and the `solvers`.
-Although the `solvers` requires PyTorch, it is possible to install only `envs` for users who do not use PyTorch (See [Installation](#Installation)).
+### :zap: Oracle analysis with TabularEnv
+* A flexible class `TabularEnv` provides useful functions for RL analysis. For example, you can calculate the oracle action-values with ``compute_action_values`` method.
+* Subclasses of `TabularEnv` can be used as the regular OpenAI-Gym environments.
+* Some environments support continuous action space and image observation.
 
-* `envs`:
-  * All environments are subclasses of [TabularEnv](shinrl/envs/base.py). They have step and reset functions similar to those of OpenAI Gym so that they can be used in the same way as the regular Gym environment.
-  * Some of the environments support continuous action input and image-based observation modes that enable analysis of continuous action RL and CNN.
-  * TabularEnv class has useful functions such as ``compute_expected_return`` to calculate true cumulative rewards and ``compute_action_values`` to calculate true action values (see [shinrl/envs/base.py](shinrl/envs/base.py) for details).
-  * **All the environments returns done only at the end of the horizon.** Thus, the handling of done in solvers may be different from usual.
-  * The following environments are supported:
+#### Implemented environments
 
 |               Environment                |   Dicrete action   | Continuous action  | Image Observation  | Tuple Observation  |
 | :--------------------------------------: | :----------------: | :----------------: | :----------------: | :----------------: |
@@ -27,11 +21,13 @@ Although the `solvers` requires PyTorch, it is possible to install only `envs` f
 |    [Pendulum](shinrl/envs/pendulum)    | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 |    [CartPole](shinrl/envs/cartpole)    | :heavy_check_mark: | :heavy_check_mark: |        :x:         | :heavy_check_mark: |
 
-* `solvers`:
-  * A solver solves a **TabularEnv** by executing the `run` function.
-  * You can continue learning by repeatedly calling `run` function. If you want to initialize the solver, call `initialize` function.
-  * You can check the training progress by passing the logger of [clearML](https://github.com/allegroai/clearml) at the initialization. It is possible to run the solver without a logger.
-  * Currently the following solvers are supported:
+### :fire: Practical MDP solvers
+* `ShinRL` provides algorithms to solve the OpenAI-Gym environments as `Solver`.
+* The dependencies between solvers are minimized to facilitate the addition and modification of new algorithms.
+* Some solvers support the regular Gym environments as well as `TabularEnv`.
+* Easy to visualize the training progress with [clearML](https://github.com/allegroai/clearml).
+
+#### Implemented solvers
 
 |                                      Solver                                      | Sample approximation | Function approximation | Continuous Action  |                                                  Algorithm                                                  |
 | :------------------------------------------------------------------------------: | :------------------: | :--------------------: | :----------------: | :---------------------------------------------------------------------------------------------------------: |
@@ -126,16 +122,6 @@ The upper figure shows the oracle soft V values, and the bottom figure shows the
 Since the oracle and the trained V values are quite similar, we can conclude that the network learns the soft Q values successfully.
 
 # Installation
-
-You can install both the shinrl.envs and shinrl.solvers by:
-
-```bash
-git clone git@github.com:syuntoku14/ShinRL.git
-cd ShinRL
-pip install -e .[solver]
-```
-
-If you want to use only the shinrl.envs, install shinrl by:
 
 ```bash
 git clone git@github.com:syuntoku14/ShinRL.git

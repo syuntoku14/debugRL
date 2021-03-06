@@ -23,15 +23,12 @@ setup(
         "pytest-benchmark",
         "pathlib",
         "tqdm",
-        "pybullet"
+        "pybullet",
+        "cpprb",
+        "clearml",
+        "clearml-agent",
+        "torch",
+        "torchvision"
+ 
     ],
-    extra_requires={
-        "solver": [
-            "cpprb",
-            "clearml",
-            "clearml-agent",
-            "torch",
-            "torchvision"
-        ],
-    }
 )
