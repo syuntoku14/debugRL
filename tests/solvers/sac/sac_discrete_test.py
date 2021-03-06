@@ -4,7 +4,6 @@ import gym
 from shinrl.envs.pendulum import Pendulum
 from shinrl.solvers.sac.discrete import SacSolver
 from ..misc import run_solver_tb, run_solver_gym
-import torch
 
 
 @pytest.fixture

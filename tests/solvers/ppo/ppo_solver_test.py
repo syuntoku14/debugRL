@@ -1,27 +1,19 @@
 import pytest
 import numpy as np
+import gym
 from shinrl.envs.pendulum import Pendulum
-from shinrl.solvers import *
-from .oracle_vi_solver_test import run_solver
-import torch
+from shinrl.solvers.ppo.discrete import PpoSolver
+from ..misc import run_solver_tb, run_solver_gym
 
 
-@pytest.fixture
-def setUp():
+def test_tb():
     pend_env = Pendulum(state_disc=5, dA=3, horizon=5)
-    pend_env.reset()
-    yield pend_env
-
-
-def test_ppo(setUp):
-    pend_env = setUp
     solver = PpoSolver(pend_env)
-    run_solver(solver, pend_env)
+    run_solver_tb(solver, pend_env)
 
 
-def test_image_obs(setUp):
-    pend_env = Pendulum(state_disc=5, dA=3,
-                        horizon=5, obs_mode="image")
-    pend_env.reset()
-    solver = PpoSolver(pend_env)
-    run_solver(solver, pend_env)
+def test_gym():
+    gym_env = gym.make("CartPole-v0")
+    gym_env.reset()
+    solver = PpoSolver(gym_env)
+    run_solver_gym(solver, gym_env)

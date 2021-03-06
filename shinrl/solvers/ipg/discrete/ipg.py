@@ -5,33 +5,29 @@ import torch
 from torch.nn import functional as F
 from tqdm import tqdm
 from .core import Solver
-from shinrl.utils import (
-    collect_samples,
-    trajectory_to_tensor
-)
+from shinrl import utils
 
 
 class IpgSolver(Solver):
     def run(self, num_steps=10000):
         for _ in tqdm(range(num_steps)):
-            self.record_performance()
+            if self.is_tabular:
+                self.set_tb_values_policy()
+            self.record_history()
 
             # ------ collect samples using the current policy ------
-            preference = self.policy_network(
-                self.all_obss).reshape(self.dS, self.dA).detach().cpu().numpy()
-            policy = self.compute_policy(preference)
-            trajectory = collect_samples(
-                self.env, policy, num_samples=self.solve_options["num_samples"])
+            trajectory = self.collect_samples(
+                self.solve_options["num_samples"])
             self.buffer.add(**trajectory)
 
             # ----- compute on-policy gradient coefficient -----
-            trajectory = self.compute_coef(trajectory, policy)
-            tensor_traj = trajectory_to_tensor(trajectory, self.device)
+            trajectory = self.compute_coef(trajectory)
+            tensor_traj = utils.trajectory_to_tensor(trajectory, self.device)
 
             # ----- generate mini-batch from the replay_buffer -----
             off_trajectory = self.buffer.sample(
                 self.solve_options["minibatch_size"])
-            tensor_off_traj = trajectory_to_tensor(off_trajectory, self.device)
+            tensor_off_traj = utils.trajectory_to_tensor(off_trajectory, self.device)
 
             # ----- update networks -----
             on_actor_loss, off_actor_loss = self.update_actor(tensor_traj, tensor_off_traj)
@@ -48,62 +44,40 @@ class IpgSolver(Solver):
                     self.value_network.state_dict())
             self.step += 1
 
-    def compute_coef(self, traj, policy):
+    def compute_coef(self, traj):
         discount, lam = self.solve_options["discount"], self.solve_options["td_lam"]
-        Q_table = self.env.compute_action_values(policy, discount)  # SxA
-
-        state, next_state, act, rew, done = traj["state"], traj[
-            "next_state"], traj["act"], traj["rew"], traj["done"]
-        obs = torch.tensor(
-            traj["obs"], dtype=torch.float32, device=self.device)
-        next_obs = torch.tensor(
-            traj["next_obs"], dtype=torch.float32, device=self.device)
+        act, rew, done = traj["act"], traj["rew"], traj["done"]
+        obs = torch.tensor(traj["obs"], dtype=torch.float32, device=self.device)
+        next_obs = torch.tensor(traj["next_obs"], dtype=torch.float32, device=self.device)
         values = self.baseline_network(obs).squeeze(1).detach().cpu().numpy()
         next_values = self.baseline_network(next_obs).squeeze(1).detach().cpu().numpy()
         td_err = rew + discount * next_values - values
+        Q, GAE = [], []
 
-        # last_val != 0.0 since TabularEnv returns done only at timeout
-        def compute_last_val(step):  
-            if self.solve_options["last_val"] == "oracle":
-                return Q_table[state[step], act[step]]
-            elif self.solve_options["last_val"] == "critic":
-                return values[step]
-            else:
-                raise ValueError
+        if self.is_tabular:
+            state, next_state = traj["state"], traj["next_state"]
+            Q_table = self.env.compute_action_values(self.tb_policy, discount)  # SxA
+            oracle_Q, oracle_V = [], []
 
-        def compute_last_adv(step):
-            if self.solve_options["last_val"] == "oracle":
-                return 0.0
-            elif self.solve_options["last_val"] == "critic":
-                return td_err[step]
-            else:
-                raise ValueError
-
-        Q, GAE, oracle_Q, oracle_V = [], [], [], []
-        ret = compute_last_val(len(rew)-1)
-        gae = compute_last_adv(len(rew)-1)
+        ret = values[len(rew)-1]
+        gae = td_err[len(rew)-1]
         for step in reversed(range(len(rew))):
-            gae = compute_last_adv(step) if done[step] else td_err[step] + discount*lam*gae 
-            ret = compute_last_val(step) if done[step] else rew[step] + discount*ret 
+            gae = td_err[step] if done[step] else td_err[step] + discount*lam*gae 
+            ret = values[step] if done[step] else rew[step] + discount*ret 
             GAE.insert(0, gae)
             Q.insert(0, ret)
-            oracle_Q.insert(0, Q_table[state[step], act[step]])
-            oracle_V.insert(0, np.sum(policy[state[step]] * Q_table[state[step]]))
-        Q, GAE, oracle_Q, oracle_V = np.array(Q), np.array(GAE), np.array(oracle_Q), np.array(oracle_V)
-        self.record_scalar("ReturnError", np.mean((Q-oracle_Q)**2))
-        self.record_scalar("AdvantageError", np.mean(((Q-values) - (oracle_Q-oracle_V))**2), tag="Q-V")
-        self.record_scalar("AdvantageError", np.mean((GAE - (oracle_Q-oracle_V))**2), tag="GAE")
+            if self.is_tabular:
+                oracle_Q.insert(0, Q_table[state[step], act[step]])
+                oracle_V.insert(0, np.sum(self.tb_policy[state[step]] * Q_table[state[step]]))
+        Q, GAE = np.array(Q), np.array(GAE)
+        if self.is_tabular:
+            oracle_Q, oracle_V = np.array(oracle_Q), np.array(oracle_V)
+            self.record_scalar("ReturnError", np.mean((Q-oracle_Q)**2))
+            self.record_scalar("AdvantageError", np.mean(((Q-values) - (oracle_Q-oracle_V))**2), tag="Q-V")
+            self.record_scalar("AdvantageError", np.mean((GAE - (oracle_Q-oracle_V))**2), tag="GAE")
 
         traj["ret"] = Q
-        traj["adv"] = GAE
-        if self.solve_options["coef"] == "Q":
-            traj["coef"] = Q
-        elif self.solve_options["coef"] == "A":
-            traj["coef"] = Q - values
-        elif self.solve_options["coef"] == "GAE":
-            traj["coef"] = GAE
-        else:
-            raise ValueError
+        traj["coef"] = GAE
         return traj
 
     def update_actor(self, tensor_traj, tensor_off_traj):
@@ -165,3 +139,43 @@ class IpgSolver(Solver):
         loss.backward()
         self.baseline_optimizer.step()
         return loss.detach().cpu().item()
+
+    def set_tb_values_policy(self):
+        values = self.value_network(self.all_obss).reshape(
+            self.dS, self.dA).detach().cpu().numpy()
+        self.record_array("Values", values)
+        preference = self.policy_network(self.all_obss).reshape(
+                self.dS, self.dA).detach().cpu().numpy()
+        policy = utils.softmax_policy(preference)
+        self.record_array("Policy", policy)
+
+    def get_action_gym(self, env):
+        obs = torch.as_tensor(env.obs, dtype=torch.float32, device=self.device)
+        prefs = self.policy_network(obs).detach().cpu().numpy()
+        probs = utils.softmax_policy(prefs)
+        log_probs = np.log(probs)
+        action = np.random.choice(np.arange(0, env.action_space.n), p=probs)
+        log_prob = log_probs[action]
+        return action, log_prob
+
+    def collect_samples(self, num_samples):
+        if self.is_tabular:
+            return utils.collect_samples(
+                self.env, utils.get_tb_action, self.solve_options["num_samples"],
+                policy=self.tb_policy)
+        else:
+            return utils.collect_samples(
+                self.env, self.get_action_gym, self.solve_options["num_samples"])
+
+    def record_history(self):
+        if self.step % self.solve_options["record_performance_interval"] == 0:
+            if self.is_tabular:
+                expected_return = \
+                    self.env.compute_expected_return(self.tb_policy)
+                self.record_scalar("Return", expected_return, tag="Policy")
+            else:
+                n_episodes = self.solve_options["num_episodes_gym_record"]
+                traj = utils.collect_samples(
+                    self.env, self.get_action_gym, num_episodes=n_episodes)
+                expected_return = traj["rew"].sum() / n_episodes
+                self.record_scalar("Return", expected_return, tag="Policy")

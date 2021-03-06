@@ -1,8 +1,9 @@
 import pytest
 import numpy as np
+import gym
 from shinrl.envs.pendulum import Pendulum
-from shinrl.solvers import SamplingPgSolver
-from .oracle_vi_solver_test import run_solver
+from shinrl.solvers.pg.discrete import SamplingPgSolver
+from ..misc import run_solver_tb, run_solver_gym
 
 
 @pytest.fixture
@@ -12,8 +13,14 @@ def setUp():
     yield pend_env
 
 
-def test_sampling_pg(setUp):
+def test_tb(setUp):
     pend_env = setUp
     solver = SamplingPgSolver(pend_env)
-    solver.initialize()
-    run_solver(solver, pend_env)
+    run_solver_tb(solver, pend_env)
+
+
+def test_gym(setUp):
+    gym_env = gym.make("CartPole-v0")
+    gym_env.reset()
+    solver = SamplingPgSolver(gym_env)
+    run_solver_gym(solver, gym_env)
