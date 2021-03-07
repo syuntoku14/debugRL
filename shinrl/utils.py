@@ -141,6 +141,7 @@ def collect_samples(env, get_action, num_samples=None, num_episodes=None, render
         # do action
         action, log_prob = get_action(env, **kwargs)
         next_obs, rew, done, info = env.step(action)
+        env.obs = next_obs
 
         # add next info
         if is_tabular:
@@ -158,7 +159,7 @@ def collect_samples(env, get_action, num_samples=None, num_episodes=None, render
         else:
             traj["timeout"].append(False)
         if done:
-            env.reset()
+            env.obs = env.reset()
             done_count += 1
         if len(traj["obs"]) == num_samples or done_count == num_episodes:
             break

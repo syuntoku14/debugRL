@@ -29,11 +29,8 @@ class SacSolver(Solver):
                 tensor_traj["act"] = tensor_traj["act"].unsqueeze(-1)
 
             # ----- update q network -----
-            critic_loss = self.update_critic(
-                self.value_network, self.value_optimizer, tensor_traj)
+            critic_loss, critic_loss2 = self.update_critic(tensor_traj)
             self.record_scalar("LossCritic", critic_loss)
-            critic_loss2 = self.update_critic(
-                self.value_network2, self.value_optimizer2, tensor_traj)
             self.record_scalar("LossCritic2", critic_loss2)
 
             # ----- update policy network -----
@@ -51,7 +48,7 @@ class SacSolver(Solver):
                     p_targ.data.add_((1 - polyak) * p.data)
             self.step += 1
 
-    def update_critic(self, network, optimizer, tensor_traj):
+    def update_critic(self, tensor_traj):
         discount = self.solve_options["discount"]
         er_coef = self.solve_options["er_coef"]
 
@@ -62,42 +59,45 @@ class SacSolver(Solver):
 
         with torch.no_grad():
             # compute q target
-            raw_pi2, logp_pi2 = self.policy_network(next_obss, return_raw=True)
-            pi2 = self.policy_network.squash_action(raw_pi2)
+            pi2, logp_pi2 = self.policy_network(next_obss)
             q1_pi_targ = self.target_value_network(next_obss, pi2).squeeze(-1)
             q2_pi_targ = self.target_value_network2(next_obss, pi2).squeeze(-1)
             q_pi_targ = torch.min(q1_pi_targ, q2_pi_targ)
-            target = rews + discount * \
-                (q_pi_targ - er_coef * logp_pi2) * (~dones)
+            target = rews + discount*(q_pi_targ-er_coef*logp_pi2)*(~dones)
 
-        values = network(obss, actions).squeeze()
-        loss = self.critic_loss(target, values)
-        optimizer.zero_grad()
+        q1 = self.value_network(obss, actions).squeeze()
+        q2 = self.value_network2(obss, actions).squeeze()
+        loss1 = self.critic_loss(target, q1)
+        loss2 = self.critic_loss(target, q2)
+        loss = loss1 + loss2
+        self.value_optimizer.zero_grad()
         loss.backward()
-        if self.solve_options["clip_grad"]:
-            for param in network.parameters():
-                param.grad.data.clamp_(-1, 1)
-        optimizer.step()
-        return loss.detach().cpu().item()
+        self.value_optimizer.step()
+        return loss1.detach().cpu().item(), loss2.detach().cpu().item()
 
     def update_actor(self, tensor_traj):
         er_coef = self.solve_options["er_coef"]
         obss = tensor_traj["obs"]
 
-        raw_pi, logp_pi = self.policy_network(obss, return_raw=True)
-        pi = self.policy_network.squash_action(raw_pi)
-
+        pi, logp_pi = self.policy_network(obss)
         q1_pi = self.value_network(obss, pi).squeeze(-1)
         q2_pi = self.value_network2(obss, pi).squeeze(-1)
         q_pi = torch.min(q1_pi, q2_pi)
 
         # Entropy-regularized policy loss
-        loss = (logp_pi - 1/er_coef*q_pi).mean()
+        loss = (logp_pi - q_pi/er_coef).mean()
 
         self.policy_optimizer.zero_grad()
         loss.backward()
         self.policy_optimizer.step()
-        return loss
+        return loss.detach().cpu().numpy()
+
+    def get_action_gym(self, env):
+        with torch.no_grad():
+            obs = torch.as_tensor(env.obs, dtype=torch.float32, device=self.device)
+            pi, logp_pi = self.policy_network(obs)
+            pi, logp_pi = pi.detach().cpu().numpy(), logp_pi.detach().cpu().numpy()
+            return pi, logp_pi
 
     def set_tb_values_policy(self):
         tensor_all_obss = torch.repeat_interleave(
@@ -113,12 +113,6 @@ class SacSolver(Solver):
             - (2*(np.log(2) - self.all_actions - F.softplus(-2*self.all_actions)))
         policy_probs = torch.softmax(log_policy, dim=-1).reshape(self.dS, self.dA)
         self.record_array("Policy", policy_probs)
-
-    def get_action_gym(self, env):
-        obs = torch.as_tensor(env.obs, dtype=torch.float32, device=self.device)
-        pi, logp_pi = self.policy_network(obs)
-        pi, logp_pi = pi.detach().cpu().numpy(), logp_pi.detach().cpu().numpy()
-        return pi, logp_pi
 
     def record_history(self):
         if self.step % self.solve_options["record_performance_interval"] == 0:

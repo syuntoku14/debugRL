@@ -2,6 +2,7 @@ from copy import deepcopy
 import gym
 import numpy as np
 import torch
+import itertools
 from torch import nn
 import torch.nn.functional as F
 from torch.distributions.normal import Normal
@@ -17,13 +18,12 @@ OPTIONS = {
     "er_coef": 0.2,
     # Fitted iteration settings
     "activation": "relu",
-    "hidden": 128,  # size of hidden layer
-    "depth": 2,  # depth of the network
+    "hidden": 256,  # size of hidden layer
+    "depth": 3,  # depth of the network
     "device": "cuda" if torch.cuda.is_available() else "cpu",
-    "lr": 0.001,
-    "minibatch_size": 32,
+    "lr": 1e-3,
+    "minibatch_size": 100,
     "critic_loss": "mse",  # mse or huber
-    "clip_grad": False,  # clip the gradient if True
     "optimizer": "Adam",
     "buffer_size": 1e6,
     "polyak": 0.995,
@@ -96,17 +96,13 @@ class PolicyNet(nn.Module):
         self.act_limit = act_limit
         self.solve_options = solve_options
 
-    def forward(self, obs, return_raw=False):
+    def forward(self, obs):
         pi_dist = self.compute_pi_distribution(obs)
         pi_action = pi_dist.rsample()
 
         logp_pi = self.compute_logp_pi(pi_dist, pi_action)
-
-        if return_raw:
-            return pi_action, logp_pi
-        else:
-            pi_action = self.squash_action(pi_action)
-            return pi_action, logp_pi
+        pi_action = self.squash_action(pi_action)
+        return pi_action, logp_pi
 
     def squash_action(self, pi_action):
         pi_action = torch.tanh(pi_action)
@@ -115,8 +111,6 @@ class PolicyNet(nn.Module):
 
     def unsquash_action(self, pi_action):
         pi_action = pi_action / self.act_limit
-        # to avoid numerical instability
-        pi_action = pi_action - torch.sign(pi_action) * 1e-5
         pi_action = torch.atanh(pi_action)
         return pi_action
 
@@ -166,16 +160,21 @@ class Solver(Solver):
         # set value network
         self.value_network = ValueNet(
             self.env, self.solve_options).to(self.device)
-        self.value_optimizer = self.optimizer(self.value_network.parameters(),
-                                              lr=self.solve_options["lr"])
-        self.target_value_network = deepcopy(self.value_network)
-
-        # network for double estimation
         self.value_network2 = ValueNet(
             self.env, self.solve_options).to(self.device)
-        self.value_optimizer2 = self.optimizer(self.value_network2.parameters(),
-                                               lr=self.solve_options["lr"])
+        self.target_value_network = deepcopy(self.value_network)
         self.target_value_network2 = deepcopy(self.value_network2)
+
+        # Freeze target networks
+        for p1, p2 in zip(self.target_value_network.parameters(),
+                          self.target_value_network2.parameters()):
+            p1.requires_grad = False
+            p2.requires_grad = False
+
+        self.val_params = itertools.chain(self.value_network.parameters(),
+                                          self.value_network2.parameters())
+        self.value_optimizer = self.optimizer(
+            self.val_params, lr=self.solve_options["lr"])
 
         # actor network
         self.policy_network = PolicyNet(
@@ -193,7 +192,8 @@ class Solver(Solver):
             self.set_tb_values_policy()
         self.buffer = utils.make_replay_buffer(
             self.env, self.solve_options["buffer_size"])
-        trajectory = self.collect_samples(self.solve_options["minibatch_size"])
+        trajectory = self.collect_samples(
+            self.solve_options["minibatch_size"]*10)
         self.buffer.add(**trajectory)
 
     def collect_samples(self, num_samples):
