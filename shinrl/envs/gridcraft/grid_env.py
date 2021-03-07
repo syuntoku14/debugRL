@@ -1,8 +1,8 @@
 import sys
 import numpy as np
-
 from .grid_spec import REWARD, REWARD2, REWARD3, REWARD4, WALL, LAVA, TILES, START, RENDER_DICT
 from shinrl.envs.base import TabularEnv
+from .plotter import plot_values
 
 
 ACT_NOOP = 0
@@ -129,3 +129,7 @@ class GridEnv(TabularEnv):
 
     def observation(self, s):
         return s
+
+    def plot_values(
+            self, values, title=None, ax=None, **kwargs):
+        plot_values(self.gs, values, title=title, ax=ax)

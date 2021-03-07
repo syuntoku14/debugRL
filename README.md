@@ -14,12 +14,14 @@ It allows you to analyze the *shin* (*shin* means oracle in Japanese) behaviors 
 
 #### Implemented environments
 
-|               Environment                |   Dicrete action   | Continuous action  | Image Observation  | Tuple Observation  |
-| :--------------------------------------: | :----------------: | :----------------: | :----------------: | :----------------: |
-|   [GridCraft](shinrl/envs/gridcraft)   | :heavy_check_mark: |        :x:         |        :x:         | :heavy_check_mark: |
-| [MountainCar](shinrl/envs/mountaincar) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-|    [Pendulum](shinrl/envs/pendulum)    | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-|    [CartPole](shinrl/envs/cartpole)    | :heavy_check_mark: | :heavy_check_mark: |        :x:         | :heavy_check_mark: |
+|                   Environment                    |   Dicrete action   | Continuous action  | Image Observation  | Tuple Observation  |
+| :----------------------------------------------: | :----------------: | :----------------: | :----------------: | :----------------: |
+|        [GridCraft](shinrl/envs/gridcraft)        | :heavy_check_mark: |        :x:         |        :x:         | :heavy_check_mark: |
+| [TabularMountainCar-v0](shinrl/envs/mountaincar) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+|    [TabularPendulum-v0](shinrl/envs/pendulum)    | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+|    [TabularCartPole-v0](shinrl/envs/cartpole)    | :heavy_check_mark: | :heavy_check_mark: |        :x:         | :heavy_check_mark: |
+
+See [shinrl/\_\_init\_\_.py](shinrl/__init__.py) for the available environments.
 
 ### :fire: Practical MDP solvers
 * `ShinRL` provides algorithms to solve the OpenAI-Gym environments as `Solver`.
@@ -27,20 +29,22 @@ It allows you to analyze the *shin* (*shin* means oracle in Japanese) behaviors 
 * Some solvers support the regular Gym environments as well as `TabularEnv`.
 * Easy to visualize the training progress with [clearML](https://github.com/allegroai/clearml).
 
-#### Implemented solvers
+#### Implemented algorithms
 
-|                                      Solver                                      | Sample approximation | Function approximation | Continuous Action  |                                                  Algorithm                                                  |
-| :------------------------------------------------------------------------------: | :------------------: | :--------------------: | :----------------: | :---------------------------------------------------------------------------------------------------------: |
-|          [OracleViSolver, OracleCviSolver](shinrl/solvers/oracle_vi)           |         :x:          |          :x:           |        :x:         |      Q-learning, [Conservative Value Iteration (CVI)](http://proceedings.mlr.press/v89/kozuno19a.html)      |
-|     [ExactFittedViSolver, ExactFittedCviSolver](shinrl/solvers/exact_fvi)      |         :x:          |   :heavy_check_mark:   |        :x:         |                                        Fitted Q-learning, Fitted CVI                                        |
-|       [SamplingViSolver, SamplingCviSolver](shinrl/solvers/sampling_vi)        |  :heavy_check_mark:  |          :x:           |        :x:         |                                               Q-learning, CVI                                               |
-| [SamplingFittedViSolver, SamplingFittedCviSolver](shinrl/solvers/sampling_fvi) |  :heavy_check_mark:  |   :heavy_check_mark:   |        :x:         | Fitted Q-learning ([DQN](https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf)), Fitted CVI |
-|                    [ExactPgSolver](shinrl/solvers/exact_pg)                    |         :x:          |   :heavy_check_mark:   |        :x:         |                                               Policy gradient                                               |
-|                 [SamplingPgSolver](shinrl/solvers/sampling_pg)                 |         :x:          |   :heavy_check_mark:   |        :x:         |                                      Policy gradient (REINFORCE, A2C)                                       |
-|                        [IpgSolver](shinrl/solvers/ipg)                         |         :x:          |   :heavy_check_mark:   |        :x:         |                      [Interpolated policy gradient](https://arxiv.org/abs/1706.00387)                       |
-|                        [SacSolver](shinrl/solvers/sac)                         |  :heavy_check_mark:  |   :heavy_check_mark:   |        :x:         |                       [Discrete Soft Actor Critic](https://arxiv.org/abs/1910.07207)                        |
-|              [SacContinuousSolver](shinrl/solvers/sac_continuous)              |  :heavy_check_mark:  |   :heavy_check_mark:   | :heavy_check_mark: |                            [Soft Actor Critic](https://arxiv.org/abs/1801.01290)                            |
-|                        [PpoSolver](shinrl/solvers/ppo)                         |  :heavy_check_mark:  |   :heavy_check_mark:   |        :x:         |                 [Proximal Policy Optimization Algorithms](https://arxiv.org/abs/1707.06347)                 |
+|                                          Algorithms                                           |                 Discrete Control                  |                 Continuous Control                  |                                                    Solvers                                                     |
+| :-------------------------------------------------------------------------------------------: | :-----------------------------------------------: | :-------------------------------------------------: | :------------------------------------------------------------------------------------------------------------: |
+| Value Iteration ([DQN](https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf)) | [:heavy_check_mark:](shinrl/solvers/vi/discrete)  |                         :x:                         | <sup id="a1">[1](#f1)</sup>OracleViSolver<br>SamplingViSolver<br>ExactFittedViSolver<br>SamplingFittedViSolver |
+|        [Conservative Value Iteration](http://proceedings.mlr.press/v89/kozuno19a.html)        | [:heavy_check_mark:](shinrl/solvers/vi/discrete)  |                         :x:                         |            OracleCviSolver<br>SamplingCviSolver<br>ExactFittedCviSolver<br>SamplingFittedCviSolver             |
+|                               Policy Gradient (REINFORCE, A2C)                                | [:heavy_check_mark:](shinrl/solvers/pg/discrete)  |                         :x:                         |                                       ExactPgSolver<br>SamplingPgSolver                                        |
+|               [Interpolated Policy Gradient](https://arxiv.org/abs/1706.00387)                | [:heavy_check_mark:](shinrl/solvers/ipg/discrete) |                         :x:                         |                                                   IpgSolver                                                    |
+|                 [Proximal Policy Gradient](https://arxiv.org/abs/1707.06347)                  | [:heavy_check_mark:](shinrl/solvers/ppo/discrete) |                         :x:                         |                                                   PpoSolver                                                    |
+|                      [Soft Actor-Critic](shinrl/solvers/sac_continuous)                       | [:heavy_check_mark:](shinrl/solvers/sac/discrete) | [:heavy_check_mark:](shinrl/solvers/sac/continuous) |                                                   SacSolver                                                    |
+
+<b id="f1">1</b> The naming rule follows [Diagnosing Bottlenecks in Deep Q-learning Algorithms](https://arxiv.org/abs/1902.10250): 
+* *Oracle-* solvers don't contain any errors. 
+* *Sampling-* solvers use data sampled from MDP.
+* *Exact Fitted-* solvers use function approximation but don't use sampled data.
+* *Sampling Fitted-* solvers use both function approximation and sampled data. [↩](#a1)
 
 # Getting started
 
@@ -72,7 +76,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import special
-from shinrl.envs.pendulum import Pendulum, plot_pendulum_values, reshape_values
+from shinrl.envs.pendulum import Pendulum, plot_values, reshape_values
 from shinrl.solvers import SacSolver
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -102,13 +106,13 @@ V_min = min(oracle_Q.min(), trained_Q.min())
 oracle_V = np.sum(policy*oracle_Q, axis=-1)
 oracle_V = reshape_values(env, oracle_V)  # angles x velocities
 print("Press Q on the image to go next.")
-plot_pendulum_values(env, oracle_V, vmin=V_min,
+plot_values(env, oracle_V, vmin=V_min,
                      vmax=V_max, title="Oracle State values: t=0")
 plt.show()
 
 trained_V = np.sum(policy*trained_Q, axis=-1)
 trained_V = reshape_values(env, trained_V)  # angles x velocities
-plot_pendulum_values(env, trained_V, vmin=V_min,
+plot_values(env, trained_V, vmin=V_min,
                      vmax=V_max, title="Trained State values: t=0")
 plt.show()
 ```

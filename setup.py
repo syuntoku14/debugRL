@@ -28,7 +28,8 @@ setup(
         "clearml",
         "clearml-agent",
         "torch",
-        "torchvision"
+        "torchvision",
+        "celluloid"
  
     ],
 )

@@ -95,7 +95,7 @@ class TabularQValuePlotter(object):
         plt.show()
 
 
-def plot_grid_values(gs, q_values, title=None, ax=None):
+def plot_values(gs, q_values, title=None, ax=None):
     import itertools
     plotter = TabularQValuePlotter(gs.width, gs.height, text_values=True)
     for i, (x, y, a) in enumerate(itertools.product(range(gs.width), range(gs.height), range(5))):

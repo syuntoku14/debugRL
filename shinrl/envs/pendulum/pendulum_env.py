@@ -1,6 +1,9 @@
 import numpy as np
 import gym
 import cv2
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
 from shinrl.envs.base import TabularEnv
 
 
@@ -160,3 +163,38 @@ class Pendulum(TabularEnv):
 
     def close(self):
         self.render_env.close()
+
+    def plot_values(
+            self, values, title=None, ax=None, cbar_ax=None,
+            vmin=None, vmax=None):
+        # values: dS x dA
+
+        # reshape the values(one-dimensional array) into state_disc x state_disc
+        reshaped_values = np.empty((self.state_disc, self.state_disc))
+        reshaped_values[:] = np.nan
+        for s in range(len(values)):
+            th, thv = self.th_thv_from_state_id(s)
+            th, thv = self.disc_th_thv(th, thv)
+            reshaped_values[th, thv] = values[s]
+
+        if ax is None:
+            fig, ax = plt.subplots(nrows=1, ncols=1,
+                                figsize=(8, 6))
+        vmin = reshaped_values.min() if vmin is None else vmin
+        vmax = reshaped_values.max() if vmax is None else vmax
+
+        th_ticks, thv_ticks = [], []
+        for i in range(self.state_disc):
+            th, thv = self.undisc_th_thv(i, i)
+            th_ticks.append(round(th, 3))
+            thv_ticks.append(round(thv, 3))
+
+        data = pd.DataFrame(
+            reshaped_values, index=th_ticks,
+            columns=thv_ticks)
+        data = data.ffill(downcast='infer', axis=0)
+        data = data.ffill(downcast='infer', axis=1)
+        sns.heatmap(data, ax=ax, cbar=True, cbar_ax=cbar_ax, vmin=vmin, vmax=vmax)
+        ax.set_title(title)
+        ax.set_ylabel(r"$\theta$")
+        ax.set_xlabel(r"$\dot{\theta}$")

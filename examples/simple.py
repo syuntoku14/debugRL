@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import special
-from shinrl.envs.pendulum import Pendulum, plot_pendulum_values, reshape_values
+from shinrl.envs.pendulum import Pendulum, plot_values, reshape_values
 from shinrl.solvers import SacSolver
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -34,12 +34,12 @@ V_min = min(oracle_Q.min(), trained_Q.min())
 oracle_V = np.sum(policy*oracle_Q, axis=-1)
 oracle_V = reshape_values(env, oracle_V)  # angles x velocities
 print("Press Q on the image to go next.")
-plot_pendulum_values(env, oracle_V, vmin=V_min,
+plot_values(env, oracle_V, vmin=V_min,
                     vmax=V_max, title="Oracle State values: t=0")
 plt.show()
 
 trained_V = np.sum(policy*trained_Q, axis=-1)
 trained_V = reshape_values(env, trained_V)  # angles x velocities
-plot_pendulum_values(env, trained_V, vmin=V_min,
+plot_values(env, trained_V, vmin=V_min,
                     vmax=V_max, title="Trained State values: t=0")
 plt.show()

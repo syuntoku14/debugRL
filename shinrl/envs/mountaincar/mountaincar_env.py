@@ -1,6 +1,9 @@
 import numpy as np
 import gym
 import cv2
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
 from shinrl.envs.base import TabularEnv
 
 
@@ -151,3 +154,38 @@ class MountainCar(TabularEnv):
 
     def close(self):
         self.render_env.close()
+
+    def plot_values(
+            self, values, title=None, ax=None, cbar_ax=None,
+            vmin=None, vmax=None):
+        # values: dS x dA
+
+        # reshape the values(one-dimensional array) into state_disc x state_disc
+        reshaped_values = np.empty((self.state_disc, self.state_disc))
+        reshaped_values[:] = np.nan
+        for s in range(len(values)):
+            pos, vel = self.pos_vel_from_state_id(s)
+            pos, vel = self.disc_pos_vel(pos, vel)
+            reshaped_values[pos, vel] = values[s]
+
+        if ax is None:
+            fig, ax = plt.subplots(nrows=1, ncols=1,
+                                figsize=(8, 6))
+        vmin = reshaped_values.min() if vmin is None else vmin
+        vmax = reshaped_values.max() if vmax is None else vmax
+
+        pos_ticks, vel_ticks = [], []
+        for i in range(self.state_disc):
+            pos, vel = self.undisc_pos_vel(i, i)
+            pos_ticks.append(round(pos, 3))
+            vel_ticks.append(round(vel, 3))
+
+        data = pd.DataFrame(
+            reshaped_values, index=pos_ticks,
+            columns=vel_ticks)
+        data = data.ffill(downcast='infer', axis=0)
+        data = data.ffill(downcast='infer', axis=1)
+        sns.heatmap(data, ax=ax, cbar=True, cbar_ax=cbar_ax, vmin=vmin, vmax=vmax)
+        ax.set_title(title)
+        ax.set_ylabel(r"$x$")
+        ax.set_xlabel(r"$\dot{x}$")
