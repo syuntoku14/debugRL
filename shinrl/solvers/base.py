@@ -121,19 +121,21 @@ class Solver(ABC):
             self.history[title]["x"] = [self.step, ]
             self.history[title]["y"] = [array.astype(np.float32), ]
 
-    def save(self, path):
-        data = {
+    def save(self, path, data={}):
+        data.update({
             "env_name": str(self.env),
             "history": dict(self.history),
-            "options": self.solve_options
-        }
+            "options": self.solve_options,
+            "step": self.step
+        })
         torch.save(data, path)
 
-    def load(self, path):
-        data = torch.load(path)
-        self.init_history()
-        self.history.update(data["history"])
+    def load(self, path, device="cpu"):
+        data = torch.load(path, map_location=device)
         self.initialize(data["options"])
+        self.history.update(data["history"])
+        self.step = data["step"]
+        return data
 
     def print_options(self):
         print("{} solve_options:".format(type(self).__name__))

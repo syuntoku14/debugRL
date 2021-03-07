@@ -93,11 +93,12 @@ class SacSolver(Solver):
         return loss.detach().cpu().numpy()
 
     def get_action_gym(self, env):
+        if self.buffer.get_stored_size() < self.solve_options["num_random_samples"]:
+            return self.env.action_space.sample(), 0.0
         with torch.no_grad():
             obs = torch.as_tensor(env.obs, dtype=torch.float32, device=self.device)
             pi, logp_pi = self.policy_network(obs)
-            pi, logp_pi = pi.detach().cpu().numpy(), logp_pi.detach().cpu().numpy()
-            return pi, logp_pi
+            return pi.detach().cpu().numpy(), logp_pi.detach().cpu().numpy()
 
     def set_tb_values_policy(self):
         tensor_all_obss = torch.repeat_interleave(

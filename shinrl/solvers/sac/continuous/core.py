@@ -11,7 +11,7 @@ from shinrl import utils
 
 
 OPTIONS = {
-    "num_samples": 4,
+    "num_samples": 1,
     "log_std_max": 2,
     "log_std_min": -20,
     # CVI settings
@@ -19,7 +19,7 @@ OPTIONS = {
     # Fitted iteration settings
     "activation": "relu",
     "hidden": 256,  # size of hidden layer
-    "depth": 3,  # depth of the network
+    "depth": 2,  # depth of the network
     "device": "cuda" if torch.cuda.is_available() else "cpu",
     "lr": 1e-3,
     "minibatch_size": 100,
@@ -27,6 +27,7 @@ OPTIONS = {
     "optimizer": "Adam",
     "buffer_size": 1e6,
     "polyak": 0.995,
+    "num_random_samples": 10000
 }
 
 
@@ -109,11 +110,6 @@ class PolicyNet(nn.Module):
         pi_action = self.act_limit * pi_action
         return pi_action
 
-    def unsquash_action(self, pi_action):
-        pi_action = pi_action / self.act_limit
-        pi_action = torch.atanh(pi_action)
-        return pi_action
-
     def compute_pi_distribution(self, obss):
         if self.conv is not None:
             x = self.conv(obss)
@@ -131,8 +127,7 @@ class PolicyNet(nn.Module):
 
     def compute_logp_pi(self, pi_dist, pi_action):
         logp_pi = pi_dist.log_prob(pi_action).sum(axis=-1)
-        logp_pi -= (2*(np.log(2) - pi_action -
-                       F.softplus(-2*pi_action))).sum(axis=-1)
+        logp_pi -= (2*(np.log(2) - pi_action - F.softplus(-2*pi_action))).sum(axis=-1)
         return logp_pi
 
 
@@ -199,8 +194,34 @@ class Solver(Solver):
     def collect_samples(self, num_samples):
         if self.is_tabular:
             return utils.collect_samples(
-                self.env, utils.get_tb_action, self.solve_options["num_samples"],
+                self.env, utils.get_tb_action, num_samples,
                 policy=self.tb_policy)
         else:
             return utils.collect_samples(
-                self.env, self.get_action_gym, self.solve_options["num_samples"])
+                self.env, self.get_action_gym, num_samples)
+
+    def save(self, path):
+        data = {
+            "vnet1": self.value_network.state_dict(),
+            "vnet2": self.value_network2.state_dict(),
+            "valopt": self.value_optimizer.state_dict(),
+            "targ_vnet1": self.target_value_network.state_dict(),
+            "targ_vnet2": self.target_value_network2.state_dict(),
+            "polnet": self.policy_network.state_dict(),
+            "polopt": self.policy_optimizer.state_dict(),
+            "buf_data": self.buffer.get_all_transitions()
+        }
+        super().save(path, data)
+
+    def load(self, path):
+        data = super().load(path, device=self.device)
+        self.value_network.load_state_dict(data["vnet1"])
+        self.value_network2.load_state_dict(data["vnet2"])
+        self.value_optimizer.load_state_dict(data["valopt"])
+        self.target_value_network.load_state_dict(data["targ_vnet1"])
+        self.target_value_network2.load_state_dict(data["targ_vnet2"])
+        self.policy_network.load_state_dict(data["polnet"])
+        self.policy_optimizer.load_state_dict(data["polopt"])
+        self.buffer = utils.make_replay_buffer(
+            self.env, self.solve_options["buffer_size"])
+        self.buffer.add(**data["buf_data"])

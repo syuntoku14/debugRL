@@ -17,7 +17,8 @@ def main():
     parser.add_argument('--env', type=str, default="HalfCheetah-v2")
     parser.add_argument('--exp_name', type=str, default=None)
     parser.add_argument('--task_name', type=str, default=None)
-    parser.add_argument('--epochs', type=int, default=5)
+    parser.add_argument('--epochs', type=int, default=300)
+    parser.add_argument('--load_path', type=str, default=None)
 
     # For arbitrary options, e.g. --device cpu --seed 0
     parsed, unknown = parser.parse_known_args()
@@ -28,7 +29,7 @@ def main():
 
     options = {"record_performance_interval": 5000}
     for key, val in vars(args).items():
-        if key not in ["solver", "env", "exp_name", "task_name", "epochs"]:
+        if key not in ["solver", "env", "exp_name", "task_name", "epochs", "load_path"]:
             options[key] = to_numeric(val)
 
     project_name = args.env if args.exp_name is None else args.exp_name
@@ -40,6 +41,9 @@ def main():
     # Construct solver
     env = gym.make(args.env)
     solver = CONTINUOUS_SOLVERS[args.solver](env, logger=logger, solve_options=options)
+    if args.load_path is not None:
+        solver.load(args.load_path)
+        print("Load from {}".format(args.load_path))
     task_params = task.connect(solver.solve_options)
     solver_name = solver.__class__.__name__
     print(solver_name, "starts...")
