@@ -17,7 +17,7 @@ def main():
     parser.add_argument('--env', type=str, default="HalfCheetah-v2")
     parser.add_argument('--exp_name', type=str, default=None)
     parser.add_argument('--task_name', type=str, default=None)
-    parser.add_argument('--epochs', type=int, default=300)
+    parser.add_argument('--epochs', type=int, default=40)
     parser.add_argument('--load_path', type=str, default=None)
 
     # For arbitrary options, e.g. --device cpu --seed 0
@@ -50,12 +50,13 @@ def main():
 
     # Run solver
     for epoch in range(args.epochs):
-        solver.run(num_steps=10000)
+        solver.run(num_steps=50000)
 
-    dir_name = os.path.join("results", project_name, task_name)
-    if not os.path.exists(dir_name):
-        os.makedirs(dir_name)
-    solver.save(os.path.join(dir_name, str(solver.solve_options["seed"])))
+        # save solver
+        dir_name = os.path.join("results", project_name, task_name)
+        if not os.path.exists(dir_name):
+            os.makedirs(dir_name)
+        solver.save(os.path.join(dir_name, str(solver.solve_options["seed"])))
 
 
 if __name__ == "__main__":
