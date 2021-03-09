@@ -29,7 +29,7 @@ RENDER_DICT[EMPTY] = ' '
 RENDER_DICT[START] = ' '
 
 
-def spec_from_string(s, valmap=STR_MAP):
+def grid_spec_from_string(s, valmap=STR_MAP):
     if s.endswith('\\'):
         s = s[:-1]
     rows = s.split('\\')
@@ -44,11 +44,11 @@ def spec_from_string(s, valmap=STR_MAP):
     return gs
 
 
-def spec_from_sparse_locations(w, h, tile_to_locs):
+def grid_spec_from_sparse_locations(w, h, tile_to_locs):
     """
 
     Example usage:
-    >> spec_from_sparse_locations(10, 10, {START: [(0,0)], REWARD: [(7,8), (8,8)]})
+    >> grid_spec_from_sparse_locations(10, 10, {START: [(0,0)], REWARD: [(7,8), (8,8)]})
 
     """
     gs = GridSpec(w, h)
@@ -74,7 +74,7 @@ def local_spec(map, xpnt):
         'x': X,
         'O': O
     }
-    gs = spec_from_string(map, valmap=valmap)
+    gs = grid_spec_from_string(map, valmap=valmap)
     ys = gs.find(Y)
     x = gs.find(X)
     result = ys-x + np.array(xpnt)

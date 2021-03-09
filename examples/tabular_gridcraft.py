@@ -4,8 +4,7 @@ os.environ["NUMEXPR_NUM_THREADS"] = "1"  # NOQA
 os.environ["OMP_NUM_THREADS"] = "1"  # NOQA
 import numpy as np
 import argparse
-from shinrl.envs.gridcraft import (
-    GridEnv, OneHotObsWrapper, spec_from_string)
+from shinrl.envs.gridcraft import (GridEnv, grid_spec_from_string)
 from shinrl.solvers import *
 import matplotlib.pyplot as plt
 import matplotlib
@@ -43,12 +42,11 @@ def main():
     logger = task.get_logger()
 
     # Construct the environment
-    maze = spec_from_string("SOOO\\" +
+    maze = grid_spec_from_string("SOOO\\" +
                             "OLLL\\" +
                             "OOOO\\" +
                             "OLRO\\")
-    env = GridEnv(maze, trans_eps=0.1, horizon=20)
-    env = OneHotObsWrapper(env)
+    env = GridEnv(maze, trans_eps=0.1, horizon=20, obs_mode="onehot")
 
     # solve tabular MDP
     solver_cls = DISCRETE_SOLVERS[args.solver]

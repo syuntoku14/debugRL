@@ -7,7 +7,6 @@ It allows you to analyze the *shin* (*shin* means oracle in Japanese) behaviors 
 
 ```python
 import gym
-import numpy as np
 from shinrl.solvers.sac.discrete import SacSolver
 
 env = gym.make("TabularPendulum-v0")

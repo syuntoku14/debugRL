@@ -1,5 +1,6 @@
 import sys
 import numpy as np
+from gym.spaces import Box
 from .grid_spec import REWARD, REWARD2, REWARD3, REWARD4, WALL, LAVA, TILES, START, RENDER_DICT
 from shinrl.envs import TabularEnv
 from .plotter import plot_values
@@ -69,17 +70,52 @@ class RewardFunction(object):
         return self.default
 
 
+def flat_to_one_hot(val, ndim):
+    """
+
+    >>> flat_to_one_hot(2, ndim=4)
+    array([ 0.,  0.,  1.,  0.])
+    >>> flat_to_one_hot(4, ndim=5)
+    array([ 0.,  0.,  0.,  0.,  1.])
+    >>> flat_to_one_hot(np.array([2, 4, 3]), ndim=5)
+    array([[ 0.,  0.,  1.,  0.,  0.],
+           [ 0.,  0.,  0.,  0.,  1.],
+           [ 0.,  0.,  0.,  1.,  0.]])
+    """
+    shape = np.array(val).shape
+    v = np.zeros(shape + (ndim,))
+    if len(shape) == 1:
+        v[np.arange(shape[0]), val] = 1.0
+    else:
+        v[val] = 1.0
+    return v
+
+
 class GridEnv(TabularEnv):
     def __init__(self, gridspec,
                  horizon=20,
                  tiles=TILES,
                  trans_eps=0.0,
-                 default_rew=0):
+                 default_rew=0,
+                 obs_dim=5,
+                 obs_mode="onehot"):
         self.gs = gridspec
         self.model = TransitionModel(gridspec, eps=trans_eps)
         self.rew_fn = RewardFunction(default=default_rew)
         self.possible_tiles = tiles
         self.action_mode = "discrete"
+
+        if obs_mode == "onehot":
+            self.observation_space = Box(
+                0, 1, (self.gs.width+self.gs.height, ))
+        elif obs_mode == "random":
+            self.obs_dim = obs_dim
+            self.obs_matrix = np.random.randn(len(self.gs), self.obs_dim)
+            self.observation_space = Box(np.min(self.obs_matrix), np.max(self.obs_matrix),
+                                         shape=(self.obs_dim, ), dtype=np.float32)
+        else:
+            raise ValueError("Invalid obs_mode: {}".format(obs_mode))
+        self.obs_mode = obs_mode
 
         # compute initial_state_distribution
         start_idxs = np.array(np.where(self.gs.spec == START)).T
@@ -128,7 +164,14 @@ class GridEnv(TabularEnv):
         ostream.write('-' * (self.gs.width + 2)+'\n')
 
     def observation(self, s):
-        return s
+        if self.obs_mode == "onehot":
+            xy = self.gs.idx_to_xy(s)
+            x = flat_to_one_hot(xy[0], self.gs.width)
+            y = flat_to_one_hot(xy[1], self.gs.height)
+            obs = np.hstack([x, y])
+            return obs
+        else:
+            return self.obs_matrix[s]
 
     def plot_values(
             self, values, title=None, ax=None, **kwargs):

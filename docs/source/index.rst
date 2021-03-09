@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 ShinRL: A python library for analyzing reinforcement learning
-==================================
+====================================================================
 
 .. toctree::
    :maxdepth: 2

@@ -8,7 +8,6 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from scipy import sparse
 from shinrl.envs import TabularEnv
-from shinrl.envs.gridcraft import OneHotObsWrapper, RandomObsWrapper
 from copy import deepcopy
 
 
@@ -36,8 +35,7 @@ class Solver(ABC):
         self.logger = logger
 
         # env parameters
-        self.is_tabular = isinstance(
-            env, (TabularEnv, OneHotObsWrapper, RandomObsWrapper))
+        self.is_tabular = isinstance(env, TabularEnv)
         if self.is_tabular:
             self.dS, self.dA, self.horizon = env.dS, env.dA, env.horizon
         self.env = env
