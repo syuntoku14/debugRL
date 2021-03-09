@@ -6,6 +6,14 @@ from shinrl.utils import lazy_property
 
 
 class TabularEnv(gym.Env):
+    """ Environment with matrix-form dynamics.
+
+    Args:
+        dS (int): Number of states
+        dA (int): Number of actions
+        initial_state_distribution (dict): Dictionary of state distribution represented as {state: probability}
+        horizon (int): Horizon of the environment.
+    """
     def __init__(self,
                  dS,
                  dA,
@@ -33,13 +41,13 @@ class TabularEnv(gym.Env):
         """Simulates the environment by one timestep.
 
         Args:
-          action: Action to take
+          action (int): Action to take
 
         Returns:
-          observation: Next observation
-          reward: Reward incurred by agent
-          done: A boolean indicating the end of an episode
-          info: A debug info dictionary.
+          observation (object): Next observation
+          reward (float): Reward incurred by agent
+          done (bool): A boolean indicating the end of an episode
+          info (dict): A debug info dictionary.
         """
         transitions = self.transitions(self._state, action)
         next_state = self.sample_int(transitions)
@@ -73,8 +81,8 @@ class TabularEnv(gym.Env):
         """Computes transition probabilities p(ns|s,a).
 
         Args:
-          state:
-          action:
+          state (int): State id
+          action (int): Action to take
 
         Returns:
           A python dict from {next state: probability}.
@@ -86,11 +94,11 @@ class TabularEnv(gym.Env):
         """Return the reward
 
         Args:
-          state:
-          action:
+          state (int): State id
+          action (int): Action to take
 
         Returns:
-          float: reward
+          reward (float)
         """
 
     @abstractmethod
@@ -98,7 +106,7 @@ class TabularEnv(gym.Env):
         """Computes observation for a given state.
 
         Args:
-          state:
+          state (int): State id
 
         Returns:
           observation: Agent's observation of state, conforming with observation_space
@@ -118,7 +126,7 @@ class TabularEnv(gym.Env):
     def all_observations(self):
         """
         Returns:
-            S x obs_dim matrix: Observations of the all states.
+            Observations of all the states (ndarray with dS x obs_dim shape) 
         """
         obss = []
         for s in range(self.dS):
@@ -131,7 +139,7 @@ class TabularEnv(gym.Env):
     def all_actions(self):
         """
         Returns:
-            A x 1 vector
+            All the actions (ndarray with dA x 1 shape)
         """
         acts = []
         for a in range(self.dA):
@@ -194,13 +202,17 @@ class TabularEnv(gym.Env):
     def compute_action_values(self, policy, discount=0.99, base_policy=None,
                               er_coef=None, kl_coef=None):
         """
-        Compute action values of given policy.
+        Compute the oracle action values of the policy.
+
         Args:
-            policy, base_policy: SxA matrix
-            er_coef: entropy regularization coefficient
-            kl_coef: KL regularization coefficient
+            policy (ndarray): dS x dA policy matrix.
+            base_policy (ndarray): dS x dA policy matrix.
+            discount (float): discount factor
+            er_coef (float): entropy regularization coefficient
+            kl_coef (float): KL regularization coefficient
+
         Returns:
-            Q values: SxA matrix
+            values: dS x dA ndarray
         """
 
         values = np.zeros((self.dS, self.dA))  # SxA
@@ -230,9 +242,10 @@ class TabularEnv(gym.Env):
     def compute_visitation(self, policy, discount=1.0):
         """
         Compute state and action frequency on the given policy
+
         Args:
-            policy: SxA matrix
-            discount (float): discount factor.
+            policy (ndarray): dS x dA policy matrix.
+            discount (float): discount factor
 
         Returns:
             visitation: TxSxA matrix
@@ -260,7 +273,7 @@ class TabularEnv(gym.Env):
         Compute expected return of the given policy
 
         Args:
-            policy: SxA matrix
+            policy (ndarray): dS x dA policy matrix.
 
         Returns:
             expected_return (float)

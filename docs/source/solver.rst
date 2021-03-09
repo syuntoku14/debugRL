@@ -2,14 +2,14 @@ shinrl.solvers
 =================
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 1
 
-   solvers.ipg
-   solvers.pg
-   solvers.ppo
-   solvers.sac
-   solvers.vi
+   solvers/ipg
+   solvers/pg
+   solvers/ppo
+   solvers/sac
+   solvers/vi
 
-.. automodule:: shinrl.solvers
-    :members:
-
+.. autoclass:: shinrl.solvers.Solver
+   :members: 
+   :undoc-members:

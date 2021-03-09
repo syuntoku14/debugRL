@@ -22,14 +22,13 @@ DEFAULT_OPTIONS = {
 
 
 class Solver(ABC):
+    """
+    Args:
+        env (gym.Env)
+        solve_options (dict): Hyperparameters for the algorithm, e.g. discount_factor.
+        logger (Trains.Logger): logger for ClearML
+    """
     def __init__(self, env, solve_options={}, logger=None):
-        """
-        Solver for a finite horizon MDP.
-        Args:
-            env (TabularEnv)
-            solve_options (dict): Parameters for the algorithm, e.g. discount_factor.
-            logger (Trains.Logger): logger for Trains
-        """
         # solver options
         self.solve_options = DEFAULT_OPTIONS
         self.logger = logger
@@ -43,7 +42,8 @@ class Solver(ABC):
 
     def initialize(self, options={}):
         """
-        Update self.solve_options with options.
+        Initialize the solver with the given options. 
+        Reset the env and history.
         """
         options = deepcopy(options)
         for key in options.keys():
@@ -61,7 +61,8 @@ class Solver(ABC):
             else:
                 done = False
                 while not done:
-                    _, _, done, _ = self.env.step(self.env.action_space.sample())
+                    _, _, done, _ = self.env.step(
+                        self.env.action_space.sample())
                 self.env.obs = self.env.reset()
         else:
             self.env.obs = self.env.reset()
@@ -73,10 +74,10 @@ class Solver(ABC):
 
     @abstractmethod
     def run(self, num_steps=1000):
-        """
-        Run algorithm to solve a MDP.
-            - num_trains: Number of iterations
-            - restart: Reset the solver and run again if True
+        """ Run the algorithm with the given environment.
+
+        Args:
+            num_steps (int): Number of iterations.
         """
 
     @property
@@ -104,7 +105,7 @@ class Solver(ABC):
     def record_scalar(self, title, y, tag=None):
         """
         Record a scalar y to self.history. 
-        Report to trains also if self.logger is set.
+        Report to clearML if self.logger is set.
         """
         if isinstance(y, torch.Tensor):
             y = y.detach().cpu().item()

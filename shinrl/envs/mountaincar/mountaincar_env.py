@@ -8,13 +8,13 @@ from shinrl.envs import TabularEnv
 
 
 class MountainCar(TabularEnv):
-    """ 
-    Dynamics and reward are based on OpenAI gym's implementation of MountainCar-v0
-    obs_mode:
-        - tuple: Return tuple of (pos, vel)
-        - image: Return simple image of mountaincar
-    """
+    """ Dynamics and reward are based on OpenAI gym's implementation of MountainCar-v0
 
+    Args:
+        state_disc (int, optional): Resolution of :math:`x` and :math:`\\dot{x}`.
+        action_mode (str): Specify the type of action. "discrete" or "continuous".
+        obs_mode (str): Specify the type of observation. "tuple" or "image".
+    """
     def __init__(self, state_disc=32, init_dist=None,
                  horizon=200, dA=3,
                  action_mode="discrete", obs_mode="tuple"):

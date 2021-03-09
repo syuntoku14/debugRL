@@ -10,6 +10,7 @@ ShinRL: A python library for analyzing reinforcement learning
    :maxdepth: 2
    :caption: Contents:
 
+   benchmark
    modules
 
 

@@ -92,6 +92,14 @@ def flat_to_one_hot(val, ndim):
 
 
 class GridEnv(TabularEnv):
+    """
+    Args:
+        gridspec (shinrl.envs.gridcraft.grid_spec.GridSpec)
+        trans_eps (float, optional): Randomness of the transitions
+        default_rew (int, optional): Default reward
+        obs_dim (int, optional): Dimension of the observation when obs_mode=="random"
+        obs_mode (str, optional): Type of observation. "onehot" or "random". 
+    """
     def __init__(self, gridspec,
                  horizon=20,
                  tiles=TILES,

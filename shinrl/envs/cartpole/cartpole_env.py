@@ -5,20 +5,20 @@ from shinrl.envs import TabularEnv
 
 
 class CartPole(TabularEnv):
-    """
-    Dynamics and reward are based on OpenAI gym's implementation of CartPole-v0
-    action_mode:
-        - "discrete" or "continuous"
-    obs_mode:
-        - tuple: Return tuple of (cos(theta), sin(theta), vel)
-        - image: Return simple image of pendulum
-    """
+    """ Dynamics and reward are based on OpenAI gym's implementation of CartPole-v0
 
+    Args:
+        x_disc (int, optional): Resolution of :math:`x`.
+        x_dot_disc (int, optional): Resolution of :math:`\\dot{x}`.
+        th_disc (int, optional): Resolution of :math:`\\theta`.
+        th_dot_disc (int, optional): Resolution of :math:`\\dot{\\theta}`.
+        action_mode (str): Specify the type of action. "discrete" or "continuous".
+        obs_mode (str): Specify the type of observation. "tuple" or "image".
+    """
     def __init__(self, x_disc=128, x_dot_disc=4,
                  th_disc=64, th_dot_disc=4, dA=5,
                  init_dist=None, horizon=100,
                  action_mode="discrete", obs_mode="tuple"):
-
         # env parameters
         self.x_disc = x_disc
         self.x_dot_disc = x_dot_disc

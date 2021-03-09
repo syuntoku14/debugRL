@@ -8,11 +8,12 @@ from shinrl.envs import TabularEnv
 
 
 class Pendulum(TabularEnv):
-    """
-    Dynamics and reward are based on OpenAI gym's implementation of Pendulum-v0
-    obs_mode:
-        - tuple: Return tuple of (cos(theta), sin(theta), vel)
-        - image: Return simple image of pendulum
+    """ Dynamics and reward are based on OpenAI gym's implementation of Pendulum-v0
+
+    Args:
+        state_disc (int, optional): Resolution of :math:`\\theta` and :math:`\\dot{\\theta}`.
+        action_mode (str): Specify the type of action. "discrete" or "continuous".
+        obs_mode (str): Specify the type of observation. "tuple" or "image".
     """
 
     def __init__(self,
