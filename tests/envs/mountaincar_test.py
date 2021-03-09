@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from shinrl.envs.mountaincar import MountainCar
+from shinrl.envs import MountainCar
 
 
 def test_mountaincar_env():

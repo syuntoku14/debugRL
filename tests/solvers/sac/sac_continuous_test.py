@@ -2,7 +2,7 @@ import pytest
 import gym
 import numpy as np
 import pybullet_envs
-from shinrl.envs.pendulum import Pendulum
+from shinrl.envs import Pendulum
 from shinrl.solvers.sac.continuous import SacSolver
 from ..misc import run_solver_tb, run_solver_gym
 import torch

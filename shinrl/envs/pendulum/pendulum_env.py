@@ -4,7 +4,7 @@ import cv2
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
-from shinrl.envs.base import TabularEnv
+from shinrl.envs import TabularEnv
 
 
 class Pendulum(TabularEnv):

@@ -110,7 +110,7 @@ def trajectory_to_tensor(trajectory, device="cpu", is_discrete=True):
 def collect_samples(env, get_action, num_samples=None, num_episodes=None, render=False, **kwargs):
     """
     Args:
-        env (gym.Env or shinrl.envs.base.TabularEnv)
+        env (gym.Env or shinrl.envs.TabularEnv)
         get_action (function): take env and return action and log_prob
         num_samples (int): Number of samples to collect
         num_episodes (int): Number of episodes to collect. Prioritize this if not None.

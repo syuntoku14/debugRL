@@ -1,7 +1,7 @@
 import numpy as np
 import gym
 import cv2
-from shinrl.envs.base import TabularEnv
+from shinrl.envs import TabularEnv
 
 
 class CartPole(TabularEnv):

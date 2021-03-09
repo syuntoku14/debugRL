@@ -2,7 +2,7 @@ from gym.envs.registration import register
 
 register(
     id='TabularPendulum-v0',
-    entry_point='shinrl.envs.pendulum:Pendulum',
+    entry_point='shinrl.envs:Pendulum',
     kwargs={
         "horizon": 200,
         "action_mode": "discrete",
@@ -14,7 +14,7 @@ register(
 
 register(
     id='TabularPendulumContinuous-v0',
-    entry_point='shinrl.envs.pendulum:Pendulum',
+    entry_point='shinrl.envs:Pendulum',
     kwargs={
         "horizon": 200,
         "action_mode": "continuous",
@@ -26,7 +26,7 @@ register(
 
 register(
     id='TabularPendulumImage-v0',
-    entry_point='shinrl.envs.pendulum:Pendulum',
+    entry_point='shinrl.envs:Pendulum',
     kwargs={
         "horizon": 200,
         "action_mode": "discrete",
@@ -38,7 +38,7 @@ register(
 
 register(
     id='TabularPendulumImageContinuous-v0',
-    entry_point='shinrl.envs.pendulum:Pendulum',
+    entry_point='shinrl.envs:Pendulum',
     kwargs={
         "horizon": 200,
         "action_mode": "continuous",
@@ -50,7 +50,7 @@ register(
 
 register(
     id='TabularMountainCar-v0',
-    entry_point='shinrl.envs.mountaincar:MountainCar',
+    entry_point='shinrl.envs:MountainCar',
     kwargs={
         "horizon": 200,
         "action_mode": "discrete",
@@ -62,7 +62,7 @@ register(
 
 register(
     id='TabularMountainCarContinuous-v0',
-    entry_point='shinrl.envs.mountaincar:MountainCar',
+    entry_point='shinrl.envs:MountainCar',
     kwargs={
         "horizon": 200,
         "action_mode": "continuous",
@@ -74,7 +74,7 @@ register(
 
 register(
     id='TabularMountainCarImage-v0',
-    entry_point='shinrl.envs.mountaincar:MountainCar',
+    entry_point='shinrl.envs:MountainCar',
     kwargs={
         "horizon": 200,
         "action_mode": "discrete",
@@ -86,7 +86,7 @@ register(
 
 register(
     id='TabularMountainCarImageContinuous-v0',
-    entry_point='shinrl.envs.mountaincar:MountainCar',
+    entry_point='shinrl.envs:MountainCar',
     kwargs={
         "horizon": 200,
         "action_mode": "continuous",
@@ -98,7 +98,7 @@ register(
 
 register(
     id='TabularCartPole-v0',
-    entry_point='shinrl.envs.cartpole:CartPole',
+    entry_point='shinrl.envs:CartPole',
     kwargs={
         "horizon": 100,
         "action_mode": "discrete",

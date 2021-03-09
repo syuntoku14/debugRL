@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import torch
 from torch import nn
-from shinrl.envs.pendulum import Pendulum
+from shinrl.envs import Pendulum
 from shinrl.utils import *
 
 

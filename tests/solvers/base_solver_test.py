@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 import gym
-from shinrl.envs.pendulum import Pendulum
+from shinrl.envs import Pendulum
 from shinrl.solvers import Solver
 
 

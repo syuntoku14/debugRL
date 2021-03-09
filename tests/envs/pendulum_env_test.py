@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from shinrl.envs.pendulum import Pendulum
+from shinrl.envs import Pendulum
 
 
 def test_pendulum_env():

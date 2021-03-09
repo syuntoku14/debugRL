@@ -1,5 +1,5 @@
 import numpy as np
-from shinrl.envs.base import TabularEnv
+from shinrl.envs import TabularEnv
 from .grid_env import GridEnv
 from gym.spaces import Box
 from gym import ObservationWrapper

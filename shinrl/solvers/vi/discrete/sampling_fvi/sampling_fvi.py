@@ -5,7 +5,7 @@ import torch
 from torch.nn import functional as F
 from tqdm import tqdm
 from .core import Solver
-from shinrl.envs.base import TabularEnv
+from shinrl.envs import TabularEnv
 from shinrl import utils
 
 

@@ -7,7 +7,7 @@ import gym
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from scipy import sparse
-from shinrl.envs.base import TabularEnv
+from shinrl.envs import TabularEnv
 from shinrl.envs.gridcraft import OneHotObsWrapper, RandomObsWrapper
 from copy import deepcopy
 

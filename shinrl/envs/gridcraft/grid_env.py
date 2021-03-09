@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 from .grid_spec import REWARD, REWARD2, REWARD3, REWARD4, WALL, LAVA, TILES, START, RENDER_DICT
-from shinrl.envs.base import TabularEnv
+from shinrl.envs import TabularEnv
 from .plotter import plot_values
 
 

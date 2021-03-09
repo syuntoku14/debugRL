@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from shinrl.envs.cartpole import CartPole
+from shinrl.envs import CartPole
 
 
 def test_cartpole_env():
