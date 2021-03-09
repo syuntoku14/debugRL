@@ -17,7 +17,8 @@ def main():
     parser.add_argument('--env', type=str, default="HalfCheetah-v2")
     parser.add_argument('--exp_name', type=str, default=None)
     parser.add_argument('--task_name', type=str, default=None)
-    parser.add_argument('--epochs', type=int, default=40)
+    parser.add_argument('--epochs', type=int, default=30)
+    parser.add_argument('--steps_per_epoch', type=int, default=100000)
     parser.add_argument('--load_path', type=str, default=None)
 
     # For arbitrary options, e.g. --device cpu --seed 0
@@ -29,7 +30,7 @@ def main():
 
     options = {"record_performance_interval": 5000}
     for key, val in vars(args).items():
-        if key not in ["solver", "env", "exp_name", "task_name", "epochs", "load_path"]:
+        if key not in ["solver", "env", "exp_name", "task_name", "epochs", "load_path", "steps_per_epoch"]:
             options[key] = to_numeric(val)
 
     project_name = args.env if args.exp_name is None else args.exp_name
@@ -40,7 +41,8 @@ def main():
 
     # Construct solver
     env = gym.make(args.env)
-    solver = CONTINUOUS_SOLVERS[args.solver](env, logger=logger, solve_options=options)
+    solver = CONTINUOUS_SOLVERS[args.solver](
+        env, logger=logger, solve_options=options)
     if args.load_path is not None:
         solver.load(args.load_path)
         print("Load from {}".format(args.load_path))
@@ -50,8 +52,9 @@ def main():
 
     # Run solver
     for epoch in range(args.epochs):
-        solver.run(num_steps=50000)
-
+        solver.run(num_steps=args.steps_per_epoch)
+        if max(solver.history["LossCritic"]["y"]) > 1000:
+            break  # for SAC analysis
         # save solver
         dir_name = os.path.join("results", project_name, task_name)
         if not os.path.exists(dir_name):

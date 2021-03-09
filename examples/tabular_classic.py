@@ -54,21 +54,29 @@ def main():
 
     # Construct solver
     env = gym.make(args.env)
-    SOLVERS = CONTINUOUS_SOLVERS if isinstance(env.action_space, gym.spaces.Box) else DISCRETE_SOLVERS
+    SOLVERS = CONTINUOUS_SOLVERS if isinstance(
+        env.action_space, gym.spaces.Box) else DISCRETE_SOLVERS
     solver = SOLVERS[args.solver](env, logger=logger, solve_options=options)
     task_params = task.connect(solver.solve_options)
     solver_name = solver.__class__.__name__
     print(solver_name, "starts...")
 
-    # Run solver
+    # Make directory to save
+    dir_name = os.path.join("results", project_name,
+                            task_name, str(solver.solve_options["seed"]))
+    if not os.path.exists(dir_name):
+        os.makedirs(dir_name)
+
     if hasattr(env, "plot_values"):
         grid_kws = {"width_ratios": (.49, .49, .02)}
         fig, axes = plt.subplots(
             nrows=1, ncols=3, figsize=(20, 6), gridspec_kw=grid_kws)
         camera = Camera(fig)
 
+    # Run solver
     for epoch in range(args.epochs):
         solver.run(num_steps=500)
+        solver.save(os.path.join(dir_name, "data.pt"))
 
         if hasattr(env, "plot_values"):
             # learned value
@@ -87,11 +95,6 @@ def main():
                             vmin=vmin, vmax=vmax,
                             title="Oracle State Values".format(epoch))
             camera.snap()
-
-    dir_name = os.path.join("results", project_name, task_name)
-    if not os.path.exists(dir_name):
-        os.makedirs(dir_name)
-    solver.save(os.path.join(dir_name, str(solver.solve_options["seed"])))
 
     if hasattr(env, "plot_values"):
         animation = camera.animate()

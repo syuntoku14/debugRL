@@ -56,7 +56,17 @@ class Solver(ABC):
         # set seed
         np.random.seed(self.solve_options["seed"])
         torch.manual_seed(self.solve_options["seed"])
-        self.env.obs = self.env.reset()
+        if isinstance(self.env, gym.wrappers.Monitor):
+            # With Monitor, you cannot call reset() unless the episode is over.
+            if self.env.stats_recorder.steps is None:
+                self.env.obs = self.env.reset()
+            else:
+                done = False
+                while not done:
+                    _, _, done, _ = self.env.step(self.env.action_space.sample())
+                self.env.obs = self.env.reset()
+        else:
+            self.env.obs = self.env.reset()
 
         # initialize history
         self.history = defaultdict(lambda: {"x": [], "y": []})
@@ -101,8 +111,8 @@ class Solver(ABC):
         if isinstance(y, torch.Tensor):
             y = y.detach().cpu().item()
         if self.logger is not None:
-            tag = title if tag is None else tag
-            self.logger.report_scalar(title, tag, y, self.step)
+            _tag = title if tag is None else tag
+            self.logger.report_scalar(title, _tag, y, self.step)
         if tag is not None:
             title += tag
         self.history[title]["x"].append(self.step)
