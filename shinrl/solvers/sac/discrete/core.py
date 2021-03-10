@@ -8,7 +8,6 @@ from shinrl import utils
 
 OPTIONS = {
     "num_samples": 4,
-    # CVI settings
     "er_coef": 0.2,
     # Fitted iteration settings
     "activation": "relu",

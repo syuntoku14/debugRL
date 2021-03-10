@@ -11,40 +11,42 @@ from shinrl import utils
 
 
 OPTIONS = {
-    "num_samples": 1,
-    "log_std_max": 2,
-    "log_std_min": -20,
-    "er_coef": 0.2,
+    "num_samples": 4000,
     # Fitted iteration settings
     "activation": "relu",
-    "hidden": 256,  # size of hidden layer
+    "hidden": 128,  # size of hidden layer
     "depth": 2,  # depth of the network
     "device": "cuda" if torch.cuda.is_available() else "cpu",
-    "lr": 1e-3,
-    "minibatch_size": 100,
     "critic_loss": "mse",  # mse or huber
+    "clip_grad": False,  # clip the gradient if True
     "optimizer": "Adam",
-    "buffer_size": 1e6,
-    "polyak": 0.995,
-    "num_random_samples": 10000
+    # PPO settings
+    "pi_lr": 3e-4,
+    "v_lr": 1e-3,
+    "td_lam": 0.95,
+    "target_kl": 0.01,
+    "clip_ratio": 0.2,
+    "entropy_coef": 0.001,
+    "train_pi_iters": 80,
+    "train_v_iters": 80,
 }
 
 
-def fc_net(env, in_dim, hidden, depth, act_layer):
+def fc_net(env, hidden, depth, act_layer):
     if act_layer == "tanh":
         act_layer = nn.Tanh
     elif act_layer == "relu":
         act_layer = nn.ReLU
     else:
         raise ValueError("Invalid activation layer.")
-    modules = [nn.Linear(env.observation_space.shape[0] + in_dim, hidden), ]
+    modules = [nn.Linear(env.observation_space.shape[0], hidden), ]
     for _ in range(depth-1):
         modules += [act_layer(), nn.Linear(hidden, hidden)]
     modules.append(act_layer())
     return nn.Sequential(*modules), None
 
 
-def conv_net(env, in_dim, hidden, depth, act_layer):
+def conv_net(env, hidden, depth, act_layer):
     if act_layer == "tanh":
         act_layer = nn.Tanh
     elif act_layer == "relu":
@@ -57,7 +59,7 @@ def conv_net(env, in_dim, hidden, depth, act_layer):
                     nn.Conv2d(10, 20, kernel_size=5, stride=2),
                     nn.Flatten()]
     fc_modules = []
-    fc_modules.append(nn.Linear(320+in_dim, hidden))
+    fc_modules.append(nn.Linear(320, hidden))
     for _ in range(depth-1):
         fc_modules += [act_layer(), nn.Linear(hidden, hidden)]
     fc_modules.append(act_layer())
@@ -71,14 +73,13 @@ class ValueNet(nn.Module):
         super().__init__()
         net = fc_net if len(env.observation_space.shape) == 1 else conv_net
         self.fc, self.conv = net(
-            env, env.action_space.shape[0],
-            solve_options["hidden"], solve_options["depth"],
-            solve_options["activation"])
+            env, solve_options["hidden"],
+            solve_options["depth"], solve_options["activation"])
         self.out = nn.Linear(solve_options["hidden"], 1)
 
-    def forward(self, obss, actions=None):
+    def forward(self, obss):
         x = self.conv(obss) if self.conv is not None else obss
-        x = self.fc(torch.cat([x, actions], -1))
+        x = self.fc(x)
         return self.out(x)
 
 
@@ -87,27 +88,19 @@ class PolicyNet(nn.Module):
         super().__init__()
         net = fc_net if len(env.observation_space.shape) == 1 else conv_net
         self.fc, self.conv = net(
-            env, 0, solve_options["hidden"], solve_options["depth"],
+            env, solve_options["hidden"], solve_options["depth"],
             solve_options["activation"])
         act_dim = env.action_space.shape[0]
-        act_limit = env.action_space.high[0]
+        log_std = -0.5 * np.ones(act_dim, dtype=np.float32)
+        self.log_std = torch.nn.Parameter(torch.as_tensor(log_std))
         self.mu_layer = nn.Linear(solve_options["hidden"], act_dim)
-        self.log_std_layer = nn.Linear(solve_options["hidden"], act_dim)
-        self.act_limit = act_limit
         self.solve_options = solve_options
 
     def forward(self, obs):
         pi_dist = self.compute_pi_distribution(obs)
         pi_action = pi_dist.rsample()
-
         logp_pi = self.compute_logp_pi(pi_dist, pi_action)
-        pi_action = self.squash_action(pi_action)
         return pi_action, logp_pi
-
-    def squash_action(self, pi_action):
-        pi_action = torch.tanh(pi_action)
-        pi_action = self.act_limit * pi_action
-        return pi_action
 
     def compute_pi_distribution(self, obss):
         if self.conv is not None:
@@ -116,18 +109,12 @@ class PolicyNet(nn.Module):
             x = obss
         net_out = self.fc(x)
         mu = self.mu_layer(net_out)
-        log_std = self.log_std_layer(net_out)
-        log_std = torch.clamp(
-            log_std, self.solve_options["log_std_min"], self.solve_options["log_std_max"])
-        std = torch.exp(log_std)
-        # Pre-squash distribution and sample
+        std = torch.exp(self.log_std)
         pi_dist = Normal(mu, std)
         return pi_dist
 
     def compute_logp_pi(self, pi_dist, pi_action):
         logp_pi = pi_dist.log_prob(pi_action).sum(axis=-1)
-        logp_pi -= (2*(np.log(2) - pi_action -
-                       F.softplus(-2*pi_action))).sum(axis=-1)
         return logp_pi
 
 
@@ -155,27 +142,14 @@ class Solver(Solver):
         # set value network
         self.value_network = ValueNet(
             self.env, self.solve_options).to(self.device)
-        self.value_network2 = ValueNet(
-            self.env, self.solve_options).to(self.device)
-        self.target_value_network = deepcopy(self.value_network)
-        self.target_value_network2 = deepcopy(self.value_network2)
-
-        # Freeze target networks
-        for p1, p2 in zip(self.target_value_network.parameters(),
-                          self.target_value_network2.parameters()):
-            p1.requires_grad = False
-            p2.requires_grad = False
-
-        self.val_params = itertools.chain(self.value_network.parameters(),
-                                          self.value_network2.parameters())
         self.value_optimizer = self.optimizer(
-            self.val_params, lr=self.solve_options["lr"])
+            self.value_network.parameters(), lr=self.solve_options["v_lr"])
 
         # actor network
         self.policy_network = PolicyNet(
             self.env, self.solve_options).to(self.device)
-        self.policy_optimizer = self.optimizer(self.policy_network.parameters(),
-                                               lr=self.solve_options["lr"])
+        self.policy_optimizer = self.optimizer(
+            self.policy_network.parameters(), lr=self.solve_options["pi_lr"])
 
         # Collect random samples in advance
         if self.is_tabular:
@@ -185,11 +159,6 @@ class Solver(Solver):
                 self.env.all_actions, dtype=torch.float32,
                 device=self.device).repeat(self.dS, 1).reshape(self.dS, self.dA)  # dS x dA
             self.set_tb_values_policy()
-        self.buffer = utils.make_replay_buffer(
-            self.env, self.solve_options["buffer_size"])
-        trajectory = self.collect_samples(
-            self.solve_options["minibatch_size"]*10)
-        self.buffer.add(**trajectory)
 
     def collect_samples(self, num_samples):
         if self.is_tabular:
@@ -202,26 +171,16 @@ class Solver(Solver):
 
     def save(self, path):
         data = {
-            "vnet1": self.value_network.state_dict(),
-            "vnet2": self.value_network2.state_dict(),
+            "vnet": self.value_network.state_dict(),
             "valopt": self.value_optimizer.state_dict(),
-            "targ_vnet1": self.target_value_network.state_dict(),
-            "targ_vnet2": self.target_value_network2.state_dict(),
             "polnet": self.policy_network.state_dict(),
             "polopt": self.policy_optimizer.state_dict(),
-            "buf_data": self.buffer.get_all_transitions()
         }
         super().save(path, data)
 
     def load(self, path):
         data = super().load(path, device=self.device)
-        self.value_network.load_state_dict(data["vnet1"])
-        self.value_network2.load_state_dict(data["vnet2"])
+        self.value_network.load_state_dict(data["vnet"])
         self.value_optimizer.load_state_dict(data["valopt"])
-        self.target_value_network.load_state_dict(data["targ_vnet1"])
-        self.target_value_network2.load_state_dict(data["targ_vnet2"])
         self.policy_network.load_state_dict(data["polnet"])
         self.policy_optimizer.load_state_dict(data["polopt"])
-        self.buffer = utils.make_replay_buffer(
-            self.env, self.solve_options["buffer_size"])
-        self.buffer.add(**data["buf_data"])
