@@ -67,7 +67,8 @@ class Solver(Solver):
         else:
             raise ValueError("Invalid activation layer.")
 
-        net = fc_net if len(self.env.observation_space.shape) == 1 else conv_net
+        net = fc_net if len(
+            self.env.observation_space.shape) == 1 else conv_net
         self.policy_network = net(
             self.env, self.env.action_space.n,
             hidden=self.solve_options["hidden"],

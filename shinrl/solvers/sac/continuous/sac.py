@@ -96,7 +96,8 @@ class SacSolver(Solver):
         if self.buffer.get_stored_size() < self.solve_options["num_random_samples"]:
             return self.env.action_space.sample(), 0.0
         with torch.no_grad():
-            obs = torch.as_tensor(env.obs, dtype=torch.float32, device=self.device)
+            obs = torch.as_tensor(
+                env.obs, dtype=torch.float32, device=self.device)
             pi, logp_pi = self.policy_network(obs)
             return pi.detach().cpu().numpy(), logp_pi.detach().cpu().numpy()
 
@@ -112,7 +113,8 @@ class SacSolver(Solver):
         dist = self.policy_network.compute_pi_distribution(self.all_obss)
         log_policy = dist.log_prob(self.all_actions) \
             - (2*(np.log(2) - self.all_actions - F.softplus(-2*self.all_actions)))
-        policy_probs = torch.softmax(log_policy, dim=-1).reshape(self.dS, self.dA)
+        policy_probs = torch.softmax(
+            log_policy, dim=-1).reshape(self.dS, self.dA)
         self.record_array("Policy", policy_probs)
 
     def record_history(self):

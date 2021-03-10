@@ -26,11 +26,8 @@ class SacSolver(Solver):
             tensor_traj = utils.trajectory_to_tensor(trajectory, self.device)
 
             # ----- update q network -----
-            critic_loss = self.update_critic(
-                self.value_network, self.value_optimizer, tensor_traj)
+            critic_loss, critic_loss2 = self.update_critic(tensor_traj)
             self.record_scalar("LossCritic", critic_loss)
-            critic_loss2 = self.update_critic(
-                self.value_network2, self.value_optimizer2, tensor_traj)
             self.record_scalar("LossCritic2", critic_loss2)
 
             # ----- update policy network -----
@@ -48,7 +45,7 @@ class SacSolver(Solver):
                     p_targ.data.add_((1 - polyak) * p.data)
             self.step += 1
 
-    def update_critic(self, network, optimizer, tensor_traj):
+    def update_critic(self, tensor_traj):
         discount = self.solve_options["discount"]
         er_coef = self.solve_options["er_coef"]
 
@@ -71,16 +68,18 @@ class SacSolver(Solver):
                 policy * (next_q - er_coef*log_policy), dim=-1)  # B
             target = rews + discount*next_v*(~dones)
 
-        values = network(obss)
-        values = values.gather(1, actions.reshape(-1, 1)).squeeze()
-        loss = self.critic_loss(target, values)
-        optimizer.zero_grad()
+        q1 = self.value_network(obss)
+        q1 = q1.gather(1, actions.reshape(-1, 1)).squeeze()
+        loss1 = self.critic_loss(target, q1)
+        q2 = self.value_network2(obss)
+        q2 = q2.gather(1, actions.reshape(-1, 1)).squeeze()
+        loss2 = self.critic_loss(target, q2)
+        loss = loss1 + loss2
+
+        self.value_optimizer.zero_grad()
         loss.backward()
-        if self.solve_options["clip_grad"]:
-            for param in network.parameters():
-                param.grad.data.clamp_(-1, 1)
-        optimizer.step()
-        return loss.detach().cpu().item()
+        self.value_optimizer.step()
+        return loss1.detach().cpu().item(), loss2.detach().cpu().item()
 
     def update_actor(self, tensor_traj):
         obss = tensor_traj["obs"]
@@ -105,9 +104,6 @@ class SacSolver(Solver):
 
         self.policy_optimizer.zero_grad()
         loss.backward()
-        if self.solve_options["clip_grad"]:
-            for param in self.policy_network.parameters():
-                param.grad.data.clamp_(-1, 1)
         self.policy_optimizer.step()
         return loss.detach().cpu().item()
 

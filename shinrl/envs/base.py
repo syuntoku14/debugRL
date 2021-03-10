@@ -14,6 +14,7 @@ class TabularEnv(gym.Env):
         initial_state_distribution (dict): Dictionary of state distribution represented as {state: probability}
         horizon (int): Horizon of the environment.
     """
+
     def __init__(self,
                  dS,
                  dA,

@@ -28,9 +28,9 @@ class ExactPgSolver(Solver):
         policy_np = policy.detach().cpu().numpy()  # SxA
         # compute action values
         action_values = self.env.compute_action_values(
-                policy_np, discount)  # SxA
+            policy_np, discount)  # SxA
         action_values = torch.tensor(
-                action_values, dtype=torch.float32, device=self.device)
+            action_values, dtype=torch.float32, device=self.device)
         # compute stationary distribution
         visitation = self.env.compute_visitation(
             policy_np, discount).sum(axis=(0, 2))  # S
@@ -40,9 +40,11 @@ class ExactPgSolver(Solver):
         if self.solve_options["coef"] == "Q":
             coef = action_values
         elif self.solve_options["coef"] == "A":
-            coef = action_values - (action_values*policy).sum(dim=1, keepdims=True)
+            coef = action_values - \
+                (action_values*policy).sum(dim=1, keepdims=True)
         else:
-            raise ValueError("{} is an invalid option.".format(self.solve_options["coef"]))
+            raise ValueError("{} is an invalid option.".format(
+                self.solve_options["coef"]))
 
         # update policy
         loss = -((coef*policy).sum(dim=1) * visitation).sum(dim=0)

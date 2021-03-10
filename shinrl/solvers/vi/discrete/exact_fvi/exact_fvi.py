@@ -58,7 +58,8 @@ class ExactFittedCviSolver(ExactFittedSolver):
         prev_preference = \
             alpha * (curr_pref - mP.reshape(-1, 1)) \
             + self.env.reward_matrix \
-            + discount*(self.env.transition_matrix * mP).reshape(self.dS, self.dA)
+            + discount*(self.env.transition_matrix *
+                        mP).reshape(self.dS, self.dA)
         return prev_preference
 
     def set_tb_values_policy(self):

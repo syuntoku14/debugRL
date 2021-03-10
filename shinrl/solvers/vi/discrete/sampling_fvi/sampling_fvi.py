@@ -17,9 +17,11 @@ class SamplingFittedSolver(Solver):
             self.record_history()
 
             # ----- generate mini-batch from the replay_buffer -----
-            trajectory = self.collect_samples(self.solve_options["num_samples"])
+            trajectory = self.collect_samples(
+                self.solve_options["num_samples"])
             self.buffer.add(**trajectory)
-            trajectory = self.buffer.sample(self.solve_options["minibatch_size"])
+            trajectory = self.buffer.sample(
+                self.solve_options["minibatch_size"])
             tensor_traj = utils.trajectory_to_tensor(trajectory, self.device)
 
             # ----- update values -----
@@ -90,13 +92,15 @@ class SamplingFittedViSolver(SamplingFittedSolver):
         self.record_array("Policy", policy)
 
     def get_action_gym(self, env):
-        obs = torch.as_tensor(env.obs, dtype=torch.float32, device=self.device).unsqueeze(0)
+        obs = torch.as_tensor(env.obs, dtype=torch.float32,
+                              device=self.device).unsqueeze(0)
         vals = self.value_network(obs).detach().cpu().numpy()  # 1 x dA
         eps_greedy = utils.compute_epsilon(
             self.step, self.solve_options["eps_start"],
             self.solve_options["eps_end"],
             self.solve_options["eps_decay"])
-        probs = utils.eps_greedy_policy(vals, eps_greedy=eps_greedy).reshape(-1)
+        probs = utils.eps_greedy_policy(
+            vals, eps_greedy=eps_greedy).reshape(-1)
         log_probs = np.log(probs)
         action = np.random.choice(np.arange(0, env.action_space.n), p=probs)
         log_prob = log_probs[action]
@@ -135,7 +139,8 @@ class SamplingFittedCviSolver(SamplingFittedSolver):
         self.record_array("Policy", policy)
 
     def get_action_gym(self, env):
-        obs = torch.as_tensor(env.obs, dtype=torch.float32, device=self.device).unsqueeze(0)
+        obs = torch.as_tensor(env.obs, dtype=torch.float32,
+                              device=self.device).unsqueeze(0)
         preference = self.value_network(obs).detach().cpu().numpy()  # 1 x dA
         er_coef, kl_coef = self.solve_options["er_coef"], self.solve_options["kl_coef"]
         beta = 1 / (er_coef+kl_coef)

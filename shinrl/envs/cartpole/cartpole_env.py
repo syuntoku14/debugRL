@@ -15,6 +15,7 @@ class CartPole(TabularEnv):
         action_mode (str): Specify the type of action. "discrete" or "continuous".
         obs_mode (str): Specify the type of observation. "tuple" or "image".
     """
+
     def __init__(self, x_disc=128, x_dot_disc=4,
                  th_disc=64, th_dot_disc=4, dA=5,
                  init_dist=None, horizon=100,
@@ -33,7 +34,8 @@ class CartPole(TabularEnv):
         self.length = 0.5  # actually half the pole's length
         self.polemass_length = (self.masspole * self.length)
         self.force_mag = 10.0
-        self.force_list = np.linspace(-self.force_mag, self.force_mag, num=self.dA)
+        self.force_list = np.linspace(-self.force_mag,
+                                      self.force_mag, num=self.dA)
         self.tau = 0.1  # seconds between state updates
 
         # Angle at which to fail the episode
@@ -97,7 +99,8 @@ class CartPole(TabularEnv):
         self.render_env.reset()
 
     def discretize_action(self, action):
-        action = np.clip(action, self.action_space.low, self.action_space.high-1e-5)
+        action = np.clip(action, self.action_space.low,
+                         self.action_space.high-1e-5)
         return int(np.floor((action - self.action_space.low)/self.action_step))
 
     def to_continuous_action(self, action):

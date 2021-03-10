@@ -3,57 +3,57 @@ from .grid_spec import grid_spec_from_string, grid_spec_from_sparse_locations, l
 
 
 MAZE_ARENA_64 = grid_spec_from_sparse_locations(64, 64, {START: [(32, 32)],
-                                                    REWARD: [(0, 0), (0, 63), (63, 0), (63, 63)]})
+                                                         REWARD: [(0, 0), (0, 63), (63, 0), (63, 63)]})
 
 MAZE_ARENA_32 = grid_spec_from_sparse_locations(32, 32, {START: [(16, 16)],
-                                                    REWARD: [(0, 0), (0, 31), (31, 0), (31, 31)]})
+                                                         REWARD: [(0, 0), (0, 31), (31, 0), (31, 31)]})
 MAZE_ARENA_16 = grid_spec_from_sparse_locations(16, 16, {START: [(8, 8)],
-                                                    REWARD: [(0, 0), (0, 15), (15, 0), (15, 15)]})
+                                                         REWARD: [(0, 0), (0, 15), (15, 0), (15, 15)]})
 
 REW_ARENA_64 = grid_spec_from_sparse_locations(64, 64, {START: [(32, 32)],
-                                                   REWARD: [(4, 4)],
-                                                   REWARD2: local_spec(xpnt=(4, 4), map="yyy\\" +
-                                                                       "yxy\\" +
-                                                                       "yyy"),
-                                                   REWARD3: local_spec(xpnt=(4, 4), map="yyyyy\\" +
-                                                                       "yOOOy\\" +
-                                                                       "yOxOy\\" +
-                                                                       "yOOOy\\" +
-                                                                       "yyyyy\\"),
-                                                   })
+                                                        REWARD: [(4, 4)],
+                                                        REWARD2: local_spec(xpnt=(4, 4), map="yyy\\" +
+                                                                            "yxy\\" +
+                                                                            "yyy"),
+                                                        REWARD3: local_spec(xpnt=(4, 4), map="yyyyy\\" +
+                                                                            "yOOOy\\" +
+                                                                            "yOxOy\\" +
+                                                                            "yOOOy\\" +
+                                                                            "yyyyy\\"),
+                                                        })
 
 REW_ARENA_128 = grid_spec_from_sparse_locations(128, 128, {START: [(64, 64)],
-                                                      REWARD: [(10, 10)],
-                                                      REWARD2: local_spec(xpnt=(10, 10), map="yyy\\" +
-                                                                          "yxy\\" +
-                                                                          "yyy"),
-                                                      REWARD3: local_spec(xpnt=(10, 10), map="yyyyy\\" +
-                                                                          "yOOOy\\" +
-                                                                          "yOxOy\\" +
-                                                                          "yOOOy\\" +
-                                                                          "yyyyy\\"),
-                                                      })
+                                                           REWARD: [(10, 10)],
+                                                           REWARD2: local_spec(xpnt=(10, 10), map="yyy\\" +
+                                                                               "yxy\\" +
+                                                                               "yyy"),
+                                                           REWARD3: local_spec(xpnt=(10, 10), map="yyyyy\\" +
+                                                                               "yOOOy\\" +
+                                                                               "yOxOy\\" +
+                                                                               "yOOOy\\" +
+                                                                               "yyyyy\\"),
+                                                           })
 
 MAZE1 = grid_spec_from_string("SOO\\" +
-                         "OOR\\"
-                         )
+                              "OOR\\"
+                              )
 
 MAZE2 = grid_spec_from_string("SOOOOO\\" +
-                         "OOOOOO\\" +
-                         "OOOOOO\\" +
-                         "OOOOOR\\"
-                         )
+                              "OOOOOO\\" +
+                              "OOOOOO\\" +
+                              "OOOOOR\\"
+                              )
 
 MAZE3 = grid_spec_from_string("OOOOOO\\" +
-                         "OOOOOO\\" +
-                         "OOOSOO\\" +
-                         "OOOOOO\\"
-                         "OOOOOO\\"
-                         "OOOOOO\\"
-                         )
+                              "OOOOOO\\" +
+                              "OOOSOO\\" +
+                              "OOOOOO\\"
+                              "OOOOOO\\"
+                              "OOOOOO\\"
+                              )
 
 MAZE_LAVA = grid_spec_from_string("OOOOOOR\\" +
-                             "SOLLLLL\\" +
-                             "OOOOOOO\\" +
-                             "OOOOOO3\\"
-                             )
+                                  "SOLLLLL\\" +
+                                  "OOOOOOO\\" +
+                                  "OOOOOO3\\"
+                                  )

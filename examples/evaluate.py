@@ -21,14 +21,16 @@ def main():
 
     # Construct solver
     env = gym.make(args.env)
-    SOLVERS = CONTINUOUS_SOLVERS if isinstance(env.action_space, gym.spaces.Box) else DISCRETE_SOLVERS
+    SOLVERS = CONTINUOUS_SOLVERS if isinstance(
+        env.action_space, gym.spaces.Box) else DISCRETE_SOLVERS
     solver = SOLVERS[args.solver](env)
     solver.load(args.load_path)
     print("Loaded solver from {}".format(args.load_path))
 
     # Run solver
     env.obs = env.reset()
-    utils.collect_samples(env, solver.get_action_gym, num_episodes=10, render=True)
+    utils.collect_samples(env, solver.get_action_gym,
+                          num_episodes=10, render=True)
 
 
 if __name__ == "__main__":

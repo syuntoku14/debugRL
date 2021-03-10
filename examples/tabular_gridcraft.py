@@ -24,7 +24,7 @@ def main():
     parser.add_argument('--epochs', type=int, default=5)
 
     # for arbitrary options, e.g. --device cpu --seed 0
-    parsed, unknown = parser.parse_known_args() 
+    parsed, unknown = parser.parse_known_args()
     for arg in unknown:
         if arg.startswith(("-", "--")):
             parser.add_argument(arg.split('=')[0])
@@ -43,9 +43,9 @@ def main():
 
     # Construct the environment
     maze = grid_spec_from_string("SOOO\\" +
-                            "OLLL\\" +
-                            "OOOO\\" +
-                            "OLRO\\")
+                                 "OLLL\\" +
+                                 "OOOO\\" +
+                                 "OLRO\\")
     env = GridEnv(maze, trans_eps=0.1, horizon=20, obs_mode="onehot")
 
     # solve tabular MDP

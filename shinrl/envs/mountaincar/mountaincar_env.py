@@ -15,6 +15,7 @@ class MountainCar(TabularEnv):
         action_mode (str): Specify the type of action. "discrete" or "continuous".
         obs_mode (str): Specify the type of observation. "tuple" or "image".
     """
+
     def __init__(self, state_disc=32, init_dist=None,
                  horizon=200, dA=3,
                  action_mode="discrete", obs_mode="tuple"):
@@ -27,7 +28,8 @@ class MountainCar(TabularEnv):
         self.min_pos = -1.2
         self.goal_pos = 0.5
         self.force_mag = 1.0
-        self.force_list = np.linspace(-self.force_mag, self.force_mag, num=self.dA)
+        self.force_list = np.linspace(-self.force_mag,
+                                      self.force_mag, num=self.dA)
 
         self.action_step = (self.force_mag*2) / self.dA
         self.state_step = (self.max_pos-self.min_pos) / (self.state_disc-1)
@@ -75,7 +77,8 @@ class MountainCar(TabularEnv):
                 dtype=np.float32)
 
     def discretize_action(self, action):
-        action = np.clip(action, self.action_space.low, self.action_space.high-1e-5)
+        action = np.clip(action, self.action_space.low,
+                         self.action_space.high-1e-5)
         return int(np.floor((action - self.action_space.low)/self.action_step))
 
     def to_continuous_action(self, action):
@@ -113,14 +116,15 @@ class MountainCar(TabularEnv):
             return np.array([pos, vel], dtype=np.float32)
         elif self.obs_mode == "image":
             image = self.base_image.copy()
-            pos2pxl = 28 / (self.max_pos - self.min_pos) 
+            pos2pxl = 28 / (self.max_pos - self.min_pos)
             x = int((pos - self.min_pos) * pos2pxl)
             y = int(self._height(pos - self.min_pos) * pos2pxl)
             image = cv2.rectangle(image, (x, y), (x+1, y+1), 0.8, thickness=2)
 
             vx = int((pos-vel*5.0 - self.min_pos) * pos2pxl)
             vy = int(self._height(pos-vel*5.0 - self.min_pos) * pos2pxl)
-            image = cv2.rectangle(image, (vx, vy), (vx+1, vy+1), 0.2, thickness=2)
+            image = cv2.rectangle(
+                image, (vx, vy), (vx+1, vy+1), 0.2, thickness=2)
             return np.expand_dims(image, axis=0)  # 1x28x28
 
     def pos_vel_from_state_id(self, state):
@@ -170,7 +174,7 @@ class MountainCar(TabularEnv):
 
         if ax is None:
             fig, ax = plt.subplots(nrows=1, ncols=1,
-                                figsize=(8, 6))
+                                   figsize=(8, 6))
         vmin = reshaped_values.min() if vmin is None else vmin
         vmax = reshaped_values.max() if vmax is None else vmax
 
@@ -185,7 +189,8 @@ class MountainCar(TabularEnv):
             columns=vel_ticks)
         data = data.ffill(downcast='infer', axis=0)
         data = data.ffill(downcast='infer', axis=1)
-        sns.heatmap(data, ax=ax, cbar=True, cbar_ax=cbar_ax, vmin=vmin, vmax=vmax)
+        sns.heatmap(data, ax=ax, cbar=True,
+                    cbar_ax=cbar_ax, vmin=vmin, vmax=vmax)
         ax.set_title(title)
         ax.set_ylabel(r"$x$")
         ax.set_xlabel(r"$\dot{x}$")

@@ -1,5 +1,6 @@
 from copy import deepcopy
 import torch
+import itertools
 from torch import nn
 import torch.nn.functional as F
 from shinrl.solvers import Solver
@@ -11,16 +12,16 @@ OPTIONS = {
     "er_coef": 0.2,
     # Fitted iteration settings
     "activation": "relu",
-    "hidden": 128,  # size of hidden layer
+    "hidden": 256,  # size of hidden layer
     "depth": 2,  # depth of the network
-    "device": "cuda",
-    "lr": 0.001,
+    "device": "cuda" if torch.cuda.is_available() else "cpu",
+    "lr": 1e-3,
     "minibatch_size": 32,
     "critic_loss": "mse",  # mse or huber
-    "clip_grad": False,  # clip the gradient if True
     "optimizer": "Adam",
     "buffer_size": 1e6,
     "polyak": 0.995,
+    "num_random_samples": 10000
 }
 
 
@@ -83,30 +84,32 @@ class Solver(Solver):
         else:
             raise ValueError("Invalid activation layer.")
 
-        net = fc_net if len(self.env.observation_space.shape) == 1 else conv_net
+        net = fc_net if len(
+            self.env.observation_space.shape) == 1 else conv_net
         self.value_network = net(
-            self.env,
-            hidden=self.solve_options["hidden"],
+            self.env, hidden=self.solve_options["hidden"],
             depth=self.solve_options["depth"],
             act_layer=act_layer).to(self.device)
-        self.value_optimizer = self.optimizer(self.value_network.parameters(),
-                                              lr=self.solve_options["lr"])
-        self.target_value_network = deepcopy(self.value_network)
-
-        # network for double estimation
         self.value_network2 = net(
-            self.env,
-            hidden=self.solve_options["hidden"],
+            self.env, hidden=self.solve_options["hidden"],
             depth=self.solve_options["depth"],
             act_layer=act_layer).to(self.device)
-        self.value_optimizer2 = self.optimizer(self.value_network.parameters(),
-                                              lr=self.solve_options["lr"])
+        self.target_value_network = deepcopy(self.value_network)
         self.target_value_network2 = deepcopy(self.value_network)
+
+        # Freeze target networks
+        for p1, p2 in zip(self.target_value_network.parameters(),
+                          self.target_value_network2.parameters()):
+            p1.requires_grad = False
+            p2.requires_grad = False
+        self.val_params = itertools.chain(self.value_network.parameters(),
+                                          self.value_network2.parameters())
+        self.value_optimizer = self.optimizer(
+            self.val_params, lr=self.solve_options["lr"])
 
         # actor network
         self.policy_network = net(
-            self.env,
-            hidden=self.solve_options["hidden"],
+            self.env, hidden=self.solve_options["hidden"],
             depth=self.solve_options["depth"],
             act_layer=act_layer).to(self.device)
         self.policy_optimizer = self.optimizer(self.policy_network.parameters(),
@@ -119,7 +122,8 @@ class Solver(Solver):
             self.set_tb_values_policy()
         self.buffer = utils.make_replay_buffer(
             self.env, self.solve_options["buffer_size"])
-        trajectory = self.collect_samples(self.solve_options["minibatch_size"])
+        trajectory = self.collect_samples(
+            self.solve_options["minibatch_size"]*10)
         self.buffer.add(**trajectory)
 
     def collect_samples(self, num_samples):
@@ -130,3 +134,29 @@ class Solver(Solver):
         else:
             return utils.collect_samples(
                 self.env, self.get_action_gym, self.solve_options["num_samples"])
+
+    def save(self, path):
+        data = {
+            "vnet1": self.value_network.state_dict(),
+            "vnet2": self.value_network2.state_dict(),
+            "valopt": self.value_optimizer.state_dict(),
+            "targ_vnet1": self.target_value_network.state_dict(),
+            "targ_vnet2": self.target_value_network2.state_dict(),
+            "polnet": self.policy_network.state_dict(),
+            "polopt": self.policy_optimizer.state_dict(),
+            "buf_data": self.buffer.get_all_transitions()
+        }
+        super().save(path, data)
+
+    def load(self, path):
+        data = super().load(path, device=self.device)
+        self.value_network.load_state_dict(data["vnet1"])
+        self.value_network2.load_state_dict(data["vnet2"])
+        self.value_optimizer.load_state_dict(data["valopt"])
+        self.target_value_network.load_state_dict(data["targ_vnet1"])
+        self.target_value_network2.load_state_dict(data["targ_vnet2"])
+        self.policy_network.load_state_dict(data["polnet"])
+        self.policy_optimizer.load_state_dict(data["polopt"])
+        self.buffer = utils.make_replay_buffer(
+            self.env, self.solve_options["buffer_size"])
+        self.buffer.add(**data["buf_data"])

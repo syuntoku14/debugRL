@@ -41,7 +41,7 @@ class Pendulum(TabularEnv):
         if obs_mode != "tuple" and obs_mode != "image":
             raise ValueError("Invalid obs_mode: {}".format(obs_mode))
         self.obs_mode = obs_mode
-        self.base_image = np.zeros((28, 28)) 
+        self.base_image = np.zeros((28, 28))
 
         # set initial state probability
         ini_ths = np.arange(-np.pi, np.pi, self.state_step)
@@ -76,9 +76,10 @@ class Pendulum(TabularEnv):
 
     def discretize_action(self, action):
         # continuous to discrete action
-        action = np.clip(action, self.action_space.low, self.action_space.high-1e-5)
+        action = np.clip(action, self.action_space.low,
+                         self.action_space.high-1e-5)
         return int(np.floor((action - self.action_space.low)/self.torque_step))
-    
+
     def to_continuous_action(self, action):
         return action * self.torque_step + self.action_space.low
 
@@ -137,14 +138,14 @@ class Pendulum(TabularEnv):
         elif self.obs_mode == "image":
             image = self.base_image.copy()
             length = 9
-            x = int(14 + length * np.cos(theta+np.pi/2)) 
-            y = int(14 - length * np.sin(theta+np.pi/2)) 
+            x = int(14 + length * np.cos(theta+np.pi/2))
+            y = int(14 - length * np.sin(theta+np.pi/2))
             image = cv2.line(image, (14, 14), (x, y), 0.8, thickness=1)
 
-            vx = int(14 + length * np.cos((theta-thetav*0.15)+np.pi/2)) 
-            vy = int(14 - length * np.sin((theta-thetav*0.15)+np.pi/2)) 
+            vx = int(14 + length * np.cos((theta-thetav*0.15)+np.pi/2))
+            vy = int(14 - length * np.sin((theta-thetav*0.15)+np.pi/2))
             image = cv2.line(image, (14, 14), (vx, vy), 0.2, thickness=1)
- 
+
             return np.expand_dims(image, axis=0)  # 1x28x28
 
     def disc_th_thv(self, theta, thetav):
@@ -180,7 +181,7 @@ class Pendulum(TabularEnv):
 
         if ax is None:
             fig, ax = plt.subplots(nrows=1, ncols=1,
-                                figsize=(8, 6))
+                                   figsize=(8, 6))
         vmin = reshaped_values.min() if vmin is None else vmin
         vmax = reshaped_values.max() if vmax is None else vmax
 
@@ -195,7 +196,8 @@ class Pendulum(TabularEnv):
             columns=thv_ticks)
         data = data.ffill(downcast='infer', axis=0)
         data = data.ffill(downcast='infer', axis=1)
-        sns.heatmap(data, ax=ax, cbar=True, cbar_ax=cbar_ax, vmin=vmin, vmax=vmax)
+        sns.heatmap(data, ax=ax, cbar=True,
+                    cbar_ax=cbar_ax, vmin=vmin, vmax=vmax)
         ax.set_title(title)
         ax.set_ylabel(r"$\theta$")
         ax.set_xlabel(r"$\dot{\theta}$")

@@ -28,6 +28,7 @@ class Solver(ABC):
         solve_options (dict): Hyperparameters for the algorithm, e.g. discount_factor.
         logger (Trains.Logger): logger for ClearML
     """
+
     def __init__(self, env, solve_options={}, logger=None):
         # solver options
         self.solve_options = DEFAULT_OPTIONS

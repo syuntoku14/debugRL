@@ -43,7 +43,8 @@ def main():
     sns.set(style="darkgrid", font_scale=1.0)
     ax = plt.gca()
     for name, datum in data.items():
-        sns.lineplot(data=datum, x=args.x, y=args.y, ci='sd', ax=ax, label=name)
+        sns.lineplot(data=datum, x=args.x, y=args.y,
+                     ci='sd', ax=ax, label=name)
         xscale = np.max(np.asarray(datum[args.x])) > 5e3
         if xscale:
             # Just some formatting niceness: x-axis scale in scientific notation if max x is large

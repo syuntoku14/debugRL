@@ -100,6 +100,7 @@ class GridEnv(TabularEnv):
         obs_dim (int, optional): Dimension of the observation when obs_mode=="random"
         obs_mode (str, optional): Type of observation. "onehot" or "random". 
     """
+
     def __init__(self, gridspec,
                  horizon=20,
                  tiles=TILES,

@@ -3,7 +3,7 @@ from shinrl.solvers import Solver
 from shinrl.utils import (
     boltzmann_softmax,
     mellow_max,
-) 
+)
 
 
 OPTIONS = {

@@ -30,6 +30,6 @@ setup(
         "torch",
         "torchvision",
         "celluloid"
- 
+
     ],
 )

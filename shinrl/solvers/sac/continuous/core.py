@@ -127,7 +127,8 @@ class PolicyNet(nn.Module):
 
     def compute_logp_pi(self, pi_dist, pi_action):
         logp_pi = pi_dist.log_prob(pi_action).sum(axis=-1)
-        logp_pi -= (2*(np.log(2) - pi_action - F.softplus(-2*pi_action))).sum(axis=-1)
+        logp_pi -= (2*(np.log(2) - pi_action -
+                       F.softplus(-2*pi_action))).sum(axis=-1)
         return logp_pi
 
 
