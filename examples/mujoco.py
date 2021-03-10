@@ -18,6 +18,7 @@ def main():
     parser.add_argument('--exp_name', type=str, default=None)
     parser.add_argument('--task_name', type=str, default=None)
     parser.add_argument('--epochs', type=int, default=30)
+    parser.add_argument('--evaluation_interval', type=int, default=5000)
     parser.add_argument('--steps_per_epoch', type=int, default=100000)
     parser.add_argument('--load_path', type=str, default=None)
 
@@ -28,7 +29,7 @@ def main():
             parser.add_argument(arg.split('=')[0])
     args = parser.parse_args()
 
-    options = {"record_performance_interval": 5000}
+    options = {}
     for key, val in vars(args).items():
         if key not in ["solver", "env", "exp_name", "task_name", "epochs", "load_path", "steps_per_epoch"]:
             options[key] = to_numeric(val)

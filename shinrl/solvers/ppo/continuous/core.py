@@ -13,7 +13,7 @@ from shinrl import utils
 OPTIONS = {
     "num_samples": 4000,
     # Fitted iteration settings
-    "activation": "relu",
+    "activation": "tanh",
     "hidden": 128,  # size of hidden layer
     "depth": 2,  # depth of the network
     "device": "cuda" if torch.cuda.is_available() else "cpu",
@@ -24,11 +24,9 @@ OPTIONS = {
     "pi_lr": 3e-4,
     "v_lr": 1e-3,
     "td_lam": 0.95,
-    "target_kl": 0.01,
+    "target_kl": 0.1,
     "clip_ratio": 0.2,
-    "entropy_coef": 0.001,
-    "train_pi_iters": 80,
-    "train_v_iters": 80,
+    "train_net_iters": 80,
 }
 
 

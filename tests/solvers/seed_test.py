@@ -10,15 +10,15 @@ def test_seed_tabular():
     env.reset()
     solver = SamplingViSolver(env)
     fsolver = SamplingFittedViSolver(env)
-    solver.initialize({"seed": 0, "record_performance_interval": 1})
-    fsolver.initialize({"seed": 0, "record_performance_interval": 1})
+    solver.initialize({"seed": 0, "evaluation_interval": 1})
+    fsolver.initialize({"seed": 0, "evaluation_interval": 1})
     solver.run(num_steps=10)
     fsolver.run(num_steps=10)
     val1 = solver.tb_values
     fval1 = fsolver.tb_values
 
-    solver.initialize({"seed": 0, "record_performance_interval": 1})
-    fsolver.initialize({"seed": 0, "record_performance_interval": 1})
+    solver.initialize({"seed": 0, "evaluation_interval": 1})
+    fsolver.initialize({"seed": 0, "evaluation_interval": 1})
     solver.run(num_steps=10)
     fsolver.run(num_steps=10)
     val2 = solver.tb_values
@@ -27,8 +27,8 @@ def test_seed_tabular():
     assert np.all(val1 == val2)
     assert np.all(fval1 == fval2)
 
-    solver.initialize({"seed": 1, "record_performance_interval": 1})
-    fsolver.initialize({"seed": 1, "record_performance_interval": 1})
+    solver.initialize({"seed": 1, "evaluation_interval": 1})
+    fsolver.initialize({"seed": 1, "evaluation_interval": 1})
     solver.run(num_steps=10)
     fsolver.run(num_steps=10)
     val3 = solver.tb_values

@@ -22,6 +22,7 @@ DISCRETE_SOLVERS = {
 
 CONTINUOUS_SOLVERS = {
     "SAC": solvers.sac.continuous.SacSolver,
+    "PPO": solvers.ppo.continuous.PpoSolver,
 }
 
 

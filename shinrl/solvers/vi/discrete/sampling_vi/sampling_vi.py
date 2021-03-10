@@ -37,7 +37,7 @@ class SamplingSolver(Solver):
     def record_history(self, values):
         self.record_array("Values", values)
         self.set_tb_policy(values)
-        if self.step % self.solve_options["record_performance_interval"] == 0:
+        if self.step % self.solve_options["evaluation_interval"] == 0:
             expected_return = self.env.compute_expected_return(self.tb_policy)
             self.record_scalar("Return", expected_return, tag="Policy")
 

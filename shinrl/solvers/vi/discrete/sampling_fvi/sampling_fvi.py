@@ -38,7 +38,7 @@ class SamplingFittedSolver(Solver):
             self.step += 1
 
     def record_history(self):
-        if self.step % self.solve_options["record_performance_interval"] == 0:
+        if self.step % self.solve_options["evaluation_interval"] == 0:
             if self.is_tabular:
                 expected_return = \
                     self.env.compute_expected_return(self.tb_policy)

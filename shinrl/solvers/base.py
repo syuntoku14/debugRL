@@ -16,7 +16,7 @@ DEFAULT_OPTIONS = {
     "seed": 0,
     "discount": 0.99,
     "num_episodes_gym_record": 10,
-    "record_performance_interval": 100,
+    "evaluation_interval": 100,
     "record_all_array": False
 }
 

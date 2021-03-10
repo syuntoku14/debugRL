@@ -179,7 +179,7 @@ class IpgSolver(Solver):
                 self.env, self.get_action_gym, self.solve_options["num_samples"])
 
     def record_history(self):
-        if self.step % self.solve_options["record_performance_interval"] == 0:
+        if self.step % self.solve_options["evaluation_interval"] == 0:
             if self.is_tabular:
                 expected_return = \
                     self.env.compute_expected_return(self.tb_policy)

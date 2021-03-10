@@ -27,19 +27,16 @@ class PpoSolver(Solver):
             critic_loss = self.update_critic(tensor_traj)
             self.record_scalar("LossCritic", critic_loss)
 
-            self.step += 1
+            self.step += self.solve_options["train_net_iters"]
 
     def compute_coef(self, traj):
         discount, lam = self.solve_options["discount"], self.solve_options["td_lam"]
         act, rew, done = traj["act"], traj["rew"], traj["done"]
-        obs = torch.tensor(
-            traj["obs"], dtype=torch.float32, device=self.device)
-        next_obs = torch.tensor(
-            traj["next_obs"], dtype=torch.float32, device=self.device)
+        obs = torch.tensor(traj["obs"], dtype=torch.float32, device=self.device)
+        next_obs = torch.tensor(traj["next_obs"], dtype=torch.float32, device=self.device)
         values = self.value_network(obs).squeeze(1).detach().cpu().numpy()
-        next_values = self.value_network(
-            next_obs).squeeze(1).detach().cpu().numpy()
-        td_err = rew + discount * next_values - values
+        next_values = self.value_network(next_obs).squeeze(1).detach().cpu().numpy()
+        td_err = rew + discount*next_values*(~done) - values
         Q, GAE = [], []
 
         if self.is_tabular:
@@ -48,12 +45,12 @@ class PpoSolver(Solver):
                 self.tb_policy, discount)  # SxA
             oracle_Q, oracle_V = [], []
 
-        ret = values[len(rew)-1]
-        gae = td_err[len(rew)-1]
+        ret = 0. if done[len(rew)-1] else values[len(rew)-1] 
+        gae = 0. if done[len(rew)-1] else td_err[len(rew)-1]
         for step in reversed(range(len(rew))):
-            gae = td_err[step] if done[step] else td_err[step] + \
+            gae = 0. if done[step] else td_err[step] + \
                 discount*lam*gae
-            ret = values[step] if done[step] else rew[step] + discount*ret
+            ret = 0. if done[step] else rew[step] + discount*ret
             GAE.insert(0, gae)
             Q.insert(0, ret)
             if self.is_tabular:
@@ -70,6 +67,7 @@ class PpoSolver(Solver):
             self.record_scalar("AdvantageError", np.mean(
                 (GAE - (oracle_Q-oracle_V))**2), tag="GAE")
 
+        GAE = (GAE - GAE.mean()) / GAE.std()
         traj["ret"] = Q
         traj["coef"] = GAE
         return traj
@@ -79,7 +77,7 @@ class PpoSolver(Solver):
         obss, actions, log_probs = tensor_traj["obs"], tensor_traj["act"], tensor_traj["log_prob"]
         advantage = tensor_traj["coef"]
 
-        for _ in range(self.solve_options["train_pi_iters"]):
+        for i in range(self.solve_options["train_net_iters"]):
             pi, log_policy = self.policy_network(obss)
             ratio = torch.exp(log_policy - log_probs)  # B
             clip_adv = torch.clamp(ratio, 1-clip_ratio,
@@ -92,12 +90,14 @@ class PpoSolver(Solver):
             self.policy_optimizer.zero_grad()
             loss.backward()
             self.policy_optimizer.step()
-        return loss.detach().cpu().item(), approx_kl
+        self.record_scalar("StopIter", i)
+        self.record_scalar("KL", approx_kl)
+        return loss.detach().cpu().item()
 
     def update_critic(self, tensor_traj):
         obss = tensor_traj["obs"]
         returns = tensor_traj["ret"]
-        for i in range(self.solve_options["train_v_iters"]):
+        for i in range(self.solve_options["train_net_iters"]):
             values = self.value_network(obss).squeeze(-1)
             loss = self.critic_loss(values, returns)
             self.value_optimizer.zero_grad()
@@ -111,7 +111,8 @@ class PpoSolver(Solver):
         self.record_array("Values", values)
         dist = self.policy_network.compute_pi_distribution(self.all_obss)
         log_policy = dist.log_prob(self.all_actions)
-        policy_probs = torch.softmax(log_policy, dim=-1).reshape(self.dS, self.dA)
+        policy_probs = torch.softmax(
+            log_policy, dim=-1).reshape(self.dS, self.dA)
         self.record_array("Policy", policy_probs)
 
     def get_action_gym(self, env):
@@ -131,7 +132,7 @@ class PpoSolver(Solver):
                 self.env, self.get_action_gym, self.solve_options["num_samples"])
 
     def record_history(self):
-        if self.step % self.solve_options["record_performance_interval"] == 0:
+        if self.step % self.solve_options["evaluation_interval"] == 0:
             if self.is_tabular:
                 expected_return = \
                     self.env.compute_expected_return(self.tb_policy)
