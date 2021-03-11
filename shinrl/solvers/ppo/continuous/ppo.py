@@ -51,9 +51,9 @@ class PpoSolver(Solver):
         for step in reversed(range(len(rew))):
             gae = td_err[step] + discount*lam*gae*(~done[step])
             gaes[step] = gae
+        traj["ret"] = values + gaes
         gaes = (gaes - gaes.mean()) / gaes.std()
         traj["coef"] = gaes
-        traj["ret"] = values + gaes
         return traj
 
     def iter(self, traj):
@@ -84,6 +84,9 @@ class PpoSolver(Solver):
             self.solve_options["ent_coef"]*entropy
         self.optimizer.zero_grad()
         loss.backward()
+        if self.solve_options["clip_grad"]:
+            for param in self.params:
+                param.grad.data.clamp_(-1, 1)
         self.optimizer.step()
         return actor_loss.detach().cpu().item(), critic_loss.detach().cpu().item()
 

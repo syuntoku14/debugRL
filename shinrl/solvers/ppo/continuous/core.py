@@ -11,10 +11,10 @@ from shinrl import utils
 
 
 OPTIONS = {
-    "num_samples": 80,
+    "num_samples": 400,
     # Fitted iteration settings
     "activation": "tanh",
-    "hidden": 128,  # size of hidden layer
+    "hidden": 256,  # size of hidden layer
     "depth": 2,  # depth of the network
     "device": "cuda" if torch.cuda.is_available() else "cpu",
     "critic_loss": "mse",  # mse or huber
@@ -25,8 +25,8 @@ OPTIONS = {
     "vf_coef": 0.5,
     "td_lam": 0.95,
     "clip_ratio": 0.2,
-    "train_net_iters": 80,
     "ent_coef": 0.001,
+    "clip_grad": True
 }
 
 
@@ -142,10 +142,10 @@ class Solver(Solver):
             self.env, self.solve_options).to(self.device)
         self.policy_network = PolicyNet(
             self.env, self.solve_options).to(self.device)
-        params = itertools.chain(
+        self.params = itertools.chain(
             self.value_network.parameters(),
             self.policy_network.parameters())
-        self.optimizer = self.optimizer(params, lr=self.solve_options["lr"])
+        self.optimizer = self.optimizer(self.params, lr=self.solve_options["lr"])
 
         # Collect random samples in advance
         if self.is_tabular:
