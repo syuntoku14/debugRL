@@ -92,14 +92,14 @@ def get_tb_action(env, policy):
 
 
 # -----trajectory utils-----
-def trajectory_to_tensor(trajectory, device="cpu", is_discrete=True):
+def trajectory_to_tensor(trajectory, device="cpu"):
     tensor_traj = {}
     for key, value in trajectory.items():
         if trajectory[key].shape[-1] == 1:
             value = np.squeeze(value, axis=-1)
         if key == "done" or key == "timeout":
             dtype = torch.bool
-        elif key in ["state", "next_state"] or (key == "act" and is_discrete):
+        elif key in ["state", "next_state"] or trajectory[key].dtype == np.int32:
             dtype = torch.long
         else:
             dtype = torch.float32

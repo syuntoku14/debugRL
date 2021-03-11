@@ -21,12 +21,12 @@ def setUp():
 def test_tb(setUp):
     tb_env, _ = setUp
     solver = PpoSolver(
-        tb_env, solve_options={"num_samples": 10, "train_net_iters": 1})
+        tb_env, solve_options={"num_samples": 10, "num_minibatches": 1})
     run_solver_tb(solver, tb_env)
 
 
 def test_gym(setUp):
     _, gym_env = setUp
     solver = PpoSolver(
-        gym_env, solve_options={"num_samples": 10, "train_net_iters": 1})
+        gym_env, solve_options={"num_samples": 10, "num_minibatches": 1})
     run_solver_gym(solver, gym_env)

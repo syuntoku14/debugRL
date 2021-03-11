@@ -23,8 +23,7 @@ class SacSolver(Solver):
             # ----- generate mini-batch from the replay_buffer -----
             trajectory = self.buffer.sample(
                 self.solve_options["minibatch_size"])
-            tensor_traj = utils.trajectory_to_tensor(
-                trajectory, self.device, is_discrete=False)
+            tensor_traj = utils.trajectory_to_tensor(trajectory, self.device)
             if len(tensor_traj["act"].shape) == 1:
                 tensor_traj["act"] = tensor_traj["act"].unsqueeze(-1)
 
