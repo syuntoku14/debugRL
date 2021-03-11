@@ -21,12 +21,10 @@ def setUp():
 def test_tb(setUp):
     tb_env, _ = setUp
     solver = SacSolver(tb_env)
-    solver.initialize()
     run_solver_tb(solver, tb_env)
 
 
 def test_gym(setUp):
     _, gym_env = setUp
     solver = SacSolver(gym_env)
-    solver.initialize()
     run_solver_gym(solver, gym_env)

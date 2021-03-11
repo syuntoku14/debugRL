@@ -11,22 +11,22 @@ from shinrl import utils
 
 
 OPTIONS = {
-    "num_samples": 4000,
+    "num_samples": 80,
     # Fitted iteration settings
     "activation": "tanh",
     "hidden": 128,  # size of hidden layer
     "depth": 2,  # depth of the network
     "device": "cuda" if torch.cuda.is_available() else "cpu",
     "critic_loss": "mse",  # mse or huber
-    "clip_grad": False,  # clip the gradient if True
     "optimizer": "Adam",
     # PPO settings
-    "pi_lr": 3e-4,
-    "v_lr": 1e-3,
+    "lr": 3e-4,
+    "num_minibatches": 4,
+    "vf_coef": 0.5,
     "td_lam": 0.95,
-    "target_kl": 0.1,
     "clip_ratio": 0.2,
     "train_net_iters": 80,
+    "ent_coef": 0.001,
 }
 
 
@@ -89,14 +89,14 @@ class PolicyNet(nn.Module):
             env, solve_options["hidden"], solve_options["depth"],
             solve_options["activation"])
         act_dim = env.action_space.shape[0]
-        log_std = -0.5 * np.ones(act_dim, dtype=np.float32)
+        log_std = np.zeros(act_dim, dtype=np.float32)
         self.log_std = torch.nn.Parameter(torch.as_tensor(log_std))
         self.mu_layer = nn.Linear(solve_options["hidden"], act_dim)
         self.solve_options = solve_options
 
     def forward(self, obs):
         pi_dist = self.compute_pi_distribution(obs)
-        pi_action = pi_dist.rsample()
+        pi_action = pi_dist.sample()
         logp_pi = self.compute_logp_pi(pi_dist, pi_action)
         return pi_action, logp_pi
 
@@ -107,12 +107,12 @@ class PolicyNet(nn.Module):
             x = obss
         net_out = self.fc(x)
         mu = self.mu_layer(net_out)
-        std = torch.exp(self.log_std)
+        std = torch.exp(self.log_std).expand_as(mu)
         pi_dist = Normal(mu, std)
         return pi_dist
 
     def compute_logp_pi(self, pi_dist, pi_action):
-        logp_pi = pi_dist.log_prob(pi_action).sum(axis=-1)
+        logp_pi = pi_dist.log_prob(pi_action).sum(-1)
         return logp_pi
 
 
@@ -140,14 +140,12 @@ class Solver(Solver):
         # set value network
         self.value_network = ValueNet(
             self.env, self.solve_options).to(self.device)
-        self.value_optimizer = self.optimizer(
-            self.value_network.parameters(), lr=self.solve_options["v_lr"])
-
-        # actor network
         self.policy_network = PolicyNet(
             self.env, self.solve_options).to(self.device)
-        self.policy_optimizer = self.optimizer(
-            self.policy_network.parameters(), lr=self.solve_options["pi_lr"])
+        params = itertools.chain(
+            self.value_network.parameters(),
+            self.policy_network.parameters())
+        self.optimizer = self.optimizer(params, lr=self.solve_options["lr"])
 
         # Collect random samples in advance
         if self.is_tabular:
@@ -170,15 +168,13 @@ class Solver(Solver):
     def save(self, path):
         data = {
             "vnet": self.value_network.state_dict(),
-            "valopt": self.value_optimizer.state_dict(),
             "polnet": self.policy_network.state_dict(),
-            "polopt": self.policy_optimizer.state_dict(),
+            "opt": self.optimizer.state_dict(),
         }
         super().save(path, data)
 
     def load(self, path):
         data = super().load(path, device=self.device)
         self.value_network.load_state_dict(data["vnet"])
-        self.value_optimizer.load_state_dict(data["valopt"])
         self.policy_network.load_state_dict(data["polnet"])
-        self.policy_optimizer.load_state_dict(data["polopt"])
+        self.optimizer.load_state_dict(data["opt"])

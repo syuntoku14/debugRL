@@ -18,92 +18,74 @@ class PpoSolver(Solver):
             # ------ collect samples using the current policy ------
             trajectory = self.collect_samples(
                 self.solve_options["num_samples"])
-            trajectory = self.compute_coef(trajectory)
-            tensor_traj = utils.trajectory_to_tensor(trajectory, self.device)
+            with torch.no_grad():
+                trajectory = self.compute_coef(trajectory)
 
             # ----- update networks -----
-            actor_loss = self.update_actor(tensor_traj)
+            for traj in self.iter(trajectory):
+                tensor_traj = utils.trajectory_to_tensor(
+                    traj, self.device)
+                if len(tensor_traj["act"].shape) == 1:
+                    tensor_traj["act"] = tensor_traj["act"].unsqueeze(-1)
+                actor_loss, critic_loss = self.update(tensor_traj)
             self.record_scalar("LossActor", actor_loss)
-            critic_loss = self.update_critic(tensor_traj)
             self.record_scalar("LossCritic", critic_loss)
 
-            self.step += self.solve_options["train_net_iters"]
+            self.step += 1
 
     def compute_coef(self, traj):
         discount, lam = self.solve_options["discount"], self.solve_options["td_lam"]
-        act, rew, done = traj["act"], traj["rew"], traj["done"]
-        obs = torch.tensor(traj["obs"], dtype=torch.float32, device=self.device)
-        next_obs = torch.tensor(traj["next_obs"], dtype=torch.float32, device=self.device)
+        act, rew, done, timeout = traj["act"], traj["rew"], traj["done"], traj["timeout"]
+        # done = done * (~timeout)
+        obs = torch.tensor(
+            traj["obs"], dtype=torch.float32, device=self.device)
+        next_obs = torch.tensor(
+            traj["next_obs"], dtype=torch.float32, device=self.device)
         values = self.value_network(obs).squeeze(1).detach().cpu().numpy()
-        next_values = self.value_network(next_obs).squeeze(1).detach().cpu().numpy()
+        next_values = self.value_network(
+            next_obs).squeeze(1).detach().cpu().numpy()
         td_err = rew + discount*next_values*(~done) - values
-        Q, GAE = [], []
 
-        if self.is_tabular:
-            state, next_state = traj["state"], traj["next_state"]
-            Q_table = self.env.compute_action_values(
-                self.tb_policy, discount)  # SxA
-            oracle_Q, oracle_V = [], []
-
-        ret = 0. if done[len(rew)-1] else values[len(rew)-1] 
-        gae = 0. if done[len(rew)-1] else td_err[len(rew)-1]
+        gae = 0.
+        gaes = np.zeros_like(rew)
         for step in reversed(range(len(rew))):
-            gae = 0. if done[step] else td_err[step] + \
-                discount*lam*gae
-            ret = 0. if done[step] else rew[step] + discount*ret
-            GAE.insert(0, gae)
-            Q.insert(0, ret)
-            if self.is_tabular:
-                a = self.env.discretize_action(act[step])
-                oracle_Q.insert(0, Q_table[state[step], a])
-                oracle_V.insert(
-                    0, np.sum(self.tb_policy[state[step]] * Q_table[state[step]]))
-        Q, GAE = np.array(Q), np.array(GAE)
-        if self.is_tabular:
-            oracle_Q, oracle_V = np.array(oracle_Q), np.array(oracle_V)
-            self.record_scalar("ReturnError", np.mean((Q-oracle_Q)**2))
-            self.record_scalar("AdvantageError", np.mean(
-                ((Q-values) - (oracle_Q-oracle_V))**2), tag="Q-V")
-            self.record_scalar("AdvantageError", np.mean(
-                (GAE - (oracle_Q-oracle_V))**2), tag="GAE")
-
-        GAE = (GAE - GAE.mean()) / GAE.std()
-        traj["ret"] = Q
-        traj["coef"] = GAE
+            gae = td_err[step] + discount*lam*gae*(~done[step])
+            gaes[step] = gae
+        gaes = (gaes - gaes.mean()) / gaes.std()
+        traj["coef"] = gaes
+        traj["ret"] = values + gaes
         return traj
 
-    def update_actor(self, tensor_traj):
+    def iter(self, traj):
+        batch_size = traj["ret"].shape[0]
+        minibatch_size = batch_size // self.solve_options["num_minibatches"]
+        for _ in range(self.solve_options["num_minibatches"]):
+            rand_ids = np.random.randint(0, batch_size, minibatch_size)
+            yield {key: val[rand_ids] for key, val in traj.items()}
+
+    def update(self, tensor_traj):
         clip_ratio = self.solve_options["clip_ratio"]
-        obss, actions, log_probs = tensor_traj["obs"], tensor_traj["act"], tensor_traj["log_prob"]
-        advantage = tensor_traj["coef"]
+        obss, actions, old_log_probs = tensor_traj["obs"], tensor_traj["act"], tensor_traj["log_prob"]
+        returns, advantage = tensor_traj["ret"], tensor_traj["coef"]
 
-        for i in range(self.solve_options["train_net_iters"]):
-            pi, log_policy = self.policy_network(obss)
-            ratio = torch.exp(log_policy - log_probs)  # B
-            clip_adv = torch.clamp(ratio, 1-clip_ratio,
-                                   1+clip_ratio) * advantage
-            loss = -torch.min(ratio * advantage, clip_adv).mean()
-            with torch.no_grad():
-                approx_kl = (log_probs - log_policy).mean().item()
-                if approx_kl > 1.5 * self.solve_options["target_kl"]:
-                    break
-            self.policy_optimizer.zero_grad()
-            loss.backward()
-            self.policy_optimizer.step()
-        self.record_scalar("StopIter", i)
-        self.record_scalar("KL", approx_kl)
-        return loss.detach().cpu().item()
+        dist = self.policy_network.compute_pi_distribution(obss)
+        log_probs = self.policy_network.compute_logp_pi(dist, actions)
+        ratio = torch.exp(log_probs - old_log_probs)  # B
+        clip_adv = torch.clamp(ratio, 1-clip_ratio, 1+clip_ratio)*advantage
+        actor_loss = -torch.min(ratio*advantage, clip_adv).mean()
 
-    def update_critic(self, tensor_traj):
-        obss = tensor_traj["obs"]
-        returns = tensor_traj["ret"]
-        for i in range(self.solve_options["train_net_iters"]):
-            values = self.value_network(obss).squeeze(-1)
-            loss = self.critic_loss(values, returns)
-            self.value_optimizer.zero_grad()
-            loss.backward()
-            self.value_optimizer.step()
-        return loss.detach().cpu().item()
+        values = self.value_network(obss).squeeze(1)
+        critic_loss = self.critic_loss(values, returns)
+
+        entropy = dist.entropy().mean()
+
+        loss = actor_loss + \
+            self.solve_options["vf_coef"]*critic_loss - \
+            self.solve_options["ent_coef"]*entropy
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+        return actor_loss.detach().cpu().item(), critic_loss.detach().cpu().item()
 
     def set_tb_values_policy(self):
         values = self.value_network(self.all_obss).reshape(
