@@ -11,8 +11,17 @@ from shinrl.solvers.sac.discrete import SacSolver
 
 env = gym.make("TabularPendulum-v0")
 solver = SacSolver(env)
+
+# train SAC
 solver.run(num_steps=500)
+
+# plot learned state values
+q_values = solver.tb_values
+v_values = np.sum(solver.tb_policy*q_values, axis=-1)
+env.plot_values(v_values, title="State Values")
 ```
+
+Documentation: 
 
 ![Ant](assets/ant.gif)
 ![Pendulum](assets/pendulum.gif)
@@ -39,9 +48,9 @@ See [quickstart.py](examples/quickstart.py) and [tutorial.ipynb](examples/tutori
 See [shinrl/\_\_init\_\_.py](shinrl/__init__.py) for the available environments.
 
 ### :fire: Gym solvers
-* `ShinRL` provides algorithms to solve the OpenAI-Gym environments as `Solver`.
-* The dependencies between solvers are minimized to facilitate the addition and modification of new algorithms.
+* `ShinRL` provides algorithms to solve MDPs as `Solver`.
 * Some solvers support the regular Gym environments as well as `TabularEnv`.
+* The dependencies between solvers are minimized to facilitate the addition and modification of new algorithms.
 * Easy to visualize the training progress with [ClearML](https://github.com/allegroai/clearml).
 
 #### Implemented algorithms
