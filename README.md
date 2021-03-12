@@ -1,4 +1,4 @@
-**Status:** `DebugRL` is deprecated. I'm working on [ShinRL](https://github.com/syuntoku14/debugRL/tree/shinrl) which supports regular gym environments such as Mujoco and Atari.
+**Status:** Under development (expect bug fixes and huge updates)
 
 # ShinRL: A python library for analyzing reinforcement learning
 
