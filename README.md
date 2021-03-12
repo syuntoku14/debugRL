@@ -1,4 +1,4 @@
-**Status:** Under development (expect bug fixes and huge updates)
+**Status:** `DebugRL` is deprecated. I'm working on [ShinRL](https://github.com/syuntoku14/debugRL/tree/shinrl) which supports regular gym environments such as Mujoco and Atari.
 
 # DebugRL: A python library for debugging RL algorithms
 
