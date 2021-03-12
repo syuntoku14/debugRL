@@ -1,157 +1,94 @@
 **Status:** `DebugRL` is deprecated. I'm working on [ShinRL](https://github.com/syuntoku14/debugRL/tree/shinrl) which supports regular gym environments such as Mujoco and Atari.
 
-# DebugRL: A python library for debugging RL algorithms
+# ShinRL: A python library for analyzing reinforcement learning
 
-[日本語](assets/README.jp.md) | English
-
-`debug_rl` is a library for analyzing the behavior of reinforcement learning algorithms, including DeepRL.
-This library is inspired by [diag_q](https://github.com/justinjfu/diagnosing_qlearning) (See [Diagnosing Bottlenecks in Deep Q-learning Algorithms](https://arxiv.org/abs/1902.10250)), but has been developed with an emphasis on ease of use.
-Using matrix-form representation of the dynamics of environments, debug_rl allows you to calculate the oracle values such as action-value functions and stationary distributions that can only be approximated by multiple samples in the usual Gym environment.
-To facilitate the addition and modification of new algorithms, implementations follows [OpenAI Spinningup](https://github.com/openai/spinningup)-style to minimize the dependencies between the algorithms.
-See the notebook in [examples](examples) for basic usage.
-
-The debug_rl is constructed of two parts: the `envs` and the `solvers`.
-Although the `solvers` requires PyTorch, it is possible to install only `envs` for users who do not use PyTorch (See [Installation](#Installation)).
-
-* `envs`:
-  * All environments are subclasses of [TabularEnv](debug_rl/envs/base.py). They have step and reset functions similar to those of OpenAI Gym so that they can be used in the same way as the regular Gym environment.
-  * Some of the environments support continuous action input and image-based observation modes that enable analysis of continuous action RL and CNN.
-  * TabularEnv class has useful functions such as ``compute_expected_return`` to calculate true cumulative rewards and ``compute_action_values`` to calculate true action values (see [debug_rl/envs/base.py](debug_rl/envs/base.py) for details).
-  * **All the environments returns done only at the end of the horizon.** Thus, the handling of done in solvers may be different from usual.
-  * The following environments are supported:
-
-|               Environment                |   Dicrete action   | Continuous action  | Image Observation  | Tuple Observation  |
-| :--------------------------------------: | :----------------: | :----------------: | :----------------: | :----------------: |
-|   [GridCraft](debug_rl/envs/gridcraft)   | :heavy_check_mark: |        :x:         |        :x:         | :heavy_check_mark: |
-| [MountainCar](debug_rl/envs/mountaincar) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-|    [Pendulum](debug_rl/envs/pendulum)    | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-|    [CartPole](debug_rl/envs/cartpole)    | :heavy_check_mark: | :heavy_check_mark: |        :x:         | :heavy_check_mark: |
-
-* `solvers`:
-  * A solver solves a **TabularEnv** by executing the `run` function.
-  * You can continue learning by repeatedly calling `run` function. If you want to initialize the solver, call `initialize` function.
-  * You can check the training progress by passing the logger of [clearML](https://github.com/allegroai/clearml) at the initialization. It is possible to run the solver without a logger.
-  * Currently the following solvers are supported:
-
-|                                      Solver                                      | Sample approximation | Function approximation | Continuous Action  |                                                  Algorithm                                                  |
-| :------------------------------------------------------------------------------: | :------------------: | :--------------------: | :----------------: | :---------------------------------------------------------------------------------------------------------: |
-|          [OracleViSolver, OracleCviSolver](debug_rl/solvers/oracle_vi)           |         :x:          |          :x:           |        :x:         |      Q-learning, [Conservative Value Iteration (CVI)](http://proceedings.mlr.press/v89/kozuno19a.html)      |
-|     [ExactFittedViSolver, ExactFittedCviSolver](debug_rl/solvers/exact_fvi)      |         :x:          |   :heavy_check_mark:   |        :x:         |                                        Fitted Q-learning, Fitted CVI                                        |
-|       [SamplingViSolver, SamplingCviSolver](debug_rl/solvers/sampling_vi)        |  :heavy_check_mark:  |          :x:           |        :x:         |                                               Q-learning, CVI                                               |
-| [SamplingFittedViSolver, SamplingFittedCviSolver](debug_rl/solvers/sampling_fvi) |  :heavy_check_mark:  |   :heavy_check_mark:   |        :x:         | Fitted Q-learning ([DQN](https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf)), Fitted CVI |
-|                    [ExactPgSolver](debug_rl/solvers/exact_pg)                    |         :x:          |   :heavy_check_mark:   |        :x:         |                                               Policy gradient                                               |
-|                 [SamplingPgSolver](debug_rl/solvers/sampling_pg)                 |         :x:          |   :heavy_check_mark:   |        :x:         |                                      Policy gradient (REINFORCE, A2C)                                       |
-|                        [IpgSolver](debug_rl/solvers/ipg)                         |         :x:          |   :heavy_check_mark:   |        :x:         |                      [Interpolated policy gradient](https://arxiv.org/abs/1706.00387)                       |
-|                        [SacSolver](debug_rl/solvers/sac)                         |  :heavy_check_mark:  |   :heavy_check_mark:   |        :x:         |                       [Discrete Soft Actor Critic](https://arxiv.org/abs/1910.07207)                        |
-|              [SacContinuousSolver](debug_rl/solvers/sac_continuous)              |  :heavy_check_mark:  |   :heavy_check_mark:   | :heavy_check_mark: |                            [Soft Actor Critic](https://arxiv.org/abs/1801.01290)                            |
-|                        [PpoSolver](debug_rl/solvers/ppo)                         |  :heavy_check_mark:  |   :heavy_check_mark:   |        :x:         |                 [Proximal Policy Optimization Algorithms](https://arxiv.org/abs/1707.06347)                 |
-
-# Getting started
-
-Here, we see a simple debugging example using debug_rl.
-The described code can be executed by:
-
-```bash
-python examples/simple_debug.py
-```
-
-TabularEnv has several methods to compute oracle values.
-Using those methods, you can analyze whether trained models actually solve the MDP or not.
-
-* ```env.compute_action_values(policy)``` returns the oracle Q values from a policy matrix (numpy.array with `# of states`x`# of actions`).
-* ```env.compute_visitation(policy, discount=1.0)``` returns the oracle normalized discounted stationary distribution from a policy matrix.
-* ```env.compute_expected_return(policy)``` returns the oracle cumulative rewards from a policy matrix.
-
-In this example, we train a SAC model in Pendulum environment, and check whether the model successfully learns the soft Q values using ```compute_action_values``` function.
-Since Pendulum environment can plot only V values instead Q values, out goal is to plot trained soft V values.
-
-We do debugging as follows:
-
-1. Train a model. We use the SAC implementation from debug_rl in this example. You can use any models as long as it returns Q values or action probabilities from observations.
-2. Using all_observations from TabularEnv, compute the policy matrix.
-3. Compute soft Q values by env.compute_action_values. Since Pendulum environment supports only V values plotting, the following code plots V values instead. Check GridCraft environment if you want to see the behavior of Q values (see [examples/tutorial.ipynb](examples/tutorial.ipynb) for details).
+`ShinRL` is a reinforcement learning (RL) library with useful analysis tools.
+It allows you to analyze the *shin* (*shin* means oracle in Japanese) behaviors of RL.
 
 ```python
-import torch
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy import special
-from debug_rl.envs.pendulum import Pendulum, plot_pendulum_values, reshape_values
-from debug_rl.solvers import SacSolver
-device = "cuda" if torch.cuda.is_available() else "cpu"
+import gym
+from shinrl.solvers.sac.discrete import SacSolver
 
-# Step 1: train networks
-env = Pendulum()
-solver = SacSolver(env, solve_options={"device": device})
-solver.run(num_steps=5000)
-value_network = solver.value_network
-policy_network = solver.policy_network
+env = gym.make("TabularPendulum-v0")
+solver = SacSolver(env)
 
-# Step 2: create policy matrix
-tensor_all_obss = torch.tensor(
-    env.all_observations, dtype=torch.float32, device=device)
-preference = policy_network(tensor_all_obss).reshape(
-    env.dS, env.dA).detach().cpu().numpy()  # dS x dA
-policy = special.softmax(preference, axis=-1).astype(np.float64)
-policy /= policy.sum(axis=-1, keepdims=True)  # dS x dA
+# train SAC
+solver.run(num_steps=500)
 
-# Step 3: plot soft Q values
-oracle_Q = env.compute_action_values(
-    policy, er_coef=solver.solve_options["er_coef"])  # dS x dA
-trained_Q = value_network(tensor_all_obss).reshape(
-    env.dS, env.dA).detach().cpu().numpy()  # dS x dA
-V_max = max(oracle_Q.max(), trained_Q.max())
-V_min = min(oracle_Q.min(), trained_Q.min())
-
-oracle_V = np.sum(policy*oracle_Q, axis=-1)
-oracle_V = reshape_values(env, oracle_V)  # angles x velocities
-print("Press Q on the image to go next.")
-plot_pendulum_values(env, oracle_V, vmin=V_min,
-                     vmax=V_max, title="Oracle State values: t=0")
-plt.show()
-
-trained_V = np.sum(policy*trained_Q, axis=-1)
-trained_V = reshape_values(env, trained_V)  # angles x velocities
-plot_pendulum_values(env, trained_V, vmin=V_min,
-                     vmax=V_max, title="Trained State values: t=0")
-plt.show()
+# plot learned state values
+q_values = solver.tb_values
+v_values = np.sum(solver.tb_policy*q_values, axis=-1)
+env.plot_values(v_values, title="State Values")
 ```
 
-The code above will generate the following figures.
-The upper figure shows the oracle soft V values, and the bottom figure shows the trained soft V values.
+Documentation: 
 
-![](assets/oracle_V.png)
-![](assets/trained_V.png)
+![Ant](assets/ant.gif)
+![Pendulum](assets/pendulum.gif)
+![Tabular](assets/tabular.gif)
 
-Since the oracle and the trained V values are quite similar, we can conclude that the network learns the soft Q values successfully.
+See [quickstart.py](examples/quickstart.py) and [tutorial.ipynb](examples/tutorial.ipynb) for the basic usages.
+
+## Key features
+
+### :zap: Oracle analysis with TabularEnv
+* A flexible class `TabularEnv` provides useful functions for RL analysis. For example, you can calculate the oracle action-values with ``compute_action_values`` method.
+* Subclasses of `TabularEnv` can be used as the regular OpenAI-Gym environments.
+* Some environments support continuous action space and image observation.
+
+#### Implemented environments
+
+|                   Environment                    |   Dicrete action   | Continuous action  | Image Observation  | Tuple Observation  |
+| :----------------------------------------------: | :----------------: | :----------------: | :----------------: | :----------------: |
+|        [GridCraft](shinrl/envs/gridcraft)        | :heavy_check_mark: |        :x:         |        :x:         | :heavy_check_mark: |
+| [TabularMountainCar-v0](shinrl/envs/mountaincar) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+|    [TabularPendulum-v0](shinrl/envs/pendulum)    | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+|    [TabularCartPole-v0](shinrl/envs/cartpole)    | :heavy_check_mark: | :heavy_check_mark: |        :x:         | :heavy_check_mark: |
+
+See [shinrl/\_\_init\_\_.py](shinrl/__init__.py) for the available environments.
+
+### :fire: Gym solvers
+* `ShinRL` provides algorithms to solve MDPs as `Solver`.
+* Some solvers support the regular Gym environments as well as `TabularEnv`.
+* The dependencies between solvers are minimized to facilitate the addition and modification of new algorithms.
+* Easy to visualize the training progress with [ClearML](https://github.com/allegroai/clearml).
+
+#### Implemented algorithms
+
+|                                          Algorithms                                           |                 Discrete Control                  |                 Continuous Control                  |                                                                  Solvers                                                                  |
+| :-------------------------------------------------------------------------------------------: | :-----------------------------------------------: | :-------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------: |
+| Value Iteration ([DQN](https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf)) | [:heavy_check_mark:](shinrl/solvers/vi/discrete)  |                         :x:                         | <sup id="a1">[1](#f1)</sup>OracleViSolver<br>SamplingViSolver<br>ExactFittedViSolver<br><sup id="a1">[2](#f2)</sup>SamplingFittedViSolver |
+|        [Conservative Value Iteration](http://proceedings.mlr.press/v89/kozuno19a.html)        | [:heavy_check_mark:](shinrl/solvers/vi/discrete)  |                         :x:                         |            OracleCviSolver<br>SamplingCviSolver<br>ExactFittedCviSolver<br><sup id="a1">[2](#f2)</sup>SamplingFittedCviSolver             |
+|                               Policy Gradient (REINFORCE, A2C)                                | [:heavy_check_mark:](shinrl/solvers/pg/discrete)  |                         :x:                         |                                       ExactPgSolver<br><sup id="a1">[2](#f2)</sup>SamplingPgSolver                                        |
+|               [Interpolated Policy Gradient](https://arxiv.org/abs/1706.00387)                | [:heavy_check_mark:](shinrl/solvers/ipg/discrete) |                         :x:                         |                                                   <sup id="a1">[2](#f2)</sup>IpgSolver                                                    |
+|               [Proximal Policy Optimization](https://arxiv.org/abs/1707.06347)                | [:heavy_check_mark:](shinrl/solvers/ppo/discrete) | [:heavy_check_mark:](shinrl/solvers/ppo/continuous) |                                                   <sup id="a1">[2](#f2)</sup>PpoSolver                                                    |
+|                      [Soft Actor-Critic](shinrl/solvers/sac_continuous)                       | [:heavy_check_mark:](shinrl/solvers/sac/discrete) | [:heavy_check_mark:](shinrl/solvers/sac/continuous) |                                                   <sup id="a1">[2](#f2)</sup>SacSolver                                                    |
+
+<b id="f1">1</b> The naming rule follows [Diagnosing Bottlenecks in Deep Q-learning Algorithms](https://arxiv.org/abs/1902.10250): 
+* *Oracle-* solvers don't contain any errors. 
+* *Sampling-* solvers use data sampled from MDP.
+* *Exact Fitted-* solvers use function approximation but don't use sampled data.
+* *Sampling Fitted-* solvers use both function approximation and sampled data. 
+
+<b id="f2">2</b> Those solvers support both TabularEnv and regular Gym environments.
 
 # Installation
 
-You can install both the debug_rl.envs and debug_rl.solvers by:
-
 ```bash
-git clone git@github.com:syuntoku14/debugRL.git
-cd debugRL
-pip install -e .[solver]
-```
-
-If you want to use only the debug_rl.envs, install debug_rl by:
-
-```bash
-git clone git@github.com:syuntoku14/debugRL.git
-cd debugRL
+git clone git@github.com:syuntoku14/ShinRL.git
+cd ShinRL
 pip install -e .
 ```
 
 # Citation
 
 ```
-@misc{toshinori2020debugrl,
+@misc{toshinori2020shinrl,
     author = {Kitamura Toshinori},
-    title = {DebugRL},
+    title = {ShinRL},
     year = {2020},
     publisher = {GitHub},
     journal = {GitHub repository},
-    howpublished = {\url{https://github.com/syuntoku14/debugRL}}
+    howpublished = {\url{https://github.com/syuntoku14/ShinRL}}
 }
 ```

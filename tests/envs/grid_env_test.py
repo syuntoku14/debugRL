@@ -1,14 +1,13 @@
 import pytest
 import numpy as np
-from debug_rl.envs.gridcraft import GridEnv, spec_from_string
-from debug_rl.envs.gridcraft.wrappers import OneHotObsWrapper, RandomObsWrapper
+from shinrl.envs.gridcraft import GridEnv, grid_spec_from_string
 
 
 def test_grid_env():
-    maze = spec_from_string("SOOO\\" +
-                            "OLLL\\" +
-                            "OOOO\\" +
-                            "OLRO\\")
+    maze = grid_spec_from_string("SOOO\\" +
+                                 "OLLL\\" +
+                                 "OOOO\\" +
+                                 "OLRO\\")
     # maze = MAZE_LAVA
     env = GridEnv(maze, trans_eps=0.0)
     env.reset()
@@ -28,14 +27,13 @@ def test_grid_env():
         env.dS, env.dA)
 
 
-def test_coord_wrapper():
-    maze = spec_from_string("SOOO\\" +
-                            "OLLL\\" +
-                            "OOOO\\" +
-                            "OLRO\\")
+def test_onehot():
+    maze = grid_spec_from_string("SOOO\\" +
+                                 "OLLL\\" +
+                                 "OOOO\\" +
+                                 "OLRO\\")
     # maze = MAZE_LAVA
-    env = GridEnv(maze, trans_eps=0.0)
-    env = OneHotObsWrapper(env)
+    env = GridEnv(maze, trans_eps=0.0, obs_mode="onehot")
     env.reset()
     for i in range(10):
         a = env.action_space.sample()
@@ -43,15 +41,14 @@ def test_coord_wrapper():
     assert obs.shape == (8, )
 
 
-def test_random_wrapper():
-    maze = spec_from_string("SOOO\\" +
-                            "OLLL\\" +
-                            "OOOO\\" +
-                            "OLRO\\")
+def test_random():
+    maze = grid_spec_from_string("SOOO\\" +
+                                 "OLLL\\" +
+                                 "OOOO\\" +
+                                 "OLRO\\")
     # maze = MAZE_LAVA
-    env = GridEnv(maze, trans_eps=0.0)
     obs_dim = 5
-    env = RandomObsWrapper(env, obs_dim=obs_dim)
+    env = GridEnv(maze, trans_eps=0.0, obs_dim=obs_dim, obs_mode="random")
     env.reset()
     for i in range(10):
         a = env.action_space.sample()
