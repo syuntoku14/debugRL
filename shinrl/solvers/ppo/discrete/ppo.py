@@ -18,20 +18,22 @@ class PpoSolver(Solver):
             # ------ collect samples using the current policy ------
             trajectory = self.collect_samples(
                 self.solve_options["num_samples"])
-            trajectory = self.compute_coef(trajectory)
-            tensor_traj = utils.trajectory_to_tensor(trajectory, self.device)
+            with torch.no_grad():
+                trajectory = self.compute_coef(trajectory)
 
             # ----- update networks -----
-            actor_loss = self.update_actor(tensor_traj)
+            for traj in self.iter(trajectory):
+                tensor_traj = utils.trajectory_to_tensor(traj, self.device)
+                actor_loss, critic_loss = self.update(tensor_traj)
             self.record_scalar("LossActor", actor_loss)
-            critic_loss = self.update_critic(tensor_traj)
             self.record_scalar("LossCritic", critic_loss)
 
             self.step += 1
 
     def compute_coef(self, traj):
         discount, lam = self.solve_options["discount"], self.solve_options["td_lam"]
-        act, rew, done = traj["act"], traj["rew"], traj["done"]
+        rew, done, timeout = traj["rew"], traj["done"], traj["timeout"]
+        # done = done * (~timeout)
         obs = torch.tensor(
             traj["obs"], dtype=torch.float32, device=self.device)
         next_obs = torch.tensor(
@@ -39,69 +41,56 @@ class PpoSolver(Solver):
         values = self.value_network(obs).squeeze(1).detach().cpu().numpy()
         next_values = self.value_network(
             next_obs).squeeze(1).detach().cpu().numpy()
-        td_err = rew + discount * next_values - values
-        Q, GAE = [], []
+        td_err = rew + discount*next_values*(~done) - values
 
-        if self.is_tabular:
-            state, next_state = traj["state"], traj["next_state"]
-            Q_table = self.env.compute_action_values(
-                self.tb_policy, discount)  # SxA
-            oracle_Q, oracle_V = [], []
-
-        ret = values[len(rew)-1]
-        gae = td_err[len(rew)-1]
+        gae = 0.
+        gaes = np.zeros_like(rew)
+        ret = 0.
+        rets = np.zeros_like(rew)
         for step in reversed(range(len(rew))):
-            gae = td_err[step] if done[step] else td_err[step] + \
-                discount*lam*gae
-            ret = values[step] if done[step] else rew[step] + discount*ret
-            GAE.insert(0, gae)
-            Q.insert(0, ret)
-            if self.is_tabular:
-                oracle_Q.insert(0, Q_table[state[step], act[step]])
-                oracle_V.insert(
-                    0, np.sum(self.tb_policy[state[step]] * Q_table[state[step]]))
-        Q, GAE = np.array(Q), np.array(GAE)
-        if self.is_tabular:
-            oracle_Q, oracle_V = np.array(oracle_Q), np.array(oracle_V)
-            self.record_scalar("ReturnError", np.mean((Q-oracle_Q)**2))
-            self.record_scalar("AdvantageError", np.mean(
-                ((Q-values) - (oracle_Q-oracle_V))**2), tag="Q-V")
-            self.record_scalar("AdvantageError", np.mean(
-                (GAE - (oracle_Q-oracle_V))**2), tag="GAE")
-
-        traj["ret"] = Q
-        traj["coef"] = GAE
+            gae = td_err[step] + discount*lam*gae*(~done[step])
+            ret = rew[step] + discount*ret*(~done[step])
+            gaes[step] = gae
+            rets[step] = ret
+        traj["ret"] = rets
+        gaes = (gaes - gaes.mean()) / gaes.std()
+        traj["coef"] = gaes
         return traj
 
-    def update_actor(self, tensor_traj):
+    def iter(self, traj):
+        batch_size = traj["ret"].shape[0]
+        minibatch_size = batch_size // self.solve_options["num_minibatches"]
+        for _ in range(self.solve_options["num_minibatches"]):
+            rand_ids = np.random.randint(0, batch_size, minibatch_size)
+            yield {key: val[rand_ids] for key, val in traj.items()}
+
+    def update(self, tensor_traj):
         clip_ratio = self.solve_options["clip_ratio"]
-        obss, actions, log_probs = tensor_traj["obs"], tensor_traj["act"], tensor_traj["log_prob"]
-        advantage = tensor_traj["coef"]
+        obss, actions, old_log_probs = tensor_traj["obs"], tensor_traj["act"], tensor_traj["log_prob"]
+        ret, advantage = tensor_traj["ret"], tensor_traj["coef"]
 
         preference = self.policy_network(obss)
         policy = torch.softmax(preference, dim=-1)  # BxA
-        entropy = torch.sum(policy * policy.log(), dim=-1)  # B
-        log_policy = policy.gather(
+        log_probs = policy.gather(
             1, actions.reshape(-1, 1)).squeeze().log()  # B
-        ratio = torch.exp(log_policy - log_probs)  # B
+        ratio = torch.exp(log_probs - old_log_probs)  # B
         clip_adv = torch.clamp(ratio, 1-clip_ratio, 1+clip_ratio) * advantage
+        actor_loss = -torch.min(ratio * advantage, clip_adv).mean()
+        entropy = -torch.sum(policy * policy.log(), dim=-1).mean()
 
-        loss = -(torch.min(ratio * advantage, clip_adv)
-                 - self.solve_options["entropy_coef"]*entropy).mean()
-        self.policy_optimizer.zero_grad()
-        loss.backward()
-        self.policy_optimizer.step()
-        return loss.detach().cpu().item()
-
-    def update_critic(self, tensor_traj):
-        obss = tensor_traj["obs"]
-        returns = tensor_traj["ret"]
         values = self.value_network(obss).squeeze(-1)
-        loss = 0.5 * self.critic_loss(values, returns)
-        self.value_optimizer.zero_grad()
+        critic_loss = self.critic_loss(values, ret)
+
+        loss = actor_loss + \
+            self.solve_options["vf_coef"]*critic_loss - \
+            self.solve_options["ent_coef"]*entropy
+        self.optimizer.zero_grad()
         loss.backward()
-        self.value_optimizer.step()
-        return loss.detach().cpu().item()
+        if self.solve_options["clip_grad"]:
+            for param in self.params:
+                param.grad.data.clamp_(-1, 1)
+        self.optimizer.step()
+        return actor_loss.detach().cpu().item(), critic_loss.detach().cpu().item()
 
     def set_tb_values_policy(self):
         values = self.value_network(self.all_obss).reshape(

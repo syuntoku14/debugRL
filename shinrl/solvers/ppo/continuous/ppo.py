@@ -34,7 +34,7 @@ class PpoSolver(Solver):
 
     def compute_coef(self, traj):
         discount, lam = self.solve_options["discount"], self.solve_options["td_lam"]
-        act, rew, done, timeout = traj["act"], traj["rew"], traj["done"], traj["timeout"]
+        rew, done, timeout = traj["rew"], traj["done"], traj["timeout"]
         # done = done * (~timeout)
         obs = torch.tensor(
             traj["obs"], dtype=torch.float32, device=self.device)
@@ -77,7 +77,7 @@ class PpoSolver(Solver):
         clip_adv = torch.clamp(ratio, 1-clip_ratio, 1+clip_ratio)*advantage
         actor_loss = -torch.min(ratio*advantage, clip_adv).mean()
 
-        values = self.value_network(obss).squeeze(1)
+        values = self.value_network(obss).squeeze(-1)
         critic_loss = self.critic_loss(values, returns)
 
         entropy = dist.entropy().sum(-1).mean()

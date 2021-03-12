@@ -99,7 +99,9 @@ def trajectory_to_tensor(trajectory, device="cpu"):
             value = np.squeeze(value, axis=-1)
         if key == "done" or key == "timeout":
             dtype = torch.bool
-        elif key in ["state", "next_state"] or trajectory[key].dtype == np.int32:
+        elif key in ["state", "next_state"] \
+                or trajectory[key].dtype == np.int32 \
+                or trajectory[key].dtype == np.int64:
             dtype = torch.long
         else:
             dtype = torch.float32

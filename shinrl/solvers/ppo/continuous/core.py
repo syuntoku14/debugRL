@@ -11,7 +11,7 @@ from shinrl import utils
 
 
 OPTIONS = {
-    "num_samples": 400,
+    "num_samples": 20,
     # Fitted iteration settings
     "activation": "tanh",
     "hidden": 256,  # size of hidden layer
@@ -21,7 +21,7 @@ OPTIONS = {
     "optimizer": "Adam",
     # PPO settings
     "lr": 3e-4,
-    "num_minibatches": 4,
+    "num_minibatches": 1,
     "vf_coef": 0.5,
     "td_lam": 0.95,
     "clip_ratio": 0.2,

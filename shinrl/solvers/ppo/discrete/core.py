@@ -2,24 +2,26 @@ from copy import deepcopy
 import torch
 from torch import nn
 import torch.nn.functional as F
+import itertools
 from shinrl.solvers import Solver
 
 OPTIONS = {
-    "num_samples": 80,
+    "num_samples": 20,
     # Fitted iteration settings
-    "activation": "relu",
-    "hidden": 128,  # size of hidden layer
+    "activation": "tanh",
+    "hidden": 256,  # size of hidden layer
     "depth": 2,  # depth of the network
-    "device": "cuda",
+    "device": "cuda" if torch.cuda.is_available() else "cpu",
     "critic_loss": "mse",  # mse or huber
-    "clip_grad": False,  # clip the gradient if True
     "optimizer": "Adam",
     # PPO settings
     "lr": 3e-4,
+    "num_minibatches": 1,
+    "vf_coef": 0.5,
     "td_lam": 0.95,
-    "target_kl": 0.01,
     "clip_ratio": 0.2,
-    "entropy_coef": 0.001
+    "ent_coef": 0.001,
+    "clip_grad": True
 }
 
 
@@ -87,18 +89,30 @@ class Solver(Solver):
             hidden=self.solve_options["hidden"],
             depth=self.solve_options["depth"],
             act_layer=act_layer).to(self.device)
-        self.value_optimizer = self.optimizer(self.value_network.parameters(),
-                                              lr=self.solve_options["lr"])
-
-        # actor network
         self.policy_network = net(
             self.env, self.env.action_space.n,
             hidden=self.solve_options["hidden"],
             depth=self.solve_options["depth"],
             act_layer=act_layer).to(self.device)
-        self.policy_optimizer = self.optimizer(self.policy_network.parameters(),
-                                               lr=self.solve_options["lr"])
+        self.params = itertools.chain(
+            self.value_network.parameters(),
+            self.policy_network.parameters())
+        self.optimizer = self.optimizer(self.params, lr=self.solve_options["lr"])
 
         if self.is_tabular:
             self.all_obss = torch.tensor(
                 self.env.all_observations, dtype=torch.float32, device=self.device)
+
+    def save(self, path):
+        data = {
+            "vnet": self.value_network.state_dict(),
+            "polnet": self.policy_network.state_dict(),
+            "opt": self.optimizer.state_dict(),
+        }
+        super().save(path, data)
+
+    def load(self, path):
+        data = super().load(path, device=self.device)
+        self.value_network.load_state_dict(data["vnet"])
+        self.policy_network.load_state_dict(data["polnet"])
+        self.optimizer.load_state_dict(data["opt"])
