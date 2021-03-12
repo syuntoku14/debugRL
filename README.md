@@ -21,13 +21,13 @@ v_values = np.sum(solver.tb_policy*q_values, axis=-1)
 env.plot_values(v_values, title="State Values")
 ```
 
-Documentation: 
+See [quickstart.py](examples/quickstart.py) and [tutorial.ipynb](examples/tutorial.ipynb) for the basic usages.
+For more information, you can refer to [ShinRL's documentation](https://shinrl.readthedocs.io/en/latest/?).
 
 ![Ant](assets/ant.gif)
 ![Pendulum](assets/pendulum.gif)
 ![Tabular](assets/tabular.gif)
 
-See [quickstart.py](examples/quickstart.py) and [tutorial.ipynb](examples/tutorial.ipynb) for the basic usages.
 
 ## Key features
 
