@@ -18,13 +18,14 @@ class SamplingPgSolver(Solver):
             # ------ collect samples using the current policy ------
             trajectory = self.collect_samples(
                 self.solve_options["num_samples"])
-            trajectory = self.compute_coef(trajectory)
-            tensor_traj = utils.trajectory_to_tensor(trajectory, self.device)
+            with torch.no_grad():
+                trajectory = self.compute_coef(trajectory)
 
             # ----- update networks -----
-            actor_loss = self.update_actor(tensor_traj)
+            for traj in self.iter(trajectory):
+                tensor_traj = utils.trajectory_to_tensor(traj, self.device)
+                actor_loss, critic_loss = self.update(tensor_traj)
             self.record_scalar("LossActor", actor_loss)
-            critic_loss = self.update_critic(tensor_traj)
             self.record_scalar("LossCritic", critic_loss)
 
             self.step += 1
@@ -40,69 +41,68 @@ class SamplingPgSolver(Solver):
         next_values = self.value_network(
             next_obs).squeeze(1).detach().cpu().numpy()
         td_err = rew + discount * next_values - values
-        Q, GAE = [], []
 
         if self.is_tabular:
             state, next_state = traj["state"], traj["next_state"]
             Q_table = self.env.compute_action_values(
                 self.tb_policy, discount)  # SxA
-            oracle_Q, oracle_V = [], []
+            oracle_Q, rets = np.zeros_like(rew), np.zeros_like(rew)
+            oracle_Q, oracle_V = np.zeros_like(rew), np.zeros_like(rew)
 
-        ret = values[len(rew)-1]
-        gae = td_err[len(rew)-1]
+        gae = 0.
+        ret = 0. if done[-1] else next_values[-1]
+        gaes, rets = np.zeros_like(rew), np.zeros_like(rew)
         for step in reversed(range(len(rew))):
-            gae = td_err[step] if done[step] else td_err[step] + \
-                discount*lam*gae
-            ret = values[step] if done[step] else rew[step] + discount*ret
-            GAE.insert(0, gae)
-            Q.insert(0, ret)
+            gae = td_err[step] + discount*lam*gae*(~done[step])
+            ret = rew[step] + discount*ret*(~done[step])
+            gaes[step], rets[step] = gae, ret
             if self.is_tabular:
-                oracle_Q.insert(0, Q_table[state[step], act[step]])
-                oracle_V.insert(
-                    0, np.sum(self.tb_policy[state[step]] * Q_table[state[step]]))
-        Q, GAE = np.array(Q), np.array(GAE)
+                oracle_Q[step] = Q_table[state[step], act[step]]
+                oracle_V[step] = np.sum(self.tb_policy[state[step]] * Q_table[state[step]])
         if self.is_tabular:
-            oracle_Q, oracle_V = np.array(oracle_Q), np.array(oracle_V)
-            self.record_scalar("ReturnError", np.mean((Q-oracle_Q)**2))
+            self.record_scalar("ReturnError", np.mean((rets-oracle_Q)**2))
             self.record_scalar("AdvantageError", np.mean(
-                ((Q-values) - (oracle_Q-oracle_V))**2), tag="Q-V")
+                ((rets-values) - (oracle_Q-oracle_V))**2), tag="Q-V")
             self.record_scalar("AdvantageError", np.mean(
-                (GAE - (oracle_Q-oracle_V))**2), tag="GAE")
+                (gaes - (oracle_Q-oracle_V))**2), tag="GAE")
 
-        traj["ret"] = Q
-        traj["adv"] = GAE
+        traj["ret"], traj["adv"] = rets, gaes
         if self.solve_options["coef"] == "Q":
-            traj["coef"] = Q
+            traj["coef"] = rets
         elif self.solve_options["coef"] == "A":
-            traj["coef"] = Q - values
+            traj["coef"] = rets - values
         elif self.solve_options["coef"] == "GAE":
-            traj["coef"] = GAE
+            traj["coef"] = gaes
         else:
             raise ValueError
         return traj
 
-    def update_actor(self, tensor_traj):
+    def iter(self, traj):
+        batch_size = traj["ret"].shape[0]
+        minibatch_size = batch_size // self.solve_options["num_minibatches"]
+        for _ in range(self.solve_options["num_minibatches"]):
+            rand_ids = np.random.randint(0, batch_size, minibatch_size)
+            yield {key: val[rand_ids] for key, val in traj.items()}
+
+    def update(self, tensor_traj):
         discount = self.solve_options["discount"]
         obss, actions, coef = tensor_traj["obs"], tensor_traj["act"], tensor_traj["coef"]
+        returns = tensor_traj["ret"]
 
         preference = self.policy_network(obss)
         policy = torch.softmax(preference, dim=-1)  # BxA
         log_a = policy.gather(1, actions.reshape(-1, 1)).squeeze().log()  # B
-        loss = -(coef*log_a).mean()
-        self.policy_optimizer.zero_grad()
-        loss.backward()
-        self.policy_optimizer.step()
-        return loss.detach().cpu().item()
+        actor_loss = -(coef*log_a).mean()
 
-    def update_critic(self, tensor_traj):
-        obss = tensor_traj["obs"]
-        returns = tensor_traj["ret"]
         values = self.value_network(obss).squeeze(-1)
-        loss = 0.5 * self.critic_loss(values, returns)
-        self.value_optimizer.zero_grad()
+        critic_loss = self.critic_loss(values, returns)
+
+        loss = actor_loss + self.solve_options["vf_coef"]*critic_loss
+
+        self.optimizer.zero_grad()
         loss.backward()
-        self.value_optimizer.step()
-        return loss.detach().cpu().item()
+        self.optimizer.step()
+        return actor_loss.detach().cpu().item(), critic_loss.detach().cpu().item()
 
     def set_tb_values_policy(self):
         values = self.value_network(self.all_obss).reshape(

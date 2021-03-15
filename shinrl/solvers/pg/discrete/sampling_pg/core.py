@@ -1,4 +1,5 @@
 from copy import deepcopy
+import itertools
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -21,6 +22,8 @@ OPTIONS = {
     "critic_loss": "mse",  # mse or huber
     "optimizer": "Adam",
     "lr": 3e-4,
+    "num_minibatches": 1,
+    "vf_coef": 0.5,
     # coefficient of PG. "Q" or "A" or "GAE". See https://arxiv.org/abs/1506.02438 for details.
     "coef": "GAE",
     "td_lam": 0.95
@@ -91,15 +94,15 @@ class Solver(Solver):
             hidden=self.solve_options["hidden"],
             depth=self.solve_options["depth"],
             act_layer=act_layer).to(self.device)
-        self.value_optimizer = self.optimizer(self.value_network.parameters(),
-                                              lr=self.solve_options["lr"])
         self.policy_network = net(
             self.env, self.env.action_space.n,
             hidden=self.solve_options["hidden"],
             depth=self.solve_options["depth"],
             act_layer=act_layer).to(self.device)
-        self.policy_optimizer = self.optimizer(self.policy_network.parameters(),
-                                               lr=self.solve_options["lr"])
+        self.params = itertools.chain(
+            self.value_network.parameters(),
+            self.policy_network.parameters())
+        self.optimizer = self.optimizer(self.params, lr=self.solve_options["lr"])
 
         if self.is_tabular:
             self.all_obss = torch.tensor(

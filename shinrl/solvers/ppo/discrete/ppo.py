@@ -45,7 +45,7 @@ class PpoSolver(Solver):
 
         gae = 0.
         gaes = np.zeros_like(rew)
-        ret = 0.
+        ret = 0. if done[-1] else next_values[-1]
         rets = np.zeros_like(rew)
         for step in reversed(range(len(rew))):
             gae = td_err[step] + discount*lam*gae*(~done[step])
