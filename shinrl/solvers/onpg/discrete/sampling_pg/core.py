@@ -14,11 +14,10 @@ from shinrl.utils import (
 
 OPTIONS = {
     "num_samples": 80,
-    # Fitted iteration settings
     "activation": "relu",
     "hidden": 128,  # size of hidden layer
     "depth": 2,  # depth of the network
-    "device": "cuda",
+    "device": "cuda" if torch.cuda.is_available() else "cpu",
     "critic_loss": "mse",  # mse or huber
     "optimizer": "Adam",
     "lr": 3e-4,
@@ -26,7 +25,10 @@ OPTIONS = {
     "vf_coef": 0.5,
     # coefficient of PG. "Q" or "A" or "GAE". See https://arxiv.org/abs/1506.02438 for details.
     "coef": "GAE",
-    "td_lam": 0.95
+    "td_lam": 0.95,
+    "clip_grad": True,
+    "clip_ratio": 0.2,  # for PPO
+    "ent_coef": 0.001,
 }
 
 

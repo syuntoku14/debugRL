@@ -2,25 +2,18 @@ import pytest
 import numpy as np
 import gym
 from shinrl.envs import Pendulum
-from shinrl.solvers.pg.discrete import SamplingPgSolver
+from shinrl.solvers.onpg.discrete import PpoSolver
 from ..misc import run_solver_tb, run_solver_gym
 
 
-@pytest.fixture
-def setUp():
+def test_tb():
     pend_env = Pendulum(state_disc=5, dA=3, horizon=5)
-    pend_env.reset()
-    yield pend_env
-
-
-def test_tb(setUp):
-    pend_env = setUp
-    solver = SamplingPgSolver(pend_env)
+    solver = PpoSolver(pend_env)
     run_solver_tb(solver, pend_env)
 
 
-def test_gym(setUp):
+def test_gym():
     gym_env = gym.make("CartPole-v0")
     gym_env.reset()
-    solver = SamplingPgSolver(gym_env)
+    solver = PpoSolver(gym_env)
     run_solver_gym(solver, gym_env)

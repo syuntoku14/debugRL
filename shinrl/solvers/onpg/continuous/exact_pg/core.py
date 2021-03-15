@@ -11,22 +11,14 @@ from shinrl import utils
 
 
 OPTIONS = {
-    "num_samples": 20,
-    # Fitted iteration settings
-    "activation": "tanh",
-    "hidden": 256,  # size of hidden layer
+    "activation": "relu",
+    "hidden": 128,  # size of hidden layer
     "depth": 2,  # depth of the network
-    "device": "cuda" if torch.cuda.is_available() else "cpu",
-    "critic_loss": "mse",  # mse or huber
+    "device": "cuda",
     "optimizer": "Adam",
-    # PPO settings
     "lr": 3e-4,
-    "num_minibatches": 1,
-    "vf_coef": 0.5,
-    "td_lam": 0.95,
-    "clip_ratio": 0.2,
-    "ent_coef": 0.001,
-    "clip_grad": True
+    # coefficient of PG. "Q" or "A". See https://arxiv.org/abs/1506.02438 for details.
+    "coef": "Q"
 }
 
 
@@ -64,21 +56,6 @@ def conv_net(env, hidden, depth, act_layer):
     conv_modules = nn.Sequential(*conv_modules)
     fc_modules = nn.Sequential(*fc_modules)
     return fc_modules, conv_modules
-
-
-class ValueNet(nn.Module):
-    def __init__(self, env, solve_options):
-        super().__init__()
-        net = fc_net if len(env.observation_space.shape) == 1 else conv_net
-        self.fc, self.conv = net(
-            env, solve_options["hidden"],
-            solve_options["depth"], solve_options["activation"])
-        self.out = nn.Linear(solve_options["hidden"], 1)
-
-    def forward(self, obss):
-        x = self.conv(obss) if self.conv is not None else obss
-        x = self.fc(x)
-        return self.out(x)
 
 
 class PolicyNet(nn.Module):
@@ -129,52 +106,28 @@ class Solver(Solver):
         else:
             self.optimizer = torch.optim.RMSprop
 
-        # set critic loss
-        if self.solve_options["critic_loss"] == "mse":
-            self.critic_loss = F.mse_loss
-        elif self.solve_options["critic_loss"] == "huber":
-            self.critic_loss = F.smooth_l1_loss
-        else:
-            raise ValueError("Invalid critic_loss")
-
-        # set value network
-        self.value_network = ValueNet(
-            self.env, self.solve_options).to(self.device)
+        # set network
         self.policy_network = PolicyNet(
             self.env, self.solve_options).to(self.device)
-        self.params = itertools.chain(
-            self.value_network.parameters(),
-            self.policy_network.parameters())
-        self.optimizer = self.optimizer(self.params, lr=self.solve_options["lr"])
+        self.policy_optimizer = self.optimizer(
+            self.policy_network.parameters(), lr=self.solve_options["lr"])
 
         # Collect random samples in advance
-        if self.is_tabular:
-            self.all_obss = torch.tensor(
-                self.env.all_observations, dtype=torch.float32, device=self.device)
-            self.all_actions = torch.tensor(
-                self.env.all_actions, dtype=torch.float32,
-                device=self.device).repeat(self.dS, 1).reshape(self.dS, self.dA)  # dS x dA
-            self.set_tb_values_policy()
-
-    def collect_samples(self, num_samples):
-        if self.is_tabular:
-            return utils.collect_samples(
-                self.env, utils.get_tb_action, num_samples,
-                policy=self.tb_policy)
-        else:
-            return utils.collect_samples(
-                self.env, self.get_action_gym, num_samples)
+        self.all_obss = torch.tensor(
+            self.env.all_observations, dtype=torch.float32, device=self.device)
+        self.all_actions = torch.tensor(
+            self.env.all_actions, dtype=torch.float32,
+            device=self.device).repeat(self.dS, 1).reshape(self.dS, self.dA)  # dS x dA
+        self.set_tb_values_policy()
 
     def save(self, path):
         data = {
-            "vnet": self.value_network.state_dict(),
             "polnet": self.policy_network.state_dict(),
-            "opt": self.optimizer.state_dict(),
+            "opt": self.policy_optimizer.state_dict(),
         }
         super().save(path, data)
 
     def load(self, path):
         data = super().load(path, device=self.device)
-        self.value_network.load_state_dict(data["vnet"])
         self.policy_network.load_state_dict(data["polnet"])
-        self.optimizer.load_state_dict(data["opt"])
+        self.policy_optimizer.load_state_dict(data["opt"])

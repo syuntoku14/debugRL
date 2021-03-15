@@ -58,7 +58,8 @@ class SamplingPgSolver(Solver):
             gaes[step], rets[step] = gae, ret
             if self.is_tabular:
                 oracle_Q[step] = Q_table[state[step], act[step]]
-                oracle_V[step] = np.sum(self.tb_policy[state[step]] * Q_table[state[step]])
+                oracle_V[step] = np.sum(
+                    self.tb_policy[state[step]] * Q_table[state[step]])
         if self.is_tabular:
             self.record_scalar("ReturnError", np.mean((rets-oracle_Q)**2))
             self.record_scalar("AdvantageError", np.mean(
@@ -85,7 +86,6 @@ class SamplingPgSolver(Solver):
             yield {key: val[rand_ids] for key, val in traj.items()}
 
     def update(self, tensor_traj):
-        discount = self.solve_options["discount"]
         obss, actions, coef = tensor_traj["obs"], tensor_traj["act"], tensor_traj["coef"]
         returns = tensor_traj["ret"]
 
@@ -101,6 +101,9 @@ class SamplingPgSolver(Solver):
 
         self.optimizer.zero_grad()
         loss.backward()
+        if self.solve_options["clip_grad"]:
+            for param in self.params:
+                param.grad.data.clamp_(-1, 1)
         self.optimizer.step()
         return actor_loss.detach().cpu().item(), critic_loss.detach().cpu().item()
 
@@ -143,3 +146,33 @@ class SamplingPgSolver(Solver):
                     self.env, self.get_action_gym, num_episodes=n_episodes)
                 expected_return = traj["rew"].sum() / n_episodes
                 self.record_scalar("Return", expected_return, tag="Policy")
+
+
+class PpoSolver(SamplingPgSolver):
+    def update(self, tensor_traj):
+        clip_ratio = self.solve_options["clip_ratio"]
+        obss, actions, old_log_probs = tensor_traj["obs"], tensor_traj["act"], tensor_traj["log_prob"]
+        ret, advantage = tensor_traj["ret"], tensor_traj["coef"]
+
+        preference = self.policy_network(obss)
+        policy = torch.softmax(preference, dim=-1)  # BxA
+        log_probs = policy.gather(
+            1, actions.reshape(-1, 1)).squeeze().log()  # B
+        ratio = torch.exp(log_probs - old_log_probs)  # B
+        clip_adv = torch.clamp(ratio, 1-clip_ratio, 1+clip_ratio) * advantage
+        actor_loss = -torch.min(ratio * advantage, clip_adv).mean()
+        entropy = -torch.sum(policy * policy.log(), dim=-1).mean()
+
+        values = self.value_network(obss).squeeze(-1)
+        critic_loss = self.critic_loss(values, ret)
+
+        loss = actor_loss + \
+            self.solve_options["vf_coef"]*critic_loss - \
+            self.solve_options["ent_coef"]*entropy
+        self.optimizer.zero_grad()
+        loss.backward()
+        if self.solve_options["clip_grad"]:
+            for param in self.params:
+                param.grad.data.clamp_(-1, 1)
+        self.optimizer.step()
+        return actor_loss.detach().cpu().item(), critic_loss.detach().cpu().item()
