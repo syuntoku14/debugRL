@@ -5,8 +5,7 @@ shinrl.solvers
    :maxdepth: 1
 
    solvers/ipg
-   solvers/pg
-   solvers/ppo
+   solvers/onpg
    solvers/sac
    solvers/vi
 
