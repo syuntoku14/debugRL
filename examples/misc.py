@@ -12,17 +12,19 @@ DISCRETE_SOLVERS = {
     "SCVI": solvers.vi.discrete.SamplingCviSolver,
     "SFCVI": solvers.vi.discrete.SamplingFittedCviSolver,
     # Policy gradient
-    "EPG": solvers.pg.discrete.ExactPgSolver,
-    "SPG": solvers.pg.discrete.SamplingPgSolver,
+    "EPG": solvers.onpg.discrete.ExactPgSolver,
+    "SPG": solvers.onpg.discrete.SamplingPgSolver,
+    "PPO": solvers.onpg.discrete.PpoSolver,
     "IPG": solvers.ipg.discrete.IpgSolver,
-    "PPO": solvers.ppo.discrete.PpoSolver,
     # SAC
     "SAC": solvers.sac.discrete.SacSolver,
 }
 
 CONTINUOUS_SOLVERS = {
+    "EPG": solvers.onpg.continuous.ExactPgSolver,
+    "SPG": solvers.onpg.continuous.SamplingPgSolver,
+    "PPO": solvers.onpg.continuous.PpoSolver,
     "SAC": solvers.sac.continuous.SacSolver,
-    "PPO": solvers.ppo.continuous.PpoSolver,
 }
 
 

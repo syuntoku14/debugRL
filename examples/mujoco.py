@@ -17,7 +17,7 @@ def main():
     parser.add_argument('--env', type=str, default="HalfCheetah-v2")
     parser.add_argument('--exp_name', type=str, default=None)
     parser.add_argument('--task_name', type=str, default=None)
-    parser.add_argument('--epochs', type=int, default=30)
+    parser.add_argument('--epochs', type=int, default=300)
     parser.add_argument('--evaluation_interval', type=int, default=5000)
     parser.add_argument('--steps_per_epoch', type=int, default=100000)
     parser.add_argument('--load_path', type=str, default=None)
@@ -54,8 +54,6 @@ def main():
     # Run solver
     for epoch in range(args.epochs):
         solver.run(num_steps=args.steps_per_epoch)
-        if max(solver.history["LossCritic"]["y"]) > 1000:
-            break  # for SAC analysis
         # save solver
         dir_name = os.path.join("results", project_name, task_name)
         if not os.path.exists(dir_name):
