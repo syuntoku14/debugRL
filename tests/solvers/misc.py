@@ -14,6 +14,6 @@ def run_solver_tb(solver, env):
 
 def run_solver_gym(solver, env):
     solver.solve_options["evaluation_interval"] = 1
-    solver.solve_options["num_episodes_gym_record"] = 1
+    solver.solve_options["gym_evaluation_episodes"] = 1
     solver.run(num_steps=10)
     assert solver.step == 10

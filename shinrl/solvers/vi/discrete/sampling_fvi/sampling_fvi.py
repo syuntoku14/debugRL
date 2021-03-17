@@ -47,7 +47,7 @@ class SamplingFittedSolver(Solver):
                     self.tb_policy, self.solve_options["discount"])
                 self.record_scalar("QError", ((aval-self.tb_values)**2).mean())
             else:
-                n_episodes = self.solve_options["num_episodes_gym_record"]
+                n_episodes = self.solve_options["gym_evaluation_episodes"]
                 traj = utils.collect_samples(
                     self.env, self.get_action_gym, num_episodes=n_episodes)
                 expected_return = traj["rew"].sum() / n_episodes

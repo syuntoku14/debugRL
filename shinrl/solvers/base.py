@@ -15,7 +15,7 @@ DEFAULT_OPTIONS = {
     # general settings
     "seed": 0,
     "discount": 0.99,
-    "num_episodes_gym_record": 10,
+    "gym_evaluation_episodes": 10,
     "evaluation_interval": 100,
     "record_all_array": False
 }
@@ -91,17 +91,17 @@ class Solver(ABC):
 
     @property
     def tb_values(self):
-        if len(self.history["Values"]["y"]) == 0:
-            assert ValueError(
+        if len(self.history["Values"]["array"]) == 0:
+            raise ValueError(
                 "\"values\" has not been recorded yet. Check history.")
-        return self.history["Values"]["y"][-1]
+        return self.history["Values"]["array"][-1]
 
     @property
     def tb_policy(self):
-        if len(self.history["Policy"]["y"]) == 0:
-            assert ValueError(
+        if len(self.history["Policy"]["array"]) == 0:
+            raise ValueError(
                 "\"policy\" has not been recorded yet. Check history.")
-        return self.history["Policy"]["y"][-1]
+        return self.history["Policy"]["array"][-1]
 
     def record_scalar(self, title, y, tag=None):
         """
@@ -126,22 +126,40 @@ class Solver(ABC):
 
         if self.solve_options["record_all_array"]:
             self.history[title]["x"].append(self.step)
-            self.history[title]["y"].append(array.astype(np.float32))
+            self.history[title]["array"].append(array.astype(np.float32))
         else:
             self.history[title]["x"] = [self.step, ]
-            self.history[title]["y"] = [array.astype(np.float32), ]
+            self.history[title]["array"] = [array.astype(np.float32), ]
 
     def save(self, path, data={}):
+        def list_to_array(d):
+            for k, v in d.items():
+                if isinstance(v, dict):
+                    list_to_array(v)
+                elif isinstance(v, list):
+                    d[k] = np.array(v)
+            return d
+        history = list_to_array(dict(deepcopy(self.history)))
         data.update({
             "env_name": str(self.env),
-            "history": dict(self.history),
+            "history": history,
             "options": self.solve_options,
             "step": self.step
         })
         torch.save(data, path)
+        return data
 
-    def load(self, path, device="cpu"):
+    def load(self, path, options={}, device="cpu"):
+        def array_to_list(d):
+            for k, v in d.items():
+                if isinstance(v, dict):
+                    array_to_list(v)
+                elif isinstance(v, np.ndarray) and not k == "array":
+                    d[k] = v.tolist()
+            return d
         data = torch.load(path, map_location=device)
+        data["history"] = array_to_list(data["history"])
+        data["options"].update(options)
         self.initialize(data["options"])
         self.history.update(data["history"])
         self.step = data["step"]

@@ -175,12 +175,11 @@ def make_replay_buffer(env, size):
     env_dict = create_env_dict(env)
     env_dict.update({
         "obs": {'dtype': np.float32, 'shape': env_dict["obs"]["shape"]},
-        "next_obs": {'dtype': np.float32, 'shape': env_dict["obs"]["shape"]},
         "log_prob": {'dtype': np.float32, 'shape': 1},
         "timeout": {'dtype': np.bool, 'shape': 1},
     })
     if is_tabular:
         env_dict.update({
-            "state": {'dtype': np.int, 'shape': 1},
-            "next_state": {'dtype': np.int, 'shape': 1}})
-    return ReplayBuffer(size, env_dict)
+            "state": {'dtype': np.int, 'shape': 1}})
+        return ReplayBuffer(size, env_dict, next_of=("obs", "state"))
+    return ReplayBuffer(size, env_dict, next_of=("obs", ))
