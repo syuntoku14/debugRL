@@ -4,6 +4,7 @@ import pickle
 import numpy as np
 import torch
 import gym
+import os
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from scipy import sparse
@@ -131,7 +132,7 @@ class Solver(ABC):
             self.history[title]["x"] = [self.step, ]
             self.history[title]["array"] = [array.astype(np.float32), ]
 
-    def save(self, path, data={}):
+    def save(self, dir_name, data={}):
         def list_to_array(d):
             for k, v in d.items():
                 if isinstance(v, dict):
@@ -146,10 +147,10 @@ class Solver(ABC):
             "options": self.solve_options,
             "step": self.step
         })
-        torch.save(data, path)
+        torch.save(data, os.path.join(dir_name, "data.tar"))
         return data
 
-    def load(self, path, options={}, device="cpu"):
+    def load(self, dir_name, options={}, device="cpu"):
         def array_to_list(d):
             for k, v in d.items():
                 if isinstance(v, dict):
@@ -157,7 +158,7 @@ class Solver(ABC):
                 elif isinstance(v, np.ndarray) and not k == "array":
                     d[k] = v.tolist()
             return d
-        data = torch.load(path, map_location=device)
+        data = torch.load(os.path.join(dir_name, "data.tar"), map_location=device)
         data["history"] = array_to_list(data["history"])
         data["options"].update(options)
         self.initialize(data["options"])

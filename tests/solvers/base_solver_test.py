@@ -25,7 +25,7 @@ def test_make_solver():
 
 
 def test_save_solver(tmpdir):
-    path = os.path.join(tmpdir.mkdir("tmp"), "data.tar")
+    path = tmpdir.mkdir("tmp")
 
     env = gym.make("Pendulum-v0")
     solver = MockSolver(env)
@@ -49,4 +49,3 @@ def test_save_solver(tmpdir):
                 assert not isinstance(v, np.ndarray)
     assert_array(data)
     assert data["step"] == 10
-

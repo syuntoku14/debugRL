@@ -1,5 +1,5 @@
 def run_solver_tb(solver, env):
-    solver.solve_options["evaluation_interval"] = 1
+    solver.solve_options["evaluation_interval"] = 5
     solver.run(num_steps=10)
     action_values = solver.env.compute_action_values(solver.tb_policy)
     visitation = env.compute_visitation(solver.tb_policy)
@@ -13,7 +13,7 @@ def run_solver_tb(solver, env):
 
 
 def run_solver_gym(solver, env):
-    solver.solve_options["evaluation_interval"] = 1
-    solver.solve_options["gym_evaluation_episodes"] = 1
+    solver.solve_options["evaluation_interval"] = 5
+    solver.solve_options["gym_evaluation_episodes"] = 5
     solver.run(num_steps=10)
     assert solver.step == 10

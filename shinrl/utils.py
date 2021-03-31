@@ -180,6 +180,6 @@ def make_replay_buffer(env, size):
     })
     if is_tabular:
         env_dict.update({
-            "state": {'dtype': np.int, 'shape': 1}})
+            "state": {'dtype': np.int32, 'shape': 1}})
         return ReplayBuffer(size, env_dict, next_of=("obs", "state"))
     return ReplayBuffer(size, env_dict, next_of=("obs", ))

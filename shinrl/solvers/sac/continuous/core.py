@@ -1,3 +1,4 @@
+import os
 from copy import deepcopy
 import gym
 import numpy as np
@@ -200,7 +201,7 @@ class Solver(Solver):
             return utils.collect_samples(
                 self.env, self.get_action_gym, num_samples)
 
-    def save(self, path):
+    def save(self, dir_name):
         data = {
             "vnet1": self.value_network.state_dict(),
             "vnet2": self.value_network2.state_dict(),
@@ -209,12 +210,13 @@ class Solver(Solver):
             "targ_vnet2": self.target_value_network2.state_dict(),
             "polnet": self.policy_network.state_dict(),
             "polopt": self.policy_optimizer.state_dict(),
-            "buf_data": self.buffer.get_all_transitions()
         }
-        super().save(path, data)
+        super().save(dir_name, data)
+        self.buffer.save_transitions(
+            os.path.join(dir_name, "rbuf.npz"), safe=True)
 
-    def load(self, path):
-        data = super().load(path, device=self.device)
+    def load(self, dir_name):
+        data = super().load(dir_name, device=self.device)
         self.value_network.load_state_dict(data["vnet1"])
         self.value_network2.load_state_dict(data["vnet2"])
         self.value_optimizer.load_state_dict(data["valopt"])
@@ -222,6 +224,7 @@ class Solver(Solver):
         self.target_value_network2.load_state_dict(data["targ_vnet2"])
         self.policy_network.load_state_dict(data["polnet"])
         self.policy_optimizer.load_state_dict(data["polopt"])
+
         self.buffer = utils.make_replay_buffer(
             self.env, self.solve_options["buffer_size"])
-        self.buffer.add(**data["buf_data"])
+        self.buffer.load_transitions(os.path.join(dir_name, "rbuf.npz"))

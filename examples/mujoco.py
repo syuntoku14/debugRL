@@ -17,10 +17,11 @@ def main():
     parser.add_argument('--env', type=str, default="HalfCheetah-v2")
     parser.add_argument('--exp_name', type=str, default=None)
     parser.add_argument('--task_name', type=str, default=None)
-    parser.add_argument('--epochs', type=int, default=300)
+    parser.add_argument('--epochs', type=int, default=30)
     parser.add_argument('--evaluation_interval', type=int, default=5000)
     parser.add_argument('--steps_per_epoch', type=int, default=100000)
     parser.add_argument('--load_path', type=str, default=None)
+    parser.add_argument('--save', action="store_true")
 
     # For arbitrary options, e.g. --device cpu --seed 0
     parsed, unknown = parser.parse_known_args()
@@ -31,7 +32,8 @@ def main():
 
     options = {}
     for key, val in vars(args).items():
-        if key not in ["solver", "env", "exp_name", "task_name", "epochs", "load_path", "steps_per_epoch"]:
+        if key not in ["solver", "env", "exp_name", "task_name",
+                       "epochs", "load_path", "steps_per_epoch", "save"]:
             options[key] = to_numeric(val)
 
     project_name = args.env if args.exp_name is None else args.exp_name
@@ -45,20 +47,22 @@ def main():
     solver = CONTINUOUS_SOLVERS[args.solver](
         env, logger=logger, solve_options=options)
     if args.load_path is not None:
-        solver.load(args.load_path)
+        solver.load(args.load_path, options=options)
         print("Load from {}".format(args.load_path))
     task_params = task.connect(solver.solve_options)
     solver_name = solver.__class__.__name__
     print(solver_name, "starts...")
 
     # Run solver
+    dir_name = os.path.join("results", project_name,
+                            task_name, str(solver.solve_options["seed"]))
+    if args.save and not os.path.exists(dir_name):
+        os.makedirs(dir_name)
     for epoch in range(args.epochs):
         solver.run(num_steps=args.steps_per_epoch)
-        # save solver
-        dir_name = os.path.join("results", project_name, task_name)
-        if not os.path.exists(dir_name):
-            os.makedirs(dir_name)
-        solver.save(os.path.join(dir_name, str(solver.solve_options["seed"])))
+        if args.save:
+            # save in "results/[project_name]/[task_name]/[seed]/"
+            solver.save(dir_name)
 
 
 if __name__ == "__main__":
