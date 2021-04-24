@@ -83,7 +83,7 @@ pip install -e .
 
 ```
 @misc{toshinori2020shinrl,
-    author = {Kitamura Toshinori},
+    author = {Toshinori Kitamura},
     title = {ShinRL},
     year = {2020},
     publisher = {GitHub},
