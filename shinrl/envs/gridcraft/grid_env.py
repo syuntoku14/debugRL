@@ -1,7 +1,8 @@
 import sys
 import numpy as np
+import random
 from gym.spaces import Box
-from .grid_spec import REWARD, REWARD2, REWARD3, REWARD4, WALL, LAVA, TILES, START, RENDER_DICT
+from .grid_spec import REWARD, WALL, LAVA, TILES, START, RENDER_DICT
 from shinrl.envs import TabularEnv
 from .plotter import plot_values
 
@@ -55,9 +56,6 @@ class RewardFunction(object):
     def __init__(self, default=0):
         rew_map = {
             REWARD: 1.0,
-            REWARD2: 2.0,
-            REWARD3: 4.0,
-            REWARD4: 8.0,
             LAVA: -1.0,
         }
         self.default = default
@@ -185,3 +183,50 @@ class GridEnv(TabularEnv):
     def plot_values(
             self, values, title=None, ax=None, **kwargs):
         plot_values(self.gs, values, title=title, ax=ax)
+
+
+def create_maze(width, height):
+    direction = [(0, -2), (0, 2), (-2, 0), (2, 0)]
+    maze = np.ones((height, width))
+    maze[0, 0] = 0  # start position
+
+    def fill_maze(updX, updY):
+        rnd_array = list(range(4))
+        random.shuffle(rnd_array)
+        for index in rnd_array:
+            # if it reaches out of the maze or visited cell
+            if updY + direction[index][1] < 0 or updY + direction[index][1] > maze.shape[0]:
+                continue
+            elif updX + direction[index][0] < 0 or updX + direction[index][0] > maze.shape[1]:
+                continue
+            elif maze[updY+direction[index][1]][updX+direction[index][0]] == 0:
+                continue
+
+            maze[updY+direction[index][1]][updX+direction[index][0]] = 0
+            if index == 0:
+                maze[updY+direction[index][1]+1][updX+direction[index][0]] = 0
+            elif index == 1:
+                maze[updY+direction[index][1]-1][updX+direction[index][0]] = 0
+            elif index == 2:
+                maze[updY+direction[index][1]][updX+direction[index][0]+1] = 0
+            elif index == 3:
+                maze[updY+direction[index][1]][updX+direction[index][0]-1] = 0
+            fill_maze(updX+direction[index][0], updY+direction[index][1])
+
+    fill_maze(0, 0)
+    maze[0, 0] = -1  # start position
+    maze[height-1, width-1] = 2  # goal position
+
+    string = ""
+    for dy_list in maze:
+        for item in dy_list:
+            if item == -1:
+                string += "S"
+            elif item == 0:
+                string += "O"
+            elif item == 1:
+                string += "#"
+            elif item == 2:
+                string += "R"
+        string += "\\"
+    return string

@@ -18,6 +18,7 @@ DEFAULT_OPTIONS = {
     "discount": 0.99,
     "gym_evaluation_episodes": 10,
     "evaluation_interval": 100,
+    "log_interval": 100,
     "record_all_array": False
 }
 
@@ -109,6 +110,10 @@ class Solver(ABC):
         Record a scalar y to self.history. 
         Report to clearML if self.logger is set.
         """
+        if len(self.history[title]["x"]) > 0:
+            prev_step = self.history[title]["x"][-1]
+            if self.step - prev_step < self.solve_options["log_interval"]:
+                return None
         if isinstance(y, torch.Tensor):
             y = y.detach().cpu().item()
         if self.logger is not None:

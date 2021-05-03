@@ -6,21 +6,15 @@ WALL = 111
 START = 112
 REWARD = 113
 OUT_OF_BOUNDS = 114
-REWARD2 = 115
-REWARD3 = 116
-REWARD4 = 117
 LAVA = 118
 
-TILES = {EMPTY, WALL, START, REWARD, REWARD2, REWARD3, REWARD4, LAVA}
+TILES = {EMPTY, WALL, START, REWARD, LAVA}
 
 STR_MAP = {
     'O': EMPTY,
     '#': WALL,
     'S': START,
     'R': REWARD,
-    '2': REWARD2,
-    '3': REWARD3,
-    '4': REWARD4,
     'L': LAVA
 }
 
@@ -42,43 +36,6 @@ def grid_spec_from_string(s, valmap=STR_MAP):
         for j in range(w):
             gs[j, i] = valmap[rows[i][j]]
     return gs
-
-
-def grid_spec_from_sparse_locations(w, h, tile_to_locs):
-    """
-
-    Example usage:
-    >> grid_spec_from_sparse_locations(10, 10, {START: [(0,0)], REWARD: [(7,8), (8,8)]})
-
-    """
-    gs = GridSpec(w, h)
-    for tile_type in tile_to_locs:
-        locs = np.array(tile_to_locs[tile_type])
-        for i in range(locs.shape[0]):
-            gs[tuple(locs[i])] = tile_type
-    return gs
-
-
-def local_spec(map, xpnt):
-    """
-    >>> local_spec("yOy\\\\Oxy", xpnt=(5,5))
-    array([[4, 4],
-           [6, 4],
-           [6, 5]])
-    """
-    Y = 0
-    X = 1
-    O = 2
-    valmap = {
-        'y': Y,
-        'x': X,
-        'O': O
-    }
-    gs = grid_spec_from_string(map, valmap=valmap)
-    ys = gs.find(Y)
-    x = gs.find(X)
-    result = ys-x + np.array(xpnt)
-    return result
 
 
 class GridSpec(object):
