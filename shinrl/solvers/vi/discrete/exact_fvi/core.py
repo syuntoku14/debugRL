@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch import nn
 
 from shinrl import utils
-from shinrl.solvers import Solver
+from shinrl.solvers import BaseSolver
 
 OPTIONS = {
     # CVI settings
@@ -57,7 +57,7 @@ def conv_net(env, hidden=32, depth=1, act_layer=nn.ReLU):
     return nn.Sequential(*(conv_modules + fc_modules))
 
 
-class Solver(Solver):
+class Solver(BaseSolver):
     def initialize(self, options={}):
         assert self.is_tabular
         self.solve_options.update(OPTIONS)

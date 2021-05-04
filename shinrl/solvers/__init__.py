@@ -1,4 +1,4 @@
-from .base import Solver  # isort:skip
+from .base import BaseSolver  # isort:skip
 from shinrl.solvers import ipg  # NOQA
 from shinrl.solvers import onpg  # NOQA
 from shinrl.solvers import sac  # NOQA

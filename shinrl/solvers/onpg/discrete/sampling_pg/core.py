@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from shinrl.solvers import Solver
+from shinrl.solvers import BaseSolver
 from shinrl.utils import (
     boltzmann_softmax,
     collect_samples,
@@ -65,7 +65,7 @@ def conv_net(env, num_output, hidden=32, depth=1, act_layer=nn.ReLU):
     return nn.Sequential(*(conv_modules + fc_modules))
 
 
-class Solver(Solver):
+class Solver(BaseSolver):
     def initialize(self, options={}):
         self.solve_options.update(OPTIONS)
         super().initialize(options)

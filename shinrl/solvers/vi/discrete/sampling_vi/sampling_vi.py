@@ -81,7 +81,7 @@ class SamplingMviSolver(SamplingSolver):
     This may not work due to insufficient exploration.
     """
 
-    def update(self, state, act, next_state, rew):
+    def update(self, state: int, act: int, next_state: int, rew: float) -> None:
         lr = self.solve_options["lr"]
         discount = self.solve_options["discount"]
         er_coef, kl_coef = self.solve_options["er_coef"], self.solve_options["kl_coef"]
@@ -94,7 +94,7 @@ class SamplingMviSolver(SamplingSolver):
         target = rew + alpha * tau * np.log(curr_policy) + discount * next_max
         self.tb_values[state, act] = (1 - lr) * curr_q + lr * target
 
-    def set_tb_policy(self):
+    def set_tb_policy(self) -> None:
         # set softmax policy
         er_coef, kl_coef = self.solve_options["er_coef"], self.solve_options["kl_coef"]
         tau = kl_coef + er_coef

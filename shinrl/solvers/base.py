@@ -22,7 +22,7 @@ DEFAULT_OPTIONS = {
 }
 
 
-class Solver(ABC):
+class BaseSolver(ABC):
     """
     Args:
         env (gym.Env)

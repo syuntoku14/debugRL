@@ -1,6 +1,6 @@
 import numpy as np
 
-from shinrl.solvers import Solver
+from shinrl.solvers import BaseSolver
 from shinrl.utils import boltzmann_softmax, mellow_max
 
 OPTIONS = {
@@ -12,7 +12,7 @@ OPTIONS = {
 }
 
 
-class Solver(Solver):
+class Solver(BaseSolver):
     def initialize(self, options={}):
         assert self.is_tabular
         self.solve_options.update(OPTIONS)

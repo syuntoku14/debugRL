@@ -9,7 +9,7 @@ from torch import nn
 from torch.distributions.normal import Normal
 
 from shinrl import utils
-from shinrl.solvers import Solver
+from shinrl.solvers import BaseSolver
 
 OPTIONS = {
     "activation": "relu",
@@ -101,7 +101,7 @@ class PolicyNet(nn.Module):
         return logp_pi
 
 
-class Solver(Solver):
+class Solver(BaseSolver):
     def initialize(self, options={}):
         assert isinstance(self.env.action_space, gym.spaces.Box)
         self.solve_options.update(OPTIONS)

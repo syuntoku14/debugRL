@@ -5,10 +5,10 @@ import numpy as np
 import pytest
 
 from shinrl.envs import Pendulum
-from shinrl.solvers import Solver
+from shinrl.solvers import BaseSolver
 
 
-class MockSolver(Solver):
+class MockSolver(BaseSolver):
     def run(self, num_steps=10):
         for i in range(num_steps):
             self.record_scalar("test", i)
