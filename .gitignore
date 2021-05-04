@@ -1,5 +1,6 @@
 # editor
 .vscode
+setup.cfg
 results/
 others/
 MUJOCO_LOG.TXT
