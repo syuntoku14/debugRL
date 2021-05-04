@@ -8,6 +8,7 @@ from copy import deepcopy
 import gym
 import numpy as np
 import torch
+
 from shinrl.envs import TabularEnv
 
 DEFAULT_OPTIONS = {

@@ -2,10 +2,11 @@ import numpy as np
 import torch
 from scipy import stats
 from scipy.special import rel_entr
-from shinrl import utils
-from shinrl.envs import TabularEnv
 from torch.nn import functional as F
 from tqdm import tqdm
+
+from shinrl import utils
+from shinrl.envs import TabularEnv
 
 from .core import Solver
 

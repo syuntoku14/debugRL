@@ -1,8 +1,9 @@
 import numpy as np
 import torch
-from shinrl import utils
 from torch.nn import functional as F
 from tqdm import tqdm
+
+from shinrl import utils
 
 from .core import Solver
 

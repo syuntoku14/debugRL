@@ -1,6 +1,7 @@
 import cv2
 import gym
 import numpy as np
+
 from shinrl.envs import TabularEnv
 
 

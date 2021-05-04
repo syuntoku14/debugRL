@@ -2,9 +2,10 @@ from copy import deepcopy
 
 import torch
 import torch.nn.functional as F
+from torch import nn
+
 from shinrl.solvers import Solver
 from shinrl.utils import softmax_policy
-from torch import nn
 
 OPTIONS = {
     "activation": "relu",

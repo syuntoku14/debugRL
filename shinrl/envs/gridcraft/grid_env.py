@@ -3,6 +3,7 @@ import sys
 
 import numpy as np
 from gym.spaces import Box
+
 from shinrl.envs import TabularEnv
 
 from .grid_spec import LAVA, RENDER_DICT, REWARD, START, TILES, WALL

@@ -1,9 +1,10 @@
 import numpy as np
 import pytest
 import torch
-from shinrl.envs import Pendulum
-from shinrl.utils import *
 from torch import nn
+
+from shinrl import utils
+from shinrl.envs import Pendulum
 
 
 @pytest.fixture
@@ -24,15 +25,15 @@ def test_collect_samples(setUp):
     env, policy, cont_env, cont_policy = setUp
 
     # discrete
-    buf = make_replay_buffer(env, 100)
-    traj = collect_samples(env, get_tb_action, 10, policy=policy)
+    buf = utils.make_replay_buffer(env, 100)
+    traj = utils.collect_samples(env, utils.get_tb_action, 10, policy=policy)
     buf.add(**traj)
     assert len(traj["obs"]) == 10
     assert (traj["act"]).dtype == np.long
 
     # continuous
-    buf = make_replay_buffer(cont_env, 100)
-    traj = collect_samples(cont_env, get_tb_action, 10, policy=cont_policy)
+    buf = utils.make_replay_buffer(cont_env, 100)
+    traj = utils.collect_samples(cont_env, utils.get_tb_action, 10, policy=cont_policy)
     buf.add(**traj)
     assert (traj["obs"]).dtype == np.float32
 
@@ -41,13 +42,15 @@ def test_collect_samples_episodic(setUp):
     env, policy, cont_env, cont_policy = setUp
 
     # discrete
-    traj = collect_samples(env, get_tb_action, 10, num_episodes=5, policy=policy)
+    traj = utils.collect_samples(
+        env, utils.get_tb_action, 10, num_episodes=5, policy=policy
+    )
     assert np.sum(traj["done"]) == 5
     assert (traj["act"]).dtype == np.long
 
     # continuous
-    traj = collect_samples(
-        cont_env, get_tb_action, 10, num_episodes=5, policy=cont_policy
+    traj = utils.collect_samples(
+        cont_env, utils.get_tb_action, 10, num_episodes=5, policy=cont_policy
     )
     assert np.sum(traj["done"]) == 5
     assert (traj["obs"]).dtype == np.float32

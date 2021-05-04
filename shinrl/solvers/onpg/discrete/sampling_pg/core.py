@@ -3,6 +3,8 @@ from copy import deepcopy
 
 import torch
 import torch.nn.functional as F
+from torch import nn
+
 from shinrl.solvers import Solver
 from shinrl.utils import (
     boltzmann_softmax,
@@ -11,7 +13,6 @@ from shinrl.utils import (
     mellow_max,
     softmax_policy,
 )
-from torch import nn
 
 OPTIONS = {
     "num_samples": 80,

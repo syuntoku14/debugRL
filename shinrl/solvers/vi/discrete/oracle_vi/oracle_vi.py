@@ -1,6 +1,7 @@
 import numpy as np
-from shinrl.utils import eps_greedy_policy, softmax_policy
 from tqdm import tqdm
+
+from shinrl.utils import eps_greedy_policy, softmax_policy
 
 from .core import Solver
 

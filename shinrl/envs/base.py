@@ -3,6 +3,7 @@ from abc import abstractmethod
 import gym
 import numpy as np
 from scipy import sparse
+
 from shinrl.utils import lazy_property
 
 

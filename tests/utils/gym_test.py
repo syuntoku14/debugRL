@@ -3,8 +3,9 @@ import numpy as np
 import pytest
 import torch
 from scipy import special
-from shinrl.utils import *
 from torch import nn
+
+from shinrl import utils
 
 
 def fc_net(env):
@@ -44,8 +45,8 @@ def get_action(env, net):
 
 def test_collect_samples(setUp):
     env, net = setUp
-    buf = make_replay_buffer(env, 100)
-    traj = collect_samples(env, get_action, 10, net=net)
+    buf = utils.make_replay_buffer(env, 100)
+    traj = utils.collect_samples(env, get_action, 10, net=net)
     buf.add(**traj)
     assert len(traj["obs"]) == 10
     assert (traj["act"]).dtype == np.long
@@ -53,8 +54,8 @@ def test_collect_samples(setUp):
 
 def test_collect_samples_episodic(setUp):
     env, net = setUp
-    buf = make_replay_buffer(env, 100)
-    traj = collect_samples(env, get_action, 10, num_episodes=5, net=net)
+    buf = utils.make_replay_buffer(env, 100)
+    traj = utils.collect_samples(env, get_action, 10, num_episodes=5, net=net)
     buf.add(**traj)
     assert np.sum(traj["done"]) == 5
     assert (traj["act"]).dtype == np.long

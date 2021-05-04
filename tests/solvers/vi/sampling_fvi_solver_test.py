@@ -2,6 +2,7 @@ import gym
 import numpy as np
 import pytest
 import torch
+
 from shinrl.envs import Pendulum
 from shinrl.solvers.vi.discrete import SamplingFittedCviSolver, SamplingFittedViSolver
 

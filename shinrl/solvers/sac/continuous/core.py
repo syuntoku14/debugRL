@@ -6,10 +6,11 @@ import gym
 import numpy as np
 import torch
 import torch.nn.functional as F
-from shinrl import utils
-from shinrl.solvers import Solver
 from torch import nn
 from torch.distributions.normal import Normal
+
+from shinrl import utils
+from shinrl.solvers import Solver
 
 OPTIONS = {
     "num_samples": 1,

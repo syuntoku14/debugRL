@@ -3,9 +3,10 @@ from copy import deepcopy
 
 import torch
 import torch.nn.functional as F
+from torch import nn
+
 from shinrl import utils
 from shinrl.solvers import Solver
-from torch import nn
 
 OPTIONS = {
     "num_samples": 4,

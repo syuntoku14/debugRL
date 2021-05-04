@@ -1,4 +1,5 @@
 import numpy as np
+
 from shinrl.solvers import Solver
 from shinrl.utils import boltzmann_softmax, mellow_max
 

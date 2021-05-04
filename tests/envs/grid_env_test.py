@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+
 from shinrl.envs.gridcraft import GridEnv, grid_spec_from_string
 
 

@@ -1,7 +1,8 @@
 import numpy as np
 import torch
-from shinrl import utils
 from tqdm import tqdm
+
+from shinrl import utils
 
 from .core import Solver
 

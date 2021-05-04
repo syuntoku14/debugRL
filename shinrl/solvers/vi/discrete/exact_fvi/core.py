@@ -1,9 +1,10 @@
 import numpy as np
 import torch
 import torch.nn.functional as F
+from torch import nn
+
 from shinrl import utils
 from shinrl.solvers import Solver
-from torch import nn
 
 OPTIONS = {
     # CVI settings
