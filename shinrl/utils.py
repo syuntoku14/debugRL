@@ -1,14 +1,13 @@
 import time
-import numpy as np
-from functools import update_wrapper
 from collections import defaultdict
+from functools import update_wrapper
+
+import numpy as np
+from cpprb import ReplayBuffer, create_env_dict
 from scipy import special
-from cpprb import (ReplayBuffer, PrioritizedReplayBuffer,
-                   create_env_dict, create_before_add_func)
+
 try:
     import torch
-    from torchvision.transforms import ToTensor
-    from torch import nn
     from torch.nn import functional as F
 except ImportError:
     pass
@@ -23,7 +22,7 @@ class lazy_property(object):
     attribute.
     """
 
-    def __init__(self, wrapped):
+    def __init__(self, wrapped) -> None:
         self.wrapped = wrapped
         update_wrapper(self, wrapped)  # type: ignore[arg-type]
 
@@ -39,22 +38,22 @@ class lazy_property(object):
 def boltzmann_softmax(values, beta):
     # See the appendix A.1 in CVI paper
     if isinstance(values, np.ndarray):
-        probs = special.softmax(beta*values, axis=-1)
+        probs = special.softmax(beta * values, axis=-1)
         return np.sum(probs * values, axis=-1)
     elif isinstance(values, torch.Tensor):
-        probs = F.softmax(beta*values, dim=-1)
+        probs = F.softmax(beta * values, dim=-1)
         return torch.sum(probs * values, dim=-1)
 
 
 def mellow_max(values, beta):
     # See the CVI paper
     if isinstance(values, np.ndarray):
-        x = special.logsumexp(beta*values, axis=-1)
-        x += np.log(1/values.shape[-1])
+        x = special.logsumexp(beta * values, axis=-1)
+        x += np.log(1 / values.shape[-1])
         return x / beta
     elif isinstance(values, torch.Tensor):
-        x = torch.logsumexp(beta*values, dim=-1)
-        x += np.log(1/values.shape[-1])
+        x = torch.logsumexp(beta * values, dim=-1)
+        x += np.log(1 / values.shape[-1])
         return x / beta
 
 
@@ -62,16 +61,15 @@ def mellow_max(values, beta):
 def eps_greedy_policy(q_values, eps_greedy=0.0):
     # return epsilon-greedy policy (*)xA
     policy_probs = np.zeros_like(q_values)
-    policy_probs[
-        np.arange(q_values.shape[0]),
-        np.argmax(q_values, axis=-1)] = 1.0 - eps_greedy
+    policy_probs[np.arange(q_values.shape[0]), np.argmax(q_values, axis=-1)] = (
+        1.0 - eps_greedy
+    )
     policy_probs += eps_greedy / (policy_probs.shape[-1])
     return policy_probs
 
 
 def compute_epsilon(step, eps_start, eps_end, eps_decay):
-    return eps_end + (eps_start - eps_end) * \
-        np.exp(-1. * step / eps_decay)
+    return eps_end + (eps_start - eps_end) * np.exp(-1.0 * step / eps_decay)
 
 
 def softmax_policy(preference, beta=1.0):
@@ -99,9 +97,11 @@ def trajectory_to_tensor(trajectory, device="cpu"):
             value = np.squeeze(value, axis=-1)
         if key == "done" or key == "timeout":
             dtype = torch.bool
-        elif key in ["state", "next_state"] \
-                or trajectory[key].dtype == np.int32 \
-                or trajectory[key].dtype == np.int64:
+        elif (
+            key in ["state", "next_state"]
+            or trajectory[key].dtype == np.int32
+            or trajectory[key].dtype == np.int64
+        ):
             dtype = torch.long
         else:
             dtype = torch.float32
@@ -109,7 +109,9 @@ def trajectory_to_tensor(trajectory, device="cpu"):
     return tensor_traj
 
 
-def collect_samples(env, get_action, num_samples=None, num_episodes=None, render=False, **kwargs):
+def collect_samples(
+    env, get_action, num_samples=None, num_episodes=None, render=False, **kwargs
+):
     """
     Args:
         env (gym.Env or shinrl.envs.TabularEnv)
@@ -119,8 +121,9 @@ def collect_samples(env, get_action, num_samples=None, num_episodes=None, render
         render (bool, optional)
     """
     is_tabular = hasattr(env, "get_state")
-    assert hasattr(env, "obs"), \
-        'env has no attribute "obs". Run env.obs = env.reset() before collect_samples.'
+    assert hasattr(
+        env, "obs"
+    ), 'env has no attribute "obs". Run env.obs = env.reset() before collect_samples.'
     traj = defaultdict(lambda: [])
     done, done_count = False, 0
 
@@ -129,7 +132,7 @@ def collect_samples(env, get_action, num_samples=None, num_episodes=None, render
 
     while True:
         if render:
-            time.sleep(1/20)
+            time.sleep(1 / 20)
             env.render()
 
         # add current info
@@ -173,13 +176,14 @@ def collect_samples(env, get_action, num_samples=None, num_episodes=None, render
 def make_replay_buffer(env, size):
     is_tabular = hasattr(env, "get_state")
     env_dict = create_env_dict(env)
-    env_dict.update({
-        "obs": {'dtype': np.float32, 'shape': env_dict["obs"]["shape"]},
-        "log_prob": {'dtype': np.float32, 'shape': 1},
-        "timeout": {'dtype': np.bool, 'shape': 1},
-    })
+    env_dict.update(
+        {
+            "obs": {"dtype": np.float32, "shape": env_dict["obs"]["shape"]},
+            "log_prob": {"dtype": np.float32, "shape": 1},
+            "timeout": {"dtype": np.bool, "shape": 1},
+        }
+    )
     if is_tabular:
-        env_dict.update({
-            "state": {'dtype': np.int32, 'shape': 1}})
+        env_dict.update({"state": {"dtype": np.int32, "shape": 1}})
         return ReplayBuffer(size, env_dict, next_of=("obs", "state"))
-    return ReplayBuffer(size, env_dict, next_of=("obs", ))
+    return ReplayBuffer(size, env_dict, next_of=("obs",))

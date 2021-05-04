@@ -4,12 +4,13 @@ def run_solver_tb(solver, env):
     action_values = solver.env.compute_action_values(solver.tb_policy)
     visitation = env.compute_visitation(solver.tb_policy)
     assert solver.step == 10
-    assert solver.tb_values.shape \
-        == solver.tb_policy.shape \
-        == action_values.shape \
+    assert (
+        solver.tb_values.shape
+        == solver.tb_policy.shape
+        == action_values.shape
         == (env.dS, env.dA)
-    assert visitation.shape \
-        == (env.horizon, env.dS, env.dA)
+    )
+    assert visitation.shape == (env.horizon, env.dS, env.dA)
 
 
 def run_solver_gym(solver, env):

@@ -1,9 +1,10 @@
-import pytest
-import numpy as np
 import gym
+import numpy as np
+import pytest
 from shinrl.envs import Pendulum
 from shinrl.solvers.sac.discrete import SacSolver
-from ..misc import run_solver_tb, run_solver_gym
+
+from ..misc import run_solver_gym, run_solver_tb
 
 
 @pytest.fixture
@@ -20,8 +21,7 @@ def test_tb(setUp):
 
 
 def test_image_obs(setUp):
-    pend_env = Pendulum(state_disc=5, dA=3,
-                        horizon=5, obs_mode="image")
+    pend_env = Pendulum(state_disc=5, dA=3, horizon=5, obs_mode="image")
     pend_env.reset()
     solver = SacSolver(pend_env)
     run_solver_tb(solver, pend_env)

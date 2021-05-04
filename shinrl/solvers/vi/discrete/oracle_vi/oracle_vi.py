@@ -1,10 +1,8 @@
 import numpy as np
+from shinrl.utils import eps_greedy_policy, softmax_policy
 from tqdm import tqdm
+
 from .core import Solver
-from shinrl.utils import (
-    eps_greedy_policy,
-    softmax_policy,
-)
 
 
 class OracleSolver(Solver):
@@ -19,7 +17,7 @@ class OracleSolver(Solver):
         # to analyze the error tolerance
         noise_scale = self.solve_options["noise_scale"]
         values = self.tb_values
-        values = values + np.random.randn(*values.shape)*noise_scale
+        values = values + np.random.randn(*values.shape) * noise_scale
         self.record_array("Values", values)
 
     def record_history(self):
@@ -34,9 +32,9 @@ class OracleViSolver(OracleSolver):
         curr_q_val = self.tb_values
         discount = self.solve_options["discount"]
         curr_v_val = np.max(curr_q_val, axis=-1)  # S
-        prev_q = self.env.reward_matrix \
-            + discount*(self.env.transition_matrix *
-                        curr_v_val).reshape(self.dS, self.dA)
+        prev_q = self.env.reward_matrix + discount * (
+            self.env.transition_matrix * curr_v_val
+        ).reshape(self.dS, self.dA)
         self.record_array("Values", np.asarray(prev_q))
 
         # set greedy policy
@@ -53,16 +51,16 @@ class OracleCviSolver(OracleSolver):
     def update(self):
         discount = self.solve_options["discount"]
         er_coef, kl_coef = self.solve_options["er_coef"], self.solve_options["kl_coef"]
-        alpha, beta = kl_coef / (er_coef+kl_coef), 1 / (er_coef+kl_coef)
+        alpha, beta = kl_coef / (er_coef + kl_coef), 1 / (er_coef + kl_coef)
         curr_pref = self.tb_values
 
         # update preference
         mP = self.max_operator(curr_pref, beta)
-        prev_preference = \
-            alpha * (curr_pref - mP.reshape(-1, 1)) \
-            + self.env.reward_matrix \
-            + discount*(self.env.transition_matrix *
-                        mP).reshape(self.dS, self.dA)
+        prev_preference = (
+            alpha * (curr_pref - mP.reshape(-1, 1))
+            + self.env.reward_matrix
+            + discount * (self.env.transition_matrix * mP).reshape(self.dS, self.dA)
+        )
         self.record_array("Values", np.asarray(prev_preference))
 
         # set greedy policy
@@ -86,15 +84,17 @@ class OracleMviSolver(OracleSolver):
         tau = kl_coef + er_coef
 
         # update q
-        policy = softmax_policy(self.tb_values, beta=1/tau)
+        policy = softmax_policy(self.tb_values, beta=1 / tau)
         curr_q = self.tb_values
-        next_max = np.sum(policy * (curr_q - tau*np.log(policy)), axis=-1)
-        prev_q = \
-            self.env.reward_matrix \
-            + alpha*tau*np.log(policy) \
-            + discount*(self.env.transition_matrix*next_max).reshape(self.dS, self.dA)
+        next_max = np.sum(policy * (curr_q - tau * np.log(policy)), axis=-1)
+        prev_q = (
+            self.env.reward_matrix
+            + alpha * tau * np.log(policy)
+            + discount
+            * (self.env.transition_matrix * next_max).reshape(self.dS, self.dA)
+        )
         self.record_array("Values", np.asarray(prev_q))
 
         # set policy
-        policy = softmax_policy(self.tb_values, beta=1/tau)
+        policy = softmax_policy(self.tb_values, beta=1 / tau)
         self.record_array("Policy", policy)

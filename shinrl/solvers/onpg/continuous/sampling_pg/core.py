@@ -1,14 +1,14 @@
+import itertools
 from copy import deepcopy
+
 import gym
 import numpy as np
 import torch
-import itertools
-from torch import nn
 import torch.nn.functional as F
-from torch.distributions.normal import Normal
-from shinrl.solvers import Solver
 from shinrl import utils
-
+from shinrl.solvers import Solver
+from torch import nn
+from torch.distributions.normal import Normal
 
 OPTIONS = {
     "num_samples": 20,
@@ -38,8 +38,10 @@ def fc_net(env, hidden, depth, act_layer):
         act_layer = nn.ReLU
     else:
         raise ValueError("Invalid activation layer.")
-    modules = [nn.Linear(env.observation_space.shape[0], hidden), ]
-    for _ in range(depth-1):
+    modules = [
+        nn.Linear(env.observation_space.shape[0], hidden),
+    ]
+    for _ in range(depth - 1):
         modules += [act_layer(), nn.Linear(hidden, hidden)]
     modules.append(act_layer())
     return nn.Sequential(*modules), None
@@ -54,12 +56,14 @@ def conv_net(env, hidden, depth, act_layer):
         raise ValueError("Invalid activation layer.")
     # this assumes image shape == (1, 28, 28)
     n_acts = env.action_space.n
-    conv_modules = [nn.Conv2d(1, 10, kernel_size=5, stride=2),
-                    nn.Conv2d(10, 20, kernel_size=5, stride=2),
-                    nn.Flatten()]
+    conv_modules = [
+        nn.Conv2d(1, 10, kernel_size=5, stride=2),
+        nn.Conv2d(10, 20, kernel_size=5, stride=2),
+        nn.Flatten(),
+    ]
     fc_modules = []
     fc_modules.append(nn.Linear(320, hidden))
-    for _ in range(depth-1):
+    for _ in range(depth - 1):
         fc_modules += [act_layer(), nn.Linear(hidden, hidden)]
     fc_modules.append(act_layer())
     conv_modules = nn.Sequential(*conv_modules)
@@ -72,8 +76,11 @@ class ValueNet(nn.Module):
         super().__init__()
         net = fc_net if len(env.observation_space.shape) == 1 else conv_net
         self.fc, self.conv = net(
-            env, solve_options["hidden"],
-            solve_options["depth"], solve_options["activation"])
+            env,
+            solve_options["hidden"],
+            solve_options["depth"],
+            solve_options["activation"],
+        )
         self.out = nn.Linear(solve_options["hidden"], 1)
 
     def forward(self, obss):
@@ -87,8 +94,11 @@ class PolicyNet(nn.Module):
         super().__init__()
         net = fc_net if len(env.observation_space.shape) == 1 else conv_net
         self.fc, self.conv = net(
-            env, solve_options["hidden"], solve_options["depth"],
-            solve_options["activation"])
+            env,
+            solve_options["hidden"],
+            solve_options["depth"],
+            solve_options["activation"],
+        )
         act_dim = env.action_space.shape[0]
         log_std = np.zeros(act_dim, dtype=np.float32)
         self.log_std = torch.nn.Parameter(torch.as_tensor(log_std))
@@ -139,32 +149,34 @@ class Solver(Solver):
             raise ValueError("Invalid critic_loss")
 
         # set value network
-        self.value_network = ValueNet(
-            self.env, self.solve_options).to(self.device)
-        self.policy_network = PolicyNet(
-            self.env, self.solve_options).to(self.device)
+        self.value_network = ValueNet(self.env, self.solve_options).to(self.device)
+        self.policy_network = PolicyNet(self.env, self.solve_options).to(self.device)
         self.params = itertools.chain(
-            self.value_network.parameters(),
-            self.policy_network.parameters())
+            self.value_network.parameters(), self.policy_network.parameters()
+        )
         self.optimizer = self.optimizer(self.params, lr=self.solve_options["lr"])
 
         # Collect random samples in advance
         if self.is_tabular:
             self.all_obss = torch.tensor(
-                self.env.all_observations, dtype=torch.float32, device=self.device)
-            self.all_actions = torch.tensor(
-                self.env.all_actions, dtype=torch.float32,
-                device=self.device).repeat(self.dS, 1).reshape(self.dS, self.dA)  # dS x dA
+                self.env.all_observations, dtype=torch.float32, device=self.device
+            )
+            self.all_actions = (
+                torch.tensor(
+                    self.env.all_actions, dtype=torch.float32, device=self.device
+                )
+                .repeat(self.dS, 1)
+                .reshape(self.dS, self.dA)
+            )  # dS x dA
             self.set_tb_values_policy()
 
     def collect_samples(self, num_samples):
         if self.is_tabular:
             return utils.collect_samples(
-                self.env, utils.get_tb_action, num_samples,
-                policy=self.tb_policy)
+                self.env, utils.get_tb_action, num_samples, policy=self.tb_policy
+            )
         else:
-            return utils.collect_samples(
-                self.env, self.get_action_gym, num_samples)
+            return utils.collect_samples(self.env, self.get_action_gym, num_samples)
 
     def save(self, path):
         data = {

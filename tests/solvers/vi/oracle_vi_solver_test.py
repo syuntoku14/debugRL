@@ -1,11 +1,8 @@
-import pytest
 import numpy as np
+import pytest
 from shinrl.envs import Pendulum
-from shinrl.solvers.vi.discrete import (
-    OracleViSolver,
-    OracleCviSolver,
-    OracleMviSolver
-)
+from shinrl.solvers.vi.discrete import OracleCviSolver, OracleMviSolver, OracleViSolver
+
 from ..misc import run_solver_tb
 
 

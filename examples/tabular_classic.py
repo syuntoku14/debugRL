@@ -1,41 +1,51 @@
 import os
+
 os.environ["MKL_NUM_THREADS"] = "1"  # NOQA
 os.environ["NUMEXPR_NUM_THREADS"] = "1"  # NOQA
 os.environ["OMP_NUM_THREADS"] = "1"  # NOQA
-import gym
-import numpy as np
 import argparse
-from shinrl import solvers
-import matplotlib.pyplot as plt
+
+import gym
 import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
 from clearml import Task
-from misc import DISCRETE_SOLVERS, CONTINUOUS_SOLVERS, prepare
-matplotlib.use('Agg')
+from misc import CONTINUOUS_SOLVERS, DISCRETE_SOLVERS, prepare
+from shinrl import solvers
+
+matplotlib.use("Agg")
 
 
 def main():
     parser = argparse.ArgumentParser()
-    KEYS = set(list(DISCRETE_SOLVERS.keys())+list(CONTINUOUS_SOLVERS.keys()))
-    parser.add_argument('--solver', type=str, default="SAC", choices=KEYS)
-    parser.add_argument('--env', type=str, default="TabularPendulum-v0",
-                        choices=[
-                            'TabularPendulum-v0',
-                            'TabularPendulumContinuous-v0',
-                            'TabularPendulumImage-v0',
-                            'TabularPendulumImageContinuous-v0',
-                            'TabularMountainCar-v0',
-                            'TabularMountainCarContinuous-v0',
-                            'TabularMountainCarImage-v0',
-                            'TabularMountainCarImageContinuous-v0',
-                            'TabularCartPole-v0',
-                        ])
+    KEYS = set(list(DISCRETE_SOLVERS.keys()) + list(CONTINUOUS_SOLVERS.keys()))
+    parser.add_argument("--solver", type=str, default="SAC", choices=KEYS)
+    parser.add_argument(
+        "--env",
+        type=str,
+        default="TabularPendulum-v0",
+        choices=[
+            "TabularPendulum-v0",
+            "TabularPendulumContinuous-v0",
+            "TabularPendulumImage-v0",
+            "TabularPendulumImageContinuous-v0",
+            "TabularMountainCar-v0",
+            "TabularMountainCarContinuous-v0",
+            "TabularMountainCarImage-v0",
+            "TabularMountainCarImageContinuous-v0",
+            "TabularCartPole-v0",
+        ],
+    )
     defaults = {"--epochs": 5, "--evaluation_interval": 100, "--steps_per_epoch": 500}
     args, options, project_name, task_name, task, logger = prepare(parser, defaults)
 
     # Construct solver
     env = gym.make(args.env)
-    SOLVERS = CONTINUOUS_SOLVERS if isinstance(
-        env.action_space, gym.spaces.Box) else DISCRETE_SOLVERS
+    SOLVERS = (
+        CONTINUOUS_SOLVERS
+        if isinstance(env.action_space, gym.spaces.Box)
+        else DISCRETE_SOLVERS
+    )
     solver = SOLVERS[args.solver](env, logger=logger, solve_options=options)
     if args.clearml:
         task_params = task.connect(solver.solve_options)
@@ -44,8 +54,8 @@ def main():
 
     # Run solver
     dir_name = os.path.join(
-        "results", project_name,
-        task_name, str(solver.solve_options["seed"]))
+        "results", project_name, task_name, str(solver.solve_options["seed"])
+    )
     if args.save and not os.path.exists(dir_name):
         os.makedirs(dir_name)
 
@@ -58,26 +68,38 @@ def main():
         if hasattr(env, "plot_values") and logger is not None:
             # learned value
             q_values = solver.tb_values
-            v_values = np.sum(solver.tb_policy*q_values, axis=-1)
+            v_values = np.sum(solver.tb_policy * q_values, axis=-1)
 
             # oracle value
             oracle_q_values = env.compute_action_values(solver.tb_policy)
-            oracle_v_values = np.sum(solver.tb_policy*oracle_q_values, axis=-1)
+            oracle_v_values = np.sum(solver.tb_policy * oracle_q_values, axis=-1)
             vmin = min(v_values.min(), oracle_v_values.min())
             vmax = max(v_values.max(), oracle_v_values.max())
 
             if hasattr(env, "plot_values"):
-                grid_kws = {"width_ratios": (.49, .49, .02)}
+                grid_kws = {"width_ratios": (0.49, 0.49, 0.02)}
                 fig, axes = plt.subplots(
-                    nrows=1, ncols=3, figsize=(20, 6), gridspec_kw=grid_kws)
-                env.plot_values(v_values, ax=axes[0], cbar_ax=axes[2],
-                                vmin=vmin, vmax=vmax,
-                                title="Learned State Values".format(epoch))
-                env.plot_values(oracle_v_values, ax=axes[1], cbar_ax=axes[2],
-                                vmin=vmin, vmax=vmax,
-                                title="Oracle State Values".format(epoch))
+                    nrows=1, ncols=3, figsize=(20, 6), gridspec_kw=grid_kws
+                )
+                env.plot_values(
+                    v_values,
+                    ax=axes[0],
+                    cbar_ax=axes[2],
+                    vmin=vmin,
+                    vmax=vmax,
+                    title="Learned State Values".format(epoch),
+                )
+                env.plot_values(
+                    oracle_v_values,
+                    ax=axes[1],
+                    cbar_ax=axes[2],
+                    vmin=vmin,
+                    vmax=vmax,
+                    title="Oracle State Values".format(epoch),
+                )
                 solver.logger.report_matplotlib_figure(
-                    "Q matrix", "ignore", solver.step, fig)
+                    "Q matrix", "ignore", solver.step, fig
+                )
                 plt.clf()
                 plt.close()
 

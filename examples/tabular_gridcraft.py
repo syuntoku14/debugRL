@@ -1,32 +1,38 @@
 import os
+
 os.environ["MKL_NUM_THREADS"] = "1"  # NOQA
 os.environ["NUMEXPR_NUM_THREADS"] = "1"  # NOQA
 os.environ["OMP_NUM_THREADS"] = "1"  # NOQA
-import numpy as np
 import argparse
-import pandas as pd
-import matplotlib.pyplot as plt
+
 import matplotlib
-from shinrl.envs.gridcraft import (GridEnv, create_maze, grid_spec_from_string)
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 from celluloid import Camera
 from clearml import Task
-from misc import DISCRETE_SOLVERS, to_numeric, prepare
-matplotlib.use('Agg')
+from misc import DISCRETE_SOLVERS, prepare, to_numeric
+from shinrl.envs.gridcraft import GridEnv, create_maze, grid_spec_from_string
+
+matplotlib.use("Agg")
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser = argparse.ArgumentParser()
-    parser.add_argument('--solver', type=str, default="SAC",
-                        choices=list(DISCRETE_SOLVERS.keys()))
-    parser.add_argument('--env', type=str, default="GridCraft-v0")  # dummy
-    defaults = {"--epochs": 10, "--evaluation_interval": 1, "--steps_per_epoch": 10, "--log_interval": 1}
+    parser.add_argument(
+        "--solver", type=str, default="SAC", choices=list(DISCRETE_SOLVERS.keys())
+    )
+    parser.add_argument("--env", type=str, default="GridCraft-v0")  # dummy
+    defaults = {
+        "--epochs": 10,
+        "--evaluation_interval": 1,
+        "--steps_per_epoch": 10,
+        "--log_interval": 1,
+    }
     args, options, project_name, task_name, task, logger = prepare(parser, defaults)
 
-    spec = grid_spec_from_string("SOOO\\" +
-                                 "O###\\" +
-                                 "OOOO\\" +
-                                 "O#RO\\")
+    spec = grid_spec_from_string("SOOO\\" + "O###\\" + "OOOO\\" + "O#RO\\")
     env = GridEnv(spec, trans_eps=0.1, horizon=25)
 
     # solve tabular MDP
@@ -45,18 +51,24 @@ def main():
         solver.run(num_steps=args.steps_per_epoch)
         env.plot_values(solver.tb_policy, ax=axes[0], title="Policy")
         env.plot_values(solver.tb_values, ax=axes[1], title="Learned Q Values")
-        env.plot_values(env.compute_action_values(
-            solver.tb_policy), ax=axes[2], title="Oracle Q Values")
+        env.plot_values(
+            env.compute_action_values(solver.tb_policy),
+            ax=axes[2],
+            title="Oracle Q Values",
+        )
         camera.snap()
 
-    dir_name = os.path.join("results", project_name, task_name, str(solver.solve_options["seed"]))
+    dir_name = os.path.join(
+        "results", project_name, task_name, str(solver.solve_options["seed"])
+    )
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
     solver.save(os.path.join(dir_name))
 
     animation = camera.animate()
-    animation.save(os.path.join(
-        dir_name, "values.gif".format(solver.solve_options["seed"])))
+    animation.save(
+        os.path.join(dir_name, "values.gif".format(solver.solve_options["seed"]))
+    )
 
 
 if __name__ == "__main__":

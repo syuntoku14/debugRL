@@ -1,13 +1,14 @@
-import seaborn as sns
-import matplotlib.pyplot as plt
-import os
 import math
+import os
 import os.path as osp
+import pathlib
+import pickle
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import pickle
+import seaborn as sns
 import torch
-import pathlib
 
 
 def load_data(exp_path, x, y):
@@ -18,7 +19,7 @@ def load_data(exp_path, x, y):
         solver_name = solver.name
         data[solver_name] = []
         for seed in solver.glob("*"):
-            datum = torch.load(str(seed)+"/data.tar")
+            datum = torch.load(str(seed) + "/data.tar")
             datum = pd.DataFrame(datum["history"][y])
             if x == "Samples":
                 num_samples = datum["options"]["num_samples"]
@@ -31,10 +32,11 @@ def load_data(exp_path, x, y):
 
 def main():
     import argparse
+
     parser = argparse.ArgumentParser()
-    parser.add_argument('expdir')
-    parser.add_argument('-x', default='Samples', choices=["Samples", "Steps"])
-    parser.add_argument('-y', default="ReturnPolicy")
+    parser.add_argument("expdir")
+    parser.add_argument("-x", default="Samples", choices=["Samples", "Steps"])
+    parser.add_argument("-y", default="ReturnPolicy")
     args = parser.parse_args()
 
     exp_path = pathlib.Path(args.expdir)
@@ -43,14 +45,13 @@ def main():
     sns.set(style="darkgrid", font_scale=1.0)
     ax = plt.gca()
     for name, datum in data.items():
-        sns.lineplot(data=datum, x=args.x, y=args.y,
-                     ci='sd', ax=ax, label=name)
+        sns.lineplot(data=datum, x=args.x, y=args.y, ci="sd", ax=ax, label=name)
         xscale = np.max(np.asarray(datum[args.x])) > 5e3
         if xscale:
             # Just some formatting niceness: x-axis scale in scientific notation if max x is large
-            ax.ticklabel_format(style='sci', axis='x', scilimits=(0, 0))
+            ax.ticklabel_format(style="sci", axis="x", scilimits=(0, 0))
 
-    plt.savefig(os.path.join(args.expdir, args.y+".png"))
+    plt.savefig(os.path.join(args.expdir, args.y + ".png"))
 
 
 if __name__ == "__main__":

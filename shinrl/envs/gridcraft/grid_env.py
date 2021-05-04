@@ -1,11 +1,12 @@
-import sys
-import numpy as np
 import random
-from gym.spaces import Box
-from .grid_spec import REWARD, WALL, LAVA, TILES, START, RENDER_DICT
-from shinrl.envs import TabularEnv
-from .plotter import plot_values
+import sys
 
+import numpy as np
+from gym.spaces import Box
+from shinrl.envs import TabularEnv
+
+from .grid_spec import LAVA, RENDER_DICT, REWARD, START, TILES, WALL
+from .plotter import plot_values
 
 ACT_NOOP = 0
 ACT_UP = 1
@@ -17,14 +18,14 @@ ACT_DICT = {
     ACT_UP: [0, -1],
     ACT_LEFT: [-1, 0],
     ACT_RIGHT: [+1, 0],
-    ACT_DOWN: [0, +1]
+    ACT_DOWN: [0, +1],
 }
 ACT_TO_STR = {
-    ACT_NOOP: 'NOOP',
-    ACT_UP: 'UP',
-    ACT_LEFT: 'LEFT',
-    ACT_RIGHT: 'RIGHT',
-    ACT_DOWN: 'DOWN'
+    ACT_NOOP: "NOOP",
+    ACT_UP: "UP",
+    ACT_LEFT: "LEFT",
+    ACT_RIGHT: "RIGHT",
+    ACT_DOWN: "DOWN",
 }
 
 
@@ -39,16 +40,20 @@ class TransitionModel(object):
         p = np.zeros(len(ACT_DICT))
         p[legal_moves] = self.eps / (len(legal_moves))
         if a in legal_moves:
-            p[a] += 1.0-self.eps
+            p[a] += 1.0 - self.eps
         else:
             # p = np.array([1.0,0,0,0,0])  # NOOP
-            p[ACT_NOOP] += 1.0-self.eps
+            p[ACT_NOOP] += 1.0 - self.eps
         return p
 
     def _get_legal_moves(self, s):
         xy = np.array(self.gs.idx_to_xy(s))
-        moves = [move for move in ACT_DICT if not self.gs.out_of_bounds(xy+ACT_DICT[move])
-                 and self.gs[xy+ACT_DICT[move]] != WALL]
+        moves = [
+            move
+            for move in ACT_DICT
+            if not self.gs.out_of_bounds(xy + ACT_DICT[move])
+            and self.gs[xy + ACT_DICT[move]] != WALL
+        ]
         return moves
 
 
@@ -96,16 +101,19 @@ class GridEnv(TabularEnv):
         trans_eps (float, optional): Randomness of the transitions
         default_rew (int, optional): Default reward
         obs_dim (int, optional): Dimension of the observation when obs_mode=="random"
-        obs_mode (str, optional): Type of observation. "onehot" or "random". 
+        obs_mode (str, optional): Type of observation. "onehot" or "random".
     """
 
-    def __init__(self, gridspec,
-                 horizon=20,
-                 tiles=TILES,
-                 trans_eps=0.0,
-                 default_rew=0,
-                 obs_dim=5,
-                 obs_mode="onehot"):
+    def __init__(
+        self,
+        gridspec,
+        horizon=20,
+        tiles=TILES,
+        trans_eps=0.0,
+        default_rew=0,
+        obs_dim=5,
+        obs_mode="onehot",
+    ):
         self.gs = gridspec
         self.model = TransitionModel(gridspec, eps=trans_eps)
         self.rew_fn = RewardFunction(default=default_rew)
@@ -117,24 +125,26 @@ class GridEnv(TabularEnv):
         num_starts = start_idxs.shape[0]
         initial_distribution = {}
         for i in range(num_starts):
-            initial_distribution[self.gs.xy_to_idx(
-                start_idxs[i])] = 1.0/num_starts
+            initial_distribution[self.gs.xy_to_idx(start_idxs[i])] = 1.0 / num_starts
 
         super().__init__(
             dS=len(gridspec),
             dA=5,
             initial_state_distribution=initial_distribution,
-            horizon=horizon
+            horizon=horizon,
         )
 
         if obs_mode == "onehot":
-            self.observation_space = Box(
-                0, 1, (self.gs.width+self.gs.height, ))
+            self.observation_space = Box(0, 1, (self.gs.width + self.gs.height,))
         elif obs_mode == "random":
             self.obs_dim = obs_dim
             self.obs_matrix = np.random.randn(len(self.gs), self.obs_dim)
-            self.observation_space = Box(np.min(self.obs_matrix), np.max(self.obs_matrix),
-                                         shape=(self.obs_dim, ), dtype=np.float32)
+            self.observation_space = Box(
+                np.min(self.obs_matrix),
+                np.max(self.obs_matrix),
+                shape=(self.obs_dim,),
+                dtype=np.float32,
+            )
         else:
             raise ValueError("Invalid obs_mode: {}".format(obs_mode))
         self.obs_mode = obs_mode
@@ -158,17 +168,17 @@ class GridEnv(TabularEnv):
 
     def render(self, ostream=sys.stdout):
         state = self.__state
-        ostream.write('-'*(self.gs.width+2)+'\n')
+        ostream.write("-" * (self.gs.width + 2) + "\n")
         for h in range(self.gs.height):
-            ostream.write('|')
+            ostream.write("|")
             for w in range(self.gs.width):
                 if self.gs.xy_to_idx((w, h)) == state:
-                    ostream.write('*')
+                    ostream.write("*")
                 else:
                     val = self.gs[w, h]
                     ostream.write(RENDER_DICT[val])
-            ostream.write('|\n')
-        ostream.write('-' * (self.gs.width + 2)+'\n')
+            ostream.write("|\n")
+        ostream.write("-" * (self.gs.width + 2) + "\n")
 
     def observation(self, s):
         if self.obs_mode == "onehot":
@@ -180,8 +190,7 @@ class GridEnv(TabularEnv):
         else:
             return self.obs_matrix[s]
 
-    def plot_values(
-            self, values, title=None, ax=None, **kwargs):
+    def plot_values(self, values, title=None, ax=None, **kwargs):
         plot_values(self.gs, values, title=title, ax=ax)
 
 
@@ -195,27 +204,33 @@ def create_maze(width, height):
         random.shuffle(rnd_array)
         for index in rnd_array:
             # if it reaches out of the maze or visited cell
-            if updY + direction[index][1] < 0 or updY + direction[index][1] > maze.shape[0]:
+            if (
+                updY + direction[index][1] < 0
+                or updY + direction[index][1] > maze.shape[0]
+            ):
                 continue
-            elif updX + direction[index][0] < 0 or updX + direction[index][0] > maze.shape[1]:
+            elif (
+                updX + direction[index][0] < 0
+                or updX + direction[index][0] > maze.shape[1]
+            ):
                 continue
-            elif maze[updY+direction[index][1]][updX+direction[index][0]] == 0:
+            elif maze[updY + direction[index][1]][updX + direction[index][0]] == 0:
                 continue
 
-            maze[updY+direction[index][1]][updX+direction[index][0]] = 0
+            maze[updY + direction[index][1]][updX + direction[index][0]] = 0
             if index == 0:
-                maze[updY+direction[index][1]+1][updX+direction[index][0]] = 0
+                maze[updY + direction[index][1] + 1][updX + direction[index][0]] = 0
             elif index == 1:
-                maze[updY+direction[index][1]-1][updX+direction[index][0]] = 0
+                maze[updY + direction[index][1] - 1][updX + direction[index][0]] = 0
             elif index == 2:
-                maze[updY+direction[index][1]][updX+direction[index][0]+1] = 0
+                maze[updY + direction[index][1]][updX + direction[index][0] + 1] = 0
             elif index == 3:
-                maze[updY+direction[index][1]][updX+direction[index][0]-1] = 0
-            fill_maze(updX+direction[index][0], updY+direction[index][1])
+                maze[updY + direction[index][1]][updX + direction[index][0] - 1] = 0
+            fill_maze(updX + direction[index][0], updY + direction[index][1])
 
     fill_maze(0, 0)
     maze[0, 0] = -1  # start position
-    maze[height-1, width-1] = 2  # goal position
+    maze[height - 1, width - 1] = 2  # goal position
 
     string = ""
     for dy_list in maze:

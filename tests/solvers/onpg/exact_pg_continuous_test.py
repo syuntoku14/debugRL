@@ -1,7 +1,8 @@
-import pytest
 import numpy as np
+import pytest
 from shinrl.envs import Pendulum
 from shinrl.solvers.onpg.continuous import ExactPgSolver
+
 from ..misc import run_solver_tb
 
 

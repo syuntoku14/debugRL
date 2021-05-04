@@ -1,26 +1,32 @@
 import os
+
 os.environ["MKL_NUM_THREADS"] = "1"  # NOQA
 os.environ["NUMEXPR_NUM_THREADS"] = "1"  # NOQA
 os.environ["OMP_NUM_THREADS"] = "1"  # NOQA
+import argparse
+
 import gym
 import numpy as np
-import argparse
-from shinrl import solvers
 from misc import CONTINUOUS_SOLVERS, prepare
+from shinrl import solvers
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--solver', type=str, default="SAC",
-                        choices=list(CONTINUOUS_SOLVERS.keys()))
-    parser.add_argument('--env', type=str, default="HalfCheetah-v2")
-    defaults = {"--epochs": 30, "--evaluation_interval": 5000, "--steps_per_epoch": 100000}
+    parser.add_argument(
+        "--solver", type=str, default="SAC", choices=list(CONTINUOUS_SOLVERS.keys())
+    )
+    parser.add_argument("--env", type=str, default="HalfCheetah-v2")
+    defaults = {
+        "--epochs": 30,
+        "--evaluation_interval": 5000,
+        "--steps_per_epoch": 100000,
+    }
     args, options, project_name, task_name, task, logger = prepare(parser, defaults)
 
     # Construct solver
     env = gym.make(args.env)
-    solver = CONTINUOUS_SOLVERS[args.solver](
-        env, logger=logger, solve_options=options)
+    solver = CONTINUOUS_SOLVERS[args.solver](env, logger=logger, solve_options=options)
     if args.clearml:
         task_params = task.connect(solver.solve_options)
     solver_name = solver.__class__.__name__
@@ -28,8 +34,8 @@ def main():
 
     # Run solver
     dir_name = os.path.join(
-        "results", project_name,
-        task_name, str(solver.solve_options["seed"]))
+        "results", project_name, task_name, str(solver.solve_options["seed"])
+    )
     if args.save and not os.path.exists(dir_name):
         os.makedirs(dir_name)
 

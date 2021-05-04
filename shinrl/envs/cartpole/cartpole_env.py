@@ -1,11 +1,11 @@
-import numpy as np
-import gym
 import cv2
+import gym
+import numpy as np
 from shinrl.envs import TabularEnv
 
 
 class CartPole(TabularEnv):
-    """ Dynamics and reward are based on OpenAI gym's implementation of CartPole-v0
+    """Dynamics and reward are based on OpenAI gym's implementation of CartPole-v0
 
     Args:
         x_disc (int, optional): Resolution of :math:`x`.
@@ -16,10 +16,18 @@ class CartPole(TabularEnv):
         obs_mode (str): Specify the type of observation. "tuple" or "image".
     """
 
-    def __init__(self, x_disc=128, x_dot_disc=4,
-                 th_disc=64, th_dot_disc=4, dA=5,
-                 init_dist=None, horizon=100,
-                 action_mode="discrete", obs_mode="tuple"):
+    def __init__(
+        self,
+        x_disc=128,
+        x_dot_disc=4,
+        th_disc=64,
+        th_dot_disc=4,
+        dA=5,
+        init_dist=None,
+        horizon=100,
+        action_mode="discrete",
+        obs_mode="tuple",
+    ):
         # env parameters
         self.x_disc = x_disc
         self.x_dot_disc = x_dot_disc
@@ -30,12 +38,11 @@ class CartPole(TabularEnv):
         self.gravity = 9.8
         self.masscart = 1.0
         self.masspole = 0.1
-        self.total_mass = (self.masspole + self.masscart)
+        self.total_mass = self.masspole + self.masscart
         self.length = 0.5  # actually half the pole's length
-        self.polemass_length = (self.masspole * self.length)
+        self.polemass_length = self.masspole * self.length
         self.force_mag = 10.0
-        self.force_list = np.linspace(-self.force_mag,
-                                      self.force_mag, num=self.dA)
+        self.force_list = np.linspace(-self.force_mag, self.force_mag, num=self.dA)
         self.tau = 0.1  # seconds between state updates
 
         # Angle at which to fail the episode
@@ -44,11 +51,11 @@ class CartPole(TabularEnv):
         self.max_th = 0.25
         self.max_th_dot = 0.2
 
-        self.action_step = (self.force_mag*2) / self.dA
-        self.x_step = (self.max_x*2) / (self.x_disc-1)
-        self.x_dot_step = (self.max_x_dot*2) / (self.x_dot_disc-1)
-        self.th_step = (self.max_th*2) / (self.th_disc-1)
-        self.th_dot_step = (self.max_th_dot*2) / (self.th_dot_disc-1)
+        self.action_step = (self.force_mag * 2) / self.dA
+        self.x_step = (self.max_x * 2) / (self.x_disc - 1)
+        self.x_dot_step = (self.max_x_dot * 2) / (self.x_dot_disc - 1)
+        self.th_step = (self.max_th * 2) / (self.th_disc - 1)
+        self.th_dot_step = (self.max_th_dot * 2) / (self.th_dot_disc - 1)
 
         # assert self.max_x_dot*self.tau > self.x_step, "x resolution is not enough "
         # assert self.max_th_dot*self.tau > self.th_step, "th resolution is not enough "
@@ -62,25 +69,21 @@ class CartPole(TabularEnv):
         idxs = []
         for ini_th in ini_ths:
             for ini_th_dot in ini_th_dots:
-                idxs.append(
-                    self.to_state_id(ini_x, ini_x_dot, ini_th, ini_th_dot))
+                idxs.append(self.to_state_id(ini_x, ini_x_dot, ini_th, ini_th_dot))
         idxs = set(idxs)
-        random_init = {idx: 1/len(idxs) for idx in idxs}
+        random_init = {idx: 1 / len(idxs) for idx in idxs}
         init_dist = random_init if init_dist is None else init_dist
         super().__init__(
-            x_disc*x_dot_disc*th_disc*th_dot_disc,
-            dA, init_dist, horizon=horizon)
+            x_disc * x_dot_disc * th_disc * th_dot_disc, dA, init_dist, horizon=horizon
+        )
 
-        high = np.array([self.max_x,
-                         self.max_x_dot,
-                         self.max_th,
-                         self.max_th_dot],
-                        dtype=np.float32)
+        high = np.array(
+            [self.max_x, self.max_x_dot, self.max_th, self.max_th_dot], dtype=np.float32
+        )
 
         self.obs_mode = obs_mode
         if obs_mode == "tuple":
-            self.observation_space = gym.spaces.Box(
-                -high, high, dtype=np.float32)
+            self.observation_space = gym.spaces.Box(-high, high, dtype=np.float32)
         else:
             raise NotImplementedError
 
@@ -89,7 +92,8 @@ class CartPole(TabularEnv):
             self.action_space = gym.spaces.Discrete(dA)
         elif action_mode == "continuous":
             self.action_space = gym.spaces.Box(
-                low=np.array((-self.force_mag, )), high=np.array((self.force_mag, )))
+                low=np.array((-self.force_mag,)), high=np.array((self.force_mag,))
+            )
         else:
             raise ValueError
 
@@ -99,9 +103,8 @@ class CartPole(TabularEnv):
         self.render_env.reset()
 
     def discretize_action(self, action):
-        action = np.clip(action, self.action_space.low,
-                         self.action_space.high-1e-5)
-        return int(np.floor((action - self.action_space.low)/self.action_step))
+        action = np.clip(action, self.action_space.low, self.action_space.high - 1e-5)
+        return int(np.floor((action - self.action_space.low) / self.action_step))
 
     def to_continuous_action(self, action):
         return action * self.action_step + self.action_space.low
@@ -119,10 +122,12 @@ class CartPole(TabularEnv):
         costheta = np.cos(theta)
         sintheta = np.sin(theta)
 
-        temp = (force + self.polemass_length * theta_dot **
-                2 * sintheta) / self.total_mass
-        thetaacc = (self.gravity * sintheta - costheta * temp) \
-            / (self.length * (4.0 / 3.0 - self.masspole * costheta ** 2 / self.total_mass))
+        temp = (
+            force + self.polemass_length * theta_dot ** 2 * sintheta
+        ) / self.total_mass
+        thetaacc = (self.gravity * sintheta - costheta * temp) / (
+            self.length * (4.0 / 3.0 - self.masspole * costheta ** 2 / self.total_mass)
+        )
         xacc = temp - self.polemass_length * thetaacc * costheta / self.total_mass
 
         x = x + self.tau * x_dot
@@ -171,15 +176,13 @@ class CartPole(TabularEnv):
 
     def to_state_id(self, x, x_dot, th, th_dot):
         # round
-        x_idx = int(np.floor((x+self.max_x)/self.x_step))
-        x_dot_idx = int(np.floor((x_dot+self.max_x_dot)/self.x_dot_step))
-        th_idx = int(np.floor((th+self.max_th)/self.th_step))
-        th_dot_idx = int(np.floor((th_dot+self.max_th_dot)/self.th_dot_step))
-        state_id = \
-            x_idx \
-            + self.x_disc * (x_dot_idx
-                             + self.x_dot_disc * (th_idx
-                                                  + self.th_disc * th_dot_idx))
+        x_idx = int(np.floor((x + self.max_x) / self.x_step))
+        x_dot_idx = int(np.floor((x_dot + self.max_x_dot) / self.x_dot_step))
+        th_idx = int(np.floor((th + self.max_th) / self.th_step))
+        th_dot_idx = int(np.floor((th_dot + self.max_th_dot) / self.th_dot_step))
+        state_id = x_idx + self.x_disc * (
+            x_dot_idx + self.x_dot_disc * (th_idx + self.th_disc * th_dot_idx)
+        )
         return state_id
 
     def render(self):

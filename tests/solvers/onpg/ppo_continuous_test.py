@@ -1,11 +1,12 @@
-import pytest
 import gym
 import numpy as np
 import pybullet_envs
+import pytest
+import torch
 from shinrl.envs import Pendulum
 from shinrl.solvers.onpg.continuous import PpoSolver
-from ..misc import run_solver_tb, run_solver_gym
-import torch
+
+from ..misc import run_solver_gym, run_solver_tb
 
 
 @pytest.fixture
@@ -20,13 +21,11 @@ def setUp():
 
 def test_tb(setUp):
     tb_env, _ = setUp
-    solver = PpoSolver(
-        tb_env, solve_options={"num_samples": 10, "num_minibatches": 1})
+    solver = PpoSolver(tb_env, solve_options={"num_samples": 10, "num_minibatches": 1})
     run_solver_tb(solver, tb_env)
 
 
 def test_gym(setUp):
     _, gym_env = setUp
-    solver = PpoSolver(
-        gym_env, solve_options={"num_samples": 10, "num_minibatches": 1})
+    solver = PpoSolver(gym_env, solve_options={"num_samples": 10, "num_minibatches": 1})
     run_solver_gym(solver, gym_env)

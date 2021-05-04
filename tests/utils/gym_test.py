@@ -1,10 +1,10 @@
-import pytest
-import numpy as np
-import torch
 import gym
+import numpy as np
+import pytest
+import torch
 from scipy import special
-from torch import nn
 from shinrl.utils import *
+from torch import nn
 
 
 def fc_net(env):
@@ -31,7 +31,7 @@ def setUp():
 
 
 def get_action(env, net):
-    if not hasattr(env, 'obs'):
+    if not hasattr(env, "obs"):
         env.obs = env.reset()
     obs = torch.as_tensor(env.obs, dtype=torch.float32).unsqueeze(0)
     probs = net(obs).detach().cpu().numpy()  # 1 x dA

@@ -1,5 +1,5 @@
-import pytest
 import numpy as np
+import pytest
 import torch
 from shinrl.envs import Pendulum
 from shinrl.utils import *
@@ -25,9 +25,12 @@ def test_max_operator():
     sample = np.array([2, 3])
     res = boltzmann_softmax(sample, beta=beta)
     np.testing.assert_almost_equal(
-        res, np.sum(np.exp(beta * sample) * sample, axis=-1)
-        / np.sum(np.exp(beta * sample), axis=-1))
+        res,
+        np.sum(np.exp(beta * sample) * sample, axis=-1)
+        / np.sum(np.exp(beta * sample), axis=-1),
+    )
 
     res = mellow_max(sample, beta=beta)
     np.testing.assert_almost_equal(
-        res, np.log(np.mean(np.exp(beta*sample), axis=-1)) / beta)
+        res, np.log(np.mean(np.exp(beta * sample), axis=-1)) / beta
+    )

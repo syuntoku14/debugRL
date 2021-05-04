@@ -1,9 +1,9 @@
-import pytest
 import numpy as np
+import pytest
 import torch
-from torch import nn
 from shinrl.envs import Pendulum
 from shinrl.utils import *
+from torch import nn
 
 
 @pytest.fixture
@@ -41,13 +41,13 @@ def test_collect_samples_episodic(setUp):
     env, policy, cont_env, cont_policy = setUp
 
     # discrete
-    traj = collect_samples(env, get_tb_action, 10,
-                           num_episodes=5, policy=policy)
+    traj = collect_samples(env, get_tb_action, 10, num_episodes=5, policy=policy)
     assert np.sum(traj["done"]) == 5
     assert (traj["act"]).dtype == np.long
 
     # continuous
-    traj = collect_samples(cont_env, get_tb_action, 10,
-                           num_episodes=5, policy=cont_policy)
+    traj = collect_samples(
+        cont_env, get_tb_action, 10, num_episodes=5, policy=cont_policy
+    )
     assert np.sum(traj["done"]) == 5
     assert (traj["obs"]).dtype == np.float32

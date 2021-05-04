@@ -1,11 +1,13 @@
 from copy import deepcopy
-from scipy import stats
+
 import numpy as np
 import torch
+from scipy import stats
+from shinrl import utils
 from torch.nn import functional as F
 from tqdm import tqdm
+
 from .core import Solver
-from shinrl import utils
 
 
 class SacSolver(Solver):
@@ -16,13 +18,11 @@ class SacSolver(Solver):
             self.record_history()
 
             # ------ collect samples using the current policy ------
-            trajectory = self.collect_samples(
-                self.solve_options["num_samples"])
+            trajectory = self.collect_samples(self.solve_options["num_samples"])
             self.buffer.add(**trajectory)
 
             # ----- generate mini-batch from the replay_buffer -----
-            trajectory = self.buffer.sample(
-                self.solve_options["minibatch_size"])
+            trajectory = self.buffer.sample(self.solve_options["minibatch_size"])
             tensor_traj = utils.trajectory_to_tensor(trajectory, self.device)
 
             # ----- update q network -----
@@ -37,10 +37,16 @@ class SacSolver(Solver):
             # ----- update target networks with constant polyak -----
             polyak = self.solve_options["polyak"]
             with torch.no_grad():
-                for p, p_targ in zip(self.value_network.parameters(), self.target_value_network.parameters()):
+                for p, p_targ in zip(
+                    self.value_network.parameters(),
+                    self.target_value_network.parameters(),
+                ):
                     p_targ.data.mul_(polyak)
                     p_targ.data.add_((1 - polyak) * p.data)
-                for p, p_targ in zip(self.value_network2.parameters(), self.target_value_network2.parameters()):
+                for p, p_targ in zip(
+                    self.value_network2.parameters(),
+                    self.target_value_network2.parameters(),
+                ):
                     p_targ.data.mul_(polyak)
                     p_targ.data.add_((1 - polyak) * p.data)
             self.step += 1
@@ -49,8 +55,14 @@ class SacSolver(Solver):
         discount = self.solve_options["discount"]
         er_coef = self.solve_options["er_coef"]
 
-        obss, actions, next_obss, rews, dones, timeouts = tensor_traj["obs"], tensor_traj[
-            "act"], tensor_traj["next_obs"], tensor_traj["rew"], tensor_traj["done"], tensor_traj["timeout"]
+        obss, actions, next_obss, rews, dones, timeouts = (
+            tensor_traj["obs"],
+            tensor_traj["act"],
+            tensor_traj["next_obs"],
+            tensor_traj["rew"],
+            tensor_traj["done"],
+            tensor_traj["timeout"],
+        )
         # Ignore the "done" signal if it comes from hitting the time
         dones = dones * (~timeouts)
 
@@ -59,14 +71,13 @@ class SacSolver(Solver):
             next_q = self.target_value_network(next_obss)  # BxA
             next_q2 = self.target_value_network2(next_obss)  # BxA
             next_q = torch.min(next_q, next_q2)  # BxA
-            policy = torch.softmax(
-                self.policy_network(next_obss), dim=-1)  # BxA
-            policy = policy + (policy == 0.0).float() * \
-                1e-8  # avoid numerical instability
+            policy = torch.softmax(self.policy_network(next_obss), dim=-1)  # BxA
+            policy = (
+                policy + (policy == 0.0).float() * 1e-8
+            )  # avoid numerical instability
             log_policy = torch.log(policy)
-            next_v = torch.sum(
-                policy * (next_q - er_coef*log_policy), dim=-1)  # B
-            target = rews + discount*next_v*(~dones)
+            next_v = torch.sum(policy * (next_q - er_coef * log_policy), dim=-1)  # B
+            target = rews + discount * next_v * (~dones)
 
         q1 = self.value_network(obss)
         q1 = q1.gather(1, actions.reshape(-1, 1)).squeeze()
@@ -90,17 +101,18 @@ class SacSolver(Solver):
             curr_q = self.value_network(obss)  # BxA
             curr_q2 = self.value_network2(obss)  # BxA
             curr_q = torch.min(curr_q, curr_q)  # BxA
-            target = torch.softmax(curr_q/er_coef, dim=-1)
-            target = target + (target == 0.0).float() * \
-                1e-8  # avoid numerical instability
+            target = torch.softmax(curr_q / er_coef, dim=-1)
+            target = (
+                target + (target == 0.0).float() * 1e-8
+            )  # avoid numerical instability
 
         preference = self.policy_network(obss)
         policy = torch.softmax(preference, dim=-1)  # BxA
-        policy = policy + (policy == 0.0).float() * \
-            1e-8  # avoid numerical instability
+        policy = policy + (policy == 0.0).float() * 1e-8  # avoid numerical instability
         log_policy = torch.log(policy)  # BxA
-        loss = torch.sum(policy * (log_policy-target.log()),
-                         dim=-1, keepdim=True).mean()
+        loss = torch.sum(
+            policy * (log_policy - target.log()), dim=-1, keepdim=True
+        ).mean()
 
         self.policy_optimizer.zero_grad()
         loss.backward()
@@ -129,12 +141,12 @@ class SacSolver(Solver):
     def record_history(self):
         if self.step % self.solve_options["evaluation_interval"] == 0:
             if self.is_tabular:
-                expected_return = \
-                    self.env.compute_expected_return(self.tb_policy)
+                expected_return = self.env.compute_expected_return(self.tb_policy)
                 self.record_scalar("Return", expected_return, tag="Policy")
             else:
                 n_episodes = self.solve_options["gym_evaluation_episodes"]
                 traj = utils.collect_samples(
-                    self.env, self.get_action_gym, num_episodes=n_episodes)
+                    self.env, self.get_action_gym, num_episodes=n_episodes
+                )
                 expected_return = traj["rew"].sum() / n_episodes
                 self.record_scalar("Return", expected_return, tag="Policy")

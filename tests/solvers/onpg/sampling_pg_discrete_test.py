@@ -1,9 +1,10 @@
-import pytest
-import numpy as np
 import gym
+import numpy as np
+import pytest
 from shinrl.envs import Pendulum
 from shinrl.solvers.onpg.discrete import SamplingPgSolver
-from ..misc import run_solver_tb, run_solver_gym
+
+from ..misc import run_solver_gym, run_solver_tb
 
 
 @pytest.fixture

@@ -1,5 +1,5 @@
-import pytest
 import numpy as np
+import pytest
 from shinrl.envs import Pendulum
 
 
@@ -18,8 +18,7 @@ def test_all_observations():
     env = Pendulum(state_disc=5, dA=3)
     env.reset()
     obss = env.all_observations
-    assert obss.shape == (env.dS,
-                          env.observation_space.shape[0])
+    assert obss.shape == (env.dS, env.observation_space.shape[0])
 
 
 def test_all_actions():
@@ -42,28 +41,29 @@ def compute_action_values(env, policy):
 
 
 def compute_er_action_values(env, policy, base_policy):
-    return env.compute_action_values(policy, base_policy=base_policy, er_coef=0.1, kl_coef=0.1)
+    return env.compute_action_values(
+        policy, base_policy=base_policy, er_coef=0.1, kl_coef=0.1
+    )
 
 
 def test_compute_visitation(setUp, benchmark):
     env, policy, _ = setUp
-    benchmark.pedantic(compute_visitation,
-                       kwargs={"env": env, "policy": policy})
+    benchmark.pedantic(compute_visitation, kwargs={"env": env, "policy": policy})
 
 
 def test_compute_expected_return(setUp, benchmark):
     env, policy, _ = setUp
-    benchmark.pedantic(compute_expected_return,
-                       kwargs={"env": env, "policy": policy})
+    benchmark.pedantic(compute_expected_return, kwargs={"env": env, "policy": policy})
 
 
 def test_compute_action_values(setUp, benchmark):
     env, policy, _ = setUp
-    benchmark.pedantic(compute_action_values,
-                       kwargs={"env": env, "policy": policy})
+    benchmark.pedantic(compute_action_values, kwargs={"env": env, "policy": policy})
 
 
 def test_er_compute_action_values(setUp, benchmark):
     env, policy, base_policy = setUp
-    benchmark.pedantic(compute_er_action_values,
-                       kwargs={"env": env, "policy": policy, "base_policy": base_policy})
+    benchmark.pedantic(
+        compute_er_action_values,
+        kwargs={"env": env, "policy": policy, "base_policy": base_policy},
+    )

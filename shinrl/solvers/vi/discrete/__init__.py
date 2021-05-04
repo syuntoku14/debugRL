@@ -1,8 +1,15 @@
-from .oracle_vi.oracle_vi import OracleViSolver, OracleCviSolver, OracleMviSolver
-from .exact_fvi.exact_fvi import ExactFittedViSolver, ExactFittedCviSolver, ExactFittedMviSolver
-from .sampling_vi.sampling_vi import SamplingViSolver, SamplingCviSolver, SamplingMviSolver
-from .sampling_fvi.sampling_fvi import SamplingFittedViSolver, SamplingFittedCviSolver
-
+from .exact_fvi.exact_fvi import (
+    ExactFittedCviSolver,
+    ExactFittedMviSolver,
+    ExactFittedViSolver,
+)
+from .oracle_vi.oracle_vi import OracleCviSolver, OracleMviSolver, OracleViSolver
+from .sampling_fvi.sampling_fvi import SamplingFittedCviSolver, SamplingFittedViSolver
+from .sampling_vi.sampling_vi import (
+    SamplingCviSolver,
+    SamplingMviSolver,
+    SamplingViSolver,
+)
 
 __all__ = [
     "OracleViSolver",

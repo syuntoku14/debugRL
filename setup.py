@@ -1,12 +1,9 @@
-import os
-from setuptools import setup, find_packages
-
+from setuptools import find_packages, setup
 
 setup(
     name="ShinRL",
     version="0.0.1",
-    description=(
-        "A python library for debugging reinforcement learning"),
+    description=("A python library for debugging reinforcement learning"),
     packages=find_packages(),
     url="https://github.com/syuntoku14/ShinRL",
     author="Toshinori Kitamura",
@@ -29,7 +26,6 @@ setup(
         "clearml-agent",
         "torch",
         "torchvision",
-        "celluloid"
-
+        "celluloid",
     ],
 )

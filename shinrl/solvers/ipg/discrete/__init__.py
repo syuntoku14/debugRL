@@ -1,5 +1,3 @@
 from .ipg import IpgSolver
 
-__all__ = [
-    "IpgSolver"
-]
+__all__ = ["IpgSolver"]

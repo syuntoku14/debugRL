@@ -1,13 +1,11 @@
 import gym
-import pytest
 import numpy as np
-from shinrl.envs import Pendulum
-from shinrl.solvers.vi.discrete import (
-    SamplingFittedViSolver,
-    SamplingFittedCviSolver
-)
-from ..misc import run_solver_tb, run_solver_gym
+import pytest
 import torch
+from shinrl.envs import Pendulum
+from shinrl.solvers.vi.discrete import SamplingFittedCviSolver, SamplingFittedViSolver
+
+from ..misc import run_solver_gym, run_solver_tb
 
 
 @pytest.fixture
@@ -49,8 +47,7 @@ def test_cvi_gym(setUp):
 
 
 def test_image_obs(setUp):
-    pend_env = Pendulum(state_disc=5, dA=3,
-                        horizon=5, obs_mode="image")
+    pend_env = Pendulum(state_disc=5, dA=3, horizon=5, obs_mode="image")
     pend_env.reset()
     solver = SamplingFittedViSolver(pend_env)
     solver.initialize()

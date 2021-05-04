@@ -1,7 +1,8 @@
-import pytest
-import numpy as np
-import gym
 import os
+
+import gym
+import numpy as np
+import pytest
 from shinrl.envs import Pendulum
 from shinrl.solvers import Solver
 
@@ -47,5 +48,6 @@ def test_save_solver(tmpdir):
                 assert_array(v)
             if not k == "array":
                 assert not isinstance(v, np.ndarray)
+
     assert_array(data)
     assert data["step"] == 10

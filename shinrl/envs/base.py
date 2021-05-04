@@ -1,12 +1,13 @@
-import numpy as np
-import gym
 from abc import abstractmethod
+
+import gym
+import numpy as np
 from scipy import sparse
 from shinrl.utils import lazy_property
 
 
 class TabularEnv(gym.Env):
-    """ Environment with matrix-form dynamics.
+    """Environment with matrix-form dynamics.
 
     Args:
         dS (int): Number of states
@@ -15,11 +16,7 @@ class TabularEnv(gym.Env):
         horizon (int): Horizon of the environment.
     """
 
-    def __init__(self,
-                 dS,
-                 dA,
-                 initial_state_distribution,
-                 horizon=np.inf):
+    def __init__(self, dS, dA, initial_state_distribution, horizon=np.inf):
         self._state = -1
         self.observation_space = gym.spaces.Discrete(dS)
         self.action_space = gym.spaces.Discrete(dA)
@@ -57,12 +54,12 @@ class TabularEnv(gym.Env):
         self._state = next_state
         nobs = self.observation(self._state)
         self._elapsed_steps += 1
-        infos = {'state': self._state}
+        infos = {"state": self._state}
         if self._elapsed_steps >= self.horizon:
-            infos['TimeLimit.truncated'] = True
+            infos["TimeLimit.truncated"] = True
             done = True
         else:
-            infos['TimeLimit.truncated'] = False
+            infos["TimeLimit.truncated"] = False
         return nobs, reward, done, infos
 
     def reset(self):
@@ -127,7 +124,7 @@ class TabularEnv(gym.Env):
     def all_observations(self):
         """
         Returns:
-            Observations of all the states (ndarray with dS x obs_dim shape) 
+            Observations of all the states (ndarray with dS x obs_dim shape)
         """
         obss = []
         for s in range(self.dS):
@@ -173,7 +170,7 @@ class TabularEnv(gym.Env):
         row = np.array(row)
         col = np.array(col)
         data = np.array(data)
-        return sparse.csr_matrix((data, (row, col)), shape=(ds*da, ds))
+        return sparse.csr_matrix((data, (row, col)), shape=(ds * da, ds))
 
     @lazy_property
     def reward_matrix(self):
@@ -200,8 +197,9 @@ class TabularEnv(gym.Env):
         data = np.array(data)
         return sparse.csr_matrix((data, (row, col)), shape=(ds, da))
 
-    def compute_action_values(self, policy, discount=0.99, base_policy=None,
-                              er_coef=None, kl_coef=None):
+    def compute_action_values(
+        self, policy, discount=0.99, base_policy=None, er_coef=None, kl_coef=None
+    ):
         """
         Compute the oracle action values of the policy.
 
@@ -220,19 +218,23 @@ class TabularEnv(gym.Env):
         reward_matrix = self.reward_matrix  # SxA
 
         if er_coef is not None:
-            entropy = -np.sum(policy * np.log(policy+1e-8),
-                              axis=-1, keepdims=True)  # Sx1
-            reward_matrix = reward_matrix + er_coef*entropy  # SxA
+            entropy = -np.sum(
+                policy * np.log(policy + 1e-8), axis=-1, keepdims=True
+            )  # Sx1
+            reward_matrix = reward_matrix + er_coef * entropy  # SxA
         if base_policy is not None:
-            kl = np.sum(policy * (np.log(policy+1e-8)-np.log(base_policy+1e-8)),
-                        axis=-1, keepdims=True)  # Sx1
-            reward_matrix = reward_matrix - kl_coef*kl  # SxA
+            kl = np.sum(
+                policy * (np.log(policy + 1e-8) - np.log(base_policy + 1e-8)),
+                axis=-1,
+                keepdims=True,
+            )  # Sx1
+            reward_matrix = reward_matrix - kl_coef * kl  # SxA
 
         def backup(curr_q_val, policy):
             curr_v_val = np.sum(policy * curr_q_val, axis=-1)  # S
-            prev_q = reward_matrix \
-                + discount*(self.transition_matrix *
-                            curr_v_val).reshape(self.dS, self.dA)
+            prev_q = reward_matrix + discount * (
+                self.transition_matrix * curr_v_val
+            ).reshape(self.dS, self.dA)
             prev_q = np.asarray(prev_q)
             return prev_q
 
@@ -258,13 +260,14 @@ class TabularEnv(gym.Env):
 
         norm_factor = 0.0
         for t in range(self.horizon):
-            cur_discount = (discount ** t)
+            cur_discount = discount ** t
             norm_factor += cur_discount
             sa_visit_t = s_visit_t * policy  # SxA
             sa_visit[t, :, :] = cur_discount * sa_visit_t
             # sum-out (SA)S
-            new_s_visit_t = \
-                sa_visit_t.reshape(self.dS*self.dA) * self.transition_matrix
+            new_s_visit_t = (
+                sa_visit_t.reshape(self.dS * self.dA) * self.transition_matrix
+            )
             s_visit_t = np.expand_dims(new_s_visit_t, axis=1)
         visitation = sa_visit / norm_factor
         return visitation
@@ -281,14 +284,15 @@ class TabularEnv(gym.Env):
         """
 
         q_values = np.zeros((self.dS, self.dA))  # SxA
-        for t in reversed(range(1, self.horizon+1)):
+        for t in reversed(range(1, self.horizon + 1)):
             # backup q values
             curr_vval = np.sum(policy * q_values, axis=-1)  # S
-            prev_q = (self.transition_matrix *
-                      curr_vval).reshape(self.dS, self.dA)  # SxA
+            prev_q = (self.transition_matrix * curr_vval).reshape(
+                self.dS, self.dA
+            )  # SxA
             q_values = np.asarray(prev_q + self.reward_matrix)  # SxA
 
-        init_vval = np.sum(policy*q_values, axis=-1)  # S
+        init_vval = np.sum(policy * q_values, axis=-1)  # S
         init_probs = np.zeros(self.dS)  # S
         for (state, prob) in self.initial_state_distribution.items():
             init_probs[state] = prob

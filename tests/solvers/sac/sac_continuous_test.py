@@ -1,11 +1,12 @@
-import pytest
 import gym
 import numpy as np
 import pybullet_envs
+import pytest
+import torch
 from shinrl.envs import Pendulum
 from shinrl.solvers.sac.continuous import SacSolver
-from ..misc import run_solver_tb, run_solver_gym
-import torch
+
+from ..misc import run_solver_gym, run_solver_tb
 
 
 @pytest.fixture

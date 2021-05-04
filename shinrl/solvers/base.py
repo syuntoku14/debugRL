@@ -1,16 +1,14 @@
+import os
 import pprint
 import warnings
-import pickle
-import numpy as np
-import torch
-import gym
-import os
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from scipy import sparse
-from shinrl.envs import TabularEnv
 from copy import deepcopy
 
+import gym
+import numpy as np
+import torch
+from shinrl.envs import TabularEnv
 
 DEFAULT_OPTIONS = {
     # general settings
@@ -19,7 +17,7 @@ DEFAULT_OPTIONS = {
     "gym_evaluation_episodes": 10,
     "evaluation_interval": 100,
     "log_interval": 100,
-    "record_all_array": False
+    "record_all_array": False,
 }
 
 
@@ -45,7 +43,7 @@ class Solver(ABC):
 
     def initialize(self, options={}):
         """
-        Initialize the solver with the given options. 
+        Initialize the solver with the given options.
         Reset the env and history.
         """
         options = deepcopy(options)
@@ -64,8 +62,7 @@ class Solver(ABC):
             else:
                 done = False
                 while not done:
-                    _, _, done, _ = self.env.step(
-                        self.env.action_space.sample())
+                    _, _, done, _ = self.env.step(self.env.action_space.sample())
                 self.env.obs = self.env.reset()
         else:
             self.env.obs = self.env.reset()
@@ -77,7 +74,7 @@ class Solver(ABC):
 
     @abstractmethod
     def run(self, num_steps=1000):
-        """ Run the algorithm with the given environment.
+        """Run the algorithm with the given environment.
 
         Args:
             num_steps (int): Number of iterations.
@@ -94,20 +91,18 @@ class Solver(ABC):
     @property
     def tb_values(self):
         if len(self.history["Values"]["array"]) == 0:
-            raise ValueError(
-                "\"values\" has not been recorded yet. Check history.")
+            raise ValueError('"values" has not been recorded yet. Check history.')
         return self.history["Values"]["array"][-1]
 
     @property
     def tb_policy(self):
         if len(self.history["Policy"]["array"]) == 0:
-            raise ValueError(
-                "\"policy\" has not been recorded yet. Check history.")
+            raise ValueError('"policy" has not been recorded yet. Check history.')
         return self.history["Policy"]["array"][-1]
 
     def record_scalar(self, title, y, tag=None):
         """
-        Record a scalar y to self.history. 
+        Record a scalar y to self.history.
         Report to clearML if self.logger is set.
         """
         if len(self.history[title]["x"]) > 0:
@@ -127,15 +122,20 @@ class Solver(ABC):
     def record_array(self, title, array):
         if isinstance(array, torch.Tensor):
             array = array.detach().cpu().numpy()
-        assert isinstance(array, np.ndarray), \
-            "array must be a torch.tensor or a numpy.ndarray"
+        assert isinstance(
+            array, np.ndarray
+        ), "array must be a torch.tensor or a numpy.ndarray"
 
         if self.solve_options["record_all_array"]:
             self.history[title]["x"].append(self.step)
             self.history[title]["array"].append(array.astype(np.float32))
         else:
-            self.history[title]["x"] = [self.step, ]
-            self.history[title]["array"] = [array.astype(np.float32), ]
+            self.history[title]["x"] = [
+                self.step,
+            ]
+            self.history[title]["array"] = [
+                array.astype(np.float32),
+            ]
 
     def save(self, dir_name, data={}):
         def list_to_array(d):
@@ -145,13 +145,16 @@ class Solver(ABC):
                 elif isinstance(v, list):
                     d[k] = np.array(v)
             return d
+
         history = list_to_array(dict(deepcopy(self.history)))
-        data.update({
-            "env_name": str(self.env),
-            "history": history,
-            "options": self.solve_options,
-            "step": self.step
-        })
+        data.update(
+            {
+                "env_name": str(self.env),
+                "history": history,
+                "options": self.solve_options,
+                "step": self.step,
+            }
+        )
         torch.save(data, os.path.join(dir_name, "data.tar"))
         return data
 
@@ -163,6 +166,7 @@ class Solver(ABC):
                 elif isinstance(v, np.ndarray) and not k == "array":
                     d[k] = v.tolist()
             return d
+
         data = torch.load(os.path.join(dir_name, "data.tar"), map_location=device)
         data["history"] = array_to_list(data["history"])
         data["options"].update(options)
@@ -171,10 +175,12 @@ class Solver(ABC):
         self.step = data["step"]
         return data
 
-    def print_options(self):
+    def print_options(self) -> None:
         print("{} solve_options:".format(type(self).__name__))
         pp = pprint.PrettyPrinter(indent=4)
         pp.pprint(self.solve_options)
         if not self.solve_options["record_all_array"]:
             warnings.warn(
-                "The option \"record_all_array\" is False and the record_array function only record the lastly recorded array", UserWarning)
+                'The option "record_all_array" is False and the record_array function only record the lastly recorded array',
+                UserWarning,
+            )
