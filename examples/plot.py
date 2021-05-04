@@ -18,16 +18,13 @@ def load_data(exp_path, x, y):
         solver_name = solver.name
         data[solver_name] = []
         for seed in solver.glob("*"):
-            try:
-                datum = torch.load(str(seed)+"/data.tar")
+            datum = torch.load(str(seed)+"/data.tar")
+            datum = pd.DataFrame(datum["history"][y])
+            if x == "Samples":
                 num_samples = datum["options"]["num_samples"]
-                datum = pd.DataFrame(datum["history"][y])
-                if x == "Samples":
-                    datum["x"] = datum["x"] * num_samples
-                datum = datum.rename(columns={"y": y, "x": x})
-                data[solver_name].append(datum)
-            except:
-                continue
+                datum["x"] = datum["x"] * num_samples
+            datum = datum.rename(columns={"y": y, "x": x})
+            data[solver_name].append(datum)
         data[solver_name] = pd.concat(data[solver_name])
     return data
 
@@ -54,7 +51,6 @@ def main():
             ax.ticklabel_format(style='sci', axis='x', scilimits=(0, 0))
 
     plt.savefig(os.path.join(args.expdir, args.y+".png"))
-    plt.show()
 
 
 if __name__ == "__main__":

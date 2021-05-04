@@ -11,16 +11,16 @@ OPTIONS = {
     "er_coef": 0.2,
     "kl_coef": 0.1,
     "max_operator": "mellow_max",
+    "proj_iters": 10,
     # Fitted iteration settings
     "activation": "relu",
     "hidden": 128,  # size of hidden layer
     "depth": 2,  # depth of the network
     "device": "cuda" if torch.cuda.is_available() else "cpu",
     "lr": 0.001,
-    "minibatch_size": 32,
     "critic_loss": "mse",  # mse or huber
-    "clip_grad": False,  # clip the gradient if True
     "optimizer": "Adam",  # Adam or RMSprop
+    "noise_scale": 0.0
 }
 
 
@@ -104,14 +104,3 @@ class Solver(Solver):
         self.all_obss = torch.tensor(self.env.all_observations,
                                      dtype=torch.float32, device=self.device)
         self.set_tb_values_policy()
-
-    def update_network(self, target):
-        values = self.value_network(self.all_obss)
-        loss = self.critic_loss(target, values)
-        self.value_optimizer.zero_grad()
-        loss.backward()
-        if self.solve_options["clip_grad"]:
-            for param in self.value_network.parameters():
-                param.grad.data.clamp_(-1, 1)
-        self.value_optimizer.step()
-        return loss.detach().cpu().item()

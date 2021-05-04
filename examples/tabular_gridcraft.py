@@ -4,13 +4,13 @@ os.environ["NUMEXPR_NUM_THREADS"] = "1"  # NOQA
 os.environ["OMP_NUM_THREADS"] = "1"  # NOQA
 import numpy as np
 import argparse
-from shinrl.envs.gridcraft import (GridEnv, grid_spec_from_string)
-from shinrl.solvers import *
+import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
+from shinrl.envs.gridcraft import (GridEnv, create_maze, grid_spec_from_string)
 from celluloid import Camera
 from clearml import Task
-from misc import DISCRETE_SOLVERS, to_numeric
+from misc import DISCRETE_SOLVERS, to_numeric, prepare
 matplotlib.use('Agg')
 
 
@@ -19,39 +19,21 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--solver', type=str, default="SAC",
                         choices=list(DISCRETE_SOLVERS.keys()))
-    parser.add_argument('--exp_name', type=str, default="GridCraft")
-    parser.add_argument('--task_name', type=str, default=None)
-    parser.add_argument('--epochs', type=int, default=5)
+    parser.add_argument('--env', type=str, default="GridCraft-v0")  # dummy
+    defaults = {"--epochs": 10, "--evaluation_interval": 1, "--steps_per_epoch": 10, "--log_interval": 1}
+    args, options, project_name, task_name, task, logger = prepare(parser, defaults)
 
-    # for arbitrary options, e.g. --device cpu --seed 0
-    parsed, unknown = parser.parse_known_args()
-    for arg in unknown:
-        if arg.startswith(("-", "--")):
-            parser.add_argument(arg.split('=')[0])
-    args = parser.parse_args()
-
-    options = {}
-    for key, val in vars(args).items():
-        if key not in ["solver", "exp_name", "task_name", "epochs"]:
-            options[key] = to_numeric(val)
-
-    project_name = args.exp_name
-    task_name = args.solver if args.task_name is None else args.task_name
-    task = Task.init(project_name=project_name,
-                     task_name=task_name, reuse_last_task_id=False)
-    logger = task.get_logger()
-
-    # Construct the environment
-    maze = grid_spec_from_string("SOOO\\" +
-                                 "OLLL\\" +
+    spec = grid_spec_from_string("SOOO\\" +
+                                 "O###\\" +
                                  "OOOO\\" +
-                                 "OLRO\\")
-    env = GridEnv(maze, trans_eps=0.1, horizon=20, obs_mode="onehot")
+                                 "O#RO\\")
+    env = GridEnv(spec, trans_eps=0.1, horizon=25)
 
     # solve tabular MDP
-    solver_cls = DISCRETE_SOLVERS[args.solver]
-    solver = solver_cls(env, logger=logger, solve_options=options)
-    task_params = task.connect(solver.solve_options)
+    solver = DISCRETE_SOLVERS[args.solver](env, logger=logger, solve_options=options)
+
+    if args.clearml:
+        task_params = task.connect(solver.solve_options)
     solver_name = solver.__class__.__name__
     print(solver_name, "starts...")
 
@@ -60,21 +42,21 @@ def main():
 
     for _ in range(args.epochs):
         # draw results
-        solver.run(num_steps=500)
+        solver.run(num_steps=args.steps_per_epoch)
         env.plot_values(solver.tb_policy, ax=axes[0], title="Policy")
         env.plot_values(solver.tb_values, ax=axes[1], title="Learned Q Values")
         env.plot_values(env.compute_action_values(
             solver.tb_policy), ax=axes[2], title="Oracle Q Values")
         camera.snap()
 
-    dir_name = os.path.join("results", project_name, task_name)
+    dir_name = os.path.join("results", project_name, task_name, str(solver.solve_options["seed"]))
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
-    solver.save(os.path.join(dir_name, str(solver.solve_options["seed"])))
+    solver.save(os.path.join(dir_name))
 
     animation = camera.animate()
     animation.save(os.path.join(
-        dir_name, "values-{}.mp4".format(solver.solve_options["seed"])))
+        dir_name, "values.gif".format(solver.solve_options["seed"])))
 
 
 if __name__ == "__main__":

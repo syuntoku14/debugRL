@@ -112,18 +112,6 @@ class GridEnv(TabularEnv):
         self.possible_tiles = tiles
         self.action_mode = "discrete"
 
-        if obs_mode == "onehot":
-            self.observation_space = Box(
-                0, 1, (self.gs.width+self.gs.height, ))
-        elif obs_mode == "random":
-            self.obs_dim = obs_dim
-            self.obs_matrix = np.random.randn(len(self.gs), self.obs_dim)
-            self.observation_space = Box(np.min(self.obs_matrix), np.max(self.obs_matrix),
-                                         shape=(self.obs_dim, ), dtype=np.float32)
-        else:
-            raise ValueError("Invalid obs_mode: {}".format(obs_mode))
-        self.obs_mode = obs_mode
-
         # compute initial_state_distribution
         start_idxs = np.array(np.where(self.gs.spec == START)).T
         num_starts = start_idxs.shape[0]
@@ -138,6 +126,18 @@ class GridEnv(TabularEnv):
             initial_state_distribution=initial_distribution,
             horizon=horizon
         )
+
+        if obs_mode == "onehot":
+            self.observation_space = Box(
+                0, 1, (self.gs.width+self.gs.height, ))
+        elif obs_mode == "random":
+            self.obs_dim = obs_dim
+            self.obs_matrix = np.random.randn(len(self.gs), self.obs_dim)
+            self.observation_space = Box(np.min(self.obs_matrix), np.max(self.obs_matrix),
+                                         shape=(self.obs_dim, ), dtype=np.float32)
+        else:
+            raise ValueError("Invalid obs_mode: {}".format(obs_mode))
+        self.obs_mode = obs_mode
 
     def transitions(self, s, a):
         tile_type = self.gs[self.gs.idx_to_xy(s)]

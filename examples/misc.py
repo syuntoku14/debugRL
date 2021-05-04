@@ -12,6 +12,10 @@ DISCRETE_SOLVERS = {
     "EFCVI": solvers.vi.discrete.ExactFittedCviSolver,
     "SCVI": solvers.vi.discrete.SamplingCviSolver,
     "SFCVI": solvers.vi.discrete.SamplingFittedCviSolver,
+    # Munchausen value iteration
+    "OMVI": solvers.vi.discrete.OracleMviSolver,
+    "EFMVI": solvers.vi.discrete.ExactFittedMviSolver,
+    "SMVI": solvers.vi.discrete.SamplingMviSolver,
     # Policy gradient
     "EPG": solvers.onpg.discrete.ExactPgSolver,
     "SPG": solvers.onpg.discrete.SamplingPgSolver,
