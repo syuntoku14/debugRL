@@ -4,7 +4,7 @@ from torch import nn
 from shinrl.solvers import BaseSolver
 
 OPTIONS = {
-    "activation": "relu",
+    "activation": "ReLU",
     "hidden": 128,  # size of hidden layer
     "depth": 2,  # depth of the network
     "device": "cuda",
@@ -55,18 +55,8 @@ class Solver(BaseSolver):
             self.env.all_observations, dtype=torch.float32, device=self.device
         )
 
-        # set networks
-        if self.solve_options["optimizer"] == "Adam":
-            self.optimizer = torch.optim.Adam
-        else:
-            self.optimizer = torch.optim.RMSprop
-
-        if self.solve_options["activation"] == "tanh":
-            act_layer = nn.Tanh
-        elif self.solve_options["activation"] == "relu":
-            act_layer = nn.ReLU
-        else:
-            raise ValueError("Invalid activation layer.")
+        self.optimizer = getattr(torch.optim, self.solve_options["optimizer"])
+        act_layer = getattr(nn, self.solve_options["activation"])
 
         net = fc_net if len(self.env.observation_space.shape) == 1 else conv_net
         self.policy_network = net(

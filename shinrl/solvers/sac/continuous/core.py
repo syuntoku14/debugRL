@@ -18,13 +18,13 @@ OPTIONS = {
     "log_std_min": -20,
     "er_coef": 0.2,
     # Fitted iteration settings
-    "activation": "relu",
+    "activation": "ReLU",
     "hidden": 256,  # size of hidden layer
     "depth": 2,  # depth of the network
     "device": "cuda" if torch.cuda.is_available() else "cpu",
     "lr": 1e-3,
     "minibatch_size": 100,
-    "critic_loss": "mse",  # mse or huber
+    "critic_loss": "mse_loss",
     "optimizer": "Adam",
     "buffer_size": 1e6,
     "polyak": 0.995,
@@ -33,12 +33,7 @@ OPTIONS = {
 
 
 def fc_net(env, in_dim, hidden, depth, act_layer):
-    if act_layer == "tanh":
-        act_layer = nn.Tanh
-    elif act_layer == "relu":
-        act_layer = nn.ReLU
-    else:
-        raise ValueError("Invalid activation layer.")
+    act_layer = getattr(nn, act_layer)
     modules = [
         nn.Linear(env.observation_space.shape[0] + in_dim, hidden),
     ]
@@ -49,13 +44,8 @@ def fc_net(env, in_dim, hidden, depth, act_layer):
 
 
 def conv_net(env, in_dim, hidden, depth, act_layer):
-    if act_layer == "tanh":
-        act_layer = nn.Tanh
-    elif act_layer == "relu":
-        act_layer = nn.ReLU
-    else:
-        raise ValueError("Invalid activation layer.")
     # this assumes image shape == (1, 28, 28)
+    act_layer = getattr(nn, act_layer)
     n_acts = env.action_space.n
     conv_modules = [
         nn.Conv2d(1, 10, kernel_size=5, stride=2),
@@ -154,20 +144,8 @@ class Solver(BaseSolver):
         self.solve_options.update(OPTIONS)
         super().initialize(options)
         self.device = self.solve_options["device"]
-
-        # set networks
-        if self.solve_options["optimizer"] == "Adam":
-            self.optimizer = torch.optim.Adam
-        else:
-            self.optimizer = torch.optim.RMSprop
-
-        # set critic loss
-        if self.solve_options["critic_loss"] == "mse":
-            self.critic_loss = F.mse_loss
-        elif self.solve_options["critic_loss"] == "huber":
-            self.critic_loss = F.smooth_l1_loss
-        else:
-            raise ValueError("Invalid critic_loss")
+        self.optimizer = getattr(torch.optim, self.solve_options["optimizer"])
+        self.critic_loss = getattr(F, self.solve_options["critic_loss"])
 
         # set value network
         self.value_network = ValueNet(self.env, self.solve_options).to(self.device)
