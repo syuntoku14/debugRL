@@ -4,7 +4,11 @@ from .exact_fvi.exact_fvi import (
     ExactFittedViSolver,
 )
 from .oracle_vi.oracle_vi import OracleCviSolver, OracleMviSolver, OracleViSolver
-from .sampling_fvi.sampling_fvi import SamplingFittedCviSolver, SamplingFittedViSolver
+from .sampling_fvi.sampling_fvi import (
+    SamplingFittedCviSolver,
+    SamplingFittedMviSolver,
+    SamplingFittedViSolver,
+)
 from .sampling_vi.sampling_vi import (
     SamplingCviSolver,
     SamplingMviSolver,

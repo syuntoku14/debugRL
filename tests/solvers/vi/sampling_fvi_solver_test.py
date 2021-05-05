@@ -4,7 +4,11 @@ import pytest
 import torch
 
 from shinrl.envs import Pendulum
-from shinrl.solvers.vi.discrete import SamplingFittedCviSolver, SamplingFittedViSolver
+from shinrl.solvers.vi.discrete import (
+    SamplingFittedCviSolver,
+    SamplingFittedMviSolver,
+    SamplingFittedViSolver,
+)
 
 from ..misc import run_solver_gym, run_solver_tb
 
@@ -36,6 +40,20 @@ def test_vi_gym(setUp):
 def test_cvi_tb(setUp):
     pend_env, gym_env = setUp
     solver = SamplingFittedCviSolver(pend_env)
+    solver.initialize()
+    run_solver_tb(solver, pend_env)
+
+
+def test_mvi_gym(setUp):
+    pend_env, gym_env = setUp
+    solver = SamplingFittedMviSolver(gym_env)
+    solver.initialize()
+    run_solver_gym(solver, gym_env)
+
+
+def test_mvi_tb(setUp):
+    pend_env, gym_env = setUp
+    solver = SamplingFittedMviSolver(pend_env)
     solver.initialize()
     run_solver_tb(solver, pend_env)
 

@@ -25,7 +25,6 @@ OPTIONS = {
     "lr": 0.001,
     "minibatch_size": 32,
     "critic_loss": "mse",  # mse or huber
-    "clip_grad": False,  # clip the gradient if True
     "optimizer": "Adam",
     "buffer_size": 1e6,
     "target_update_interval": 100,

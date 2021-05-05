@@ -13,4 +13,9 @@ elif [ $1 = "sampling" ]; then
         python examples/tabular_gridcraft.py --solver $algo --epochs 10 --steps_per_epoch 1500 --evaluation_interval 10 --log_interval 1 --exp_name SamplingGridCraft
     done
     python examples/plot.py results/SamplingGridCraft -x Steps
+elif [ $1 = "samplingfitted" ]; then
+    for algo in SFVI SFCVI SFMVI; do
+        python examples/tabular_gridcraft.py --solver $algo --epochs 10 --steps_per_epoch 1500 --evaluation_interval 10 --log_interval 1 --exp_name SamplingFittedGridCraft
+    done
+    python examples/plot.py results/SamplingFittedGridCraft -x Steps
 fi

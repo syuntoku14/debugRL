@@ -16,6 +16,7 @@ DISCRETE_SOLVERS = {
     "OMVI": solvers.vi.discrete.OracleMviSolver,
     "EFMVI": solvers.vi.discrete.ExactFittedMviSolver,
     "SMVI": solvers.vi.discrete.SamplingMviSolver,
+    "SFMVI": solvers.vi.discrete.SamplingFittedMviSolver,
     # Policy gradient
     "EPG": solvers.onpg.discrete.ExactPgSolver,
     "SPG": solvers.onpg.discrete.SamplingPgSolver,
