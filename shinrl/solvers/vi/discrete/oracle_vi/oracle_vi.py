@@ -1,7 +1,7 @@
 import numpy as np
 from tqdm import tqdm
 
-from shinrl.utils import eps_greedy_policy, softmax_policy
+from shinrl import utils
 
 from .core import Solver
 
@@ -39,7 +39,7 @@ class OracleViSolver(OracleSolver):
         self.record_array("Values", np.asarray(prev_q))
 
         # set greedy policy
-        policy = eps_greedy_policy(self.tb_values, eps_greedy=0.0)
+        policy = utils.eps_greedy_policy(self.tb_values, eps_greedy=0.0)
         self.record_array("Policy", policy)
 
 
@@ -65,7 +65,7 @@ class OracleCviSolver(OracleSolver):
         self.record_array("Values", np.asarray(prev_preference))
 
         # set greedy policy
-        policy = softmax_policy(self.tb_values, beta=beta)
+        policy = utils.softmax_policy(self.tb_values, beta=beta)
         self.record_array("Policy", policy)
 
 
@@ -85,7 +85,7 @@ class OracleMviSolver(OracleSolver):
         tau = kl_coef + er_coef
 
         # update q
-        policy = softmax_policy(self.tb_values, beta=1 / tau)
+        policy = utils.softmax_policy(self.tb_values, beta=1 / tau)
         curr_q = self.tb_values
         next_max = np.sum(policy * (curr_q - tau * np.log(policy)), axis=-1)
         prev_q = (
@@ -97,5 +97,5 @@ class OracleMviSolver(OracleSolver):
         self.record_array("Values", np.asarray(prev_q))
 
         # set policy
-        policy = softmax_policy(self.tb_values, beta=1 / tau)
+        policy = utils.softmax_policy(self.tb_values, beta=1 / tau)
         self.record_array("Policy", policy)

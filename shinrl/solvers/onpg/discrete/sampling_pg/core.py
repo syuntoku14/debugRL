@@ -1,18 +1,11 @@
 import itertools
-from copy import deepcopy
 
 import torch
 import torch.nn.functional as F
 from torch import nn
 
+from shinrl import utils
 from shinrl.solvers import BaseSolver
-from shinrl.utils import (
-    boltzmann_softmax,
-    collect_samples,
-    make_replay_buffer,
-    mellow_max,
-    softmax_policy,
-)
 
 OPTIONS = {
     "num_samples": 80,

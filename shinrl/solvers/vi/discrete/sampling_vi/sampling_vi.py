@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 from tqdm import tqdm
 
 from shinrl import utils

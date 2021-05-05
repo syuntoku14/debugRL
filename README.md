@@ -55,13 +55,12 @@ See [shinrl/\_\_init\_\_.py](shinrl/__init__.py) for the available environments.
 
 #### Implemented algorithms
 
-|                                          Algorithms                                           |                  Discrete Control                  |                  Continuous Control                  |                                                                  Solvers                                                                  |
-| :-------------------------------------------------------------------------------------------: | :------------------------------------------------: | :--------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------: |
-| Value Iteration ([DQN](https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf)) |  [:heavy_check_mark:](shinrl/solvers/vi/discrete)  |                         :x:                          | <sup id="a1">[1](#f1)</sup>OracleViSolver<br>SamplingViSolver<br>ExactFittedViSolver<br><sup id="a1">[2](#f2)</sup>SamplingFittedViSolver |
-|        [Conservative Value Iteration](http://proceedings.mlr.press/v89/kozuno19a.html)        |  [:heavy_check_mark:](shinrl/solvers/vi/discrete)  |                         :x:                          |            OracleCviSolver<br>SamplingCviSolver<br>ExactFittedCviSolver<br><sup id="a1">[2](#f2)</sup>SamplingFittedCviSolver             |
-|      On-Policy Policy Gradient (REINFORCE, A2C, [PPO](https://arxiv.org/abs/1707.06347))      | [:heavy_check_mark:](shinrl/solvers/onpg/discrete) | [:heavy_check_mark:](shinrl/solvers/onpg/continuous) |                   ExactPgSolver<br><sup id="a1">[2](#f2)</sup>SamplingPgSolver<br><sup id="a1">[2](#f2)</sup>PpoSolver                    |
-|               [Interpolated Policy Gradient](https://arxiv.org/abs/1706.00387)                | [:heavy_check_mark:](shinrl/solvers/ipg/discrete)  |                         :x:                          |                                                   <sup id="a1">[2](#f2)</sup>IpgSolver                                                    |
-|                      [Soft Actor-Critic](shinrl/solvers/sac_continuous)                       | [:heavy_check_mark:](shinrl/solvers/sac/discrete)  | [:heavy_check_mark:](shinrl/solvers/sac/continuous)  |                                                   <sup id="a1">[2](#f2)</sup>SacSolver                                                    |
+|                                                                                                                                       Algorithms                                                                                                                                        |                  Discrete Control                  |                  Continuous Control                  |                                                                            Solvers                                                                             |
+| :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------: | :--------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+| Value Iteration <br>([Deep Q Network (DQN)](https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf), <br>[Conservative Value Iteration (CVI)](http://proceedings.mlr.press/v89/kozuno19a.html), <br>[Munchausen Value Iteration (MVI)](https://arxiv.org/abs/2007.14430)) |  [:heavy_check_mark:](shinrl/solvers/vi/discrete)  |                         :x:                          | <sup id="a1">[1](#f1)</sup>Oracle(C,M)ViSolver<br>Sampling(C,M)ViSolver<br>ExactFitted(C,M)ViSolver<br><sup id="a1">[2](#f2)</sup>SamplingFitted(C, M)ViSolver |
+|                                                                                                 On-Policy Policy Gradient <br>(REINFORCE, A2C, [PPO](https://arxiv.org/abs/1707.06347))                                                                                                 | [:heavy_check_mark:](shinrl/solvers/onpg/discrete) | [:heavy_check_mark:](shinrl/solvers/onpg/continuous) |                              ExactPgSolver<br><sup id="a1">[2](#f2)</sup>SamplingPgSolver<br><sup id="a1">[2](#f2)</sup>PpoSolver                              |
+|                                                                                                         [Interpolated Policy Gradient (IPG)](https://arxiv.org/abs/1706.00387)                                                                                                          | [:heavy_check_mark:](shinrl/solvers/ipg/discrete)  |                         :x:                          |                                                              <sup id="a1">[2](#f2)</sup>IpgSolver                                                              |
+|                                                                                                                [Soft Actor-Critic (SAC)](shinrl/solvers/sac_continuous)                                                                                                                 | [:heavy_check_mark:](shinrl/solvers/sac/discrete)  | [:heavy_check_mark:](shinrl/solvers/sac/continuous)  |                                                              <sup id="a1">[2](#f2)</sup>SacSolver                                                              |
 
 <b id="f1">1</b> The naming rule follows [Diagnosing Bottlenecks in Deep Q-learning Algorithms](https://arxiv.org/abs/1902.10250): 
 * *Oracle-* solvers don't contain any errors. 
@@ -70,6 +69,15 @@ See [shinrl/\_\_init\_\_.py](shinrl/__init__.py) for the available environments.
 * *Sampling Fitted-* solvers use both function approximation and sampled data. 
 
 <b id="f2">2</b> Those solvers support both TabularEnv and regular Gym environments.
+
+# Run Benchmarks
+
+All the results will be saved at ``results/``.
+
+```bash
+# Value iterations on 5x5 gridcraft
+bash examples/scripts/benchmark_gridcraft.bash [oracle, exact, sampling, samplingfitted]
+```
 
 # Installation
 
