@@ -47,7 +47,7 @@ class BaseSolver(ABC):
     def initialize(self, options={}):
         """
         Initialize the solver with the given options.
-        Reset the env and history.
+        Reset the env and the history.
         """
         options = deepcopy(options)
         for key in options.keys():

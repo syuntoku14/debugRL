@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from torch import nn
 from tqdm import tqdm
 
 from shinrl import utils
@@ -12,7 +13,7 @@ class ExactFittedSolver(Solver):
         for _ in tqdm(range(num_steps)):
             self.record_history()
             self.add_noise()
-            self.update_network(self.compute_target())
+            self.update(self.compute_target())
             self.set_tb_values_policy()
             self.step += 1
 
@@ -28,14 +29,20 @@ class ExactFittedSolver(Solver):
             expected_return = self.env.compute_expected_return(self.tb_policy)
             self.record_scalar("Return", expected_return, tag="Policy")
 
-    def update_network(self, target):
+    def update(self, target):
         target = torch.tensor(target, dtype=torch.float32, device=self.device)
-        for _ in range(self.solve_options["proj_iters"]):
-            values = self.value_network(self.all_obss)
-            loss = self.critic_loss(target, values)
-            self.value_optimizer.zero_grad()
-            loss.backward()
-            self.value_optimizer.step()
+        if self.solve_options["use_linear_approx"]:
+            weight = torch.linalg.pinv(self.all_obss) @ target
+            self.value_network.weight = nn.Parameter(weight.T)
+        else:
+            for _ in range(self.solve_options["proj_iters"]):
+                values = self.value_network(self.all_obss)
+                loss = self.critic_loss(target, values)
+                self.value_optimizer.zero_grad()
+                loss.backward()
+                self.value_optimizer.step()
+        error = ((self.value_network(self.all_obss) - target) ** 2).mean()
+        self.record_scalar("Error", error)
 
 
 class ExactFittedViSolver(ExactFittedSolver):
@@ -45,7 +52,7 @@ class ExactFittedViSolver(ExactFittedSolver):
         prev_q = self.env.reward_matrix + discount * (
             self.env.transition_matrix * curr_v_val
         ).reshape(self.dS, self.dA)
-        return np.asarray(prev_q)
+        return np.asarray(prev_q)  # SxA
 
     def set_tb_values_policy(self):
         q_values = (

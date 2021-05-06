@@ -37,6 +37,7 @@ def main():
     parser.add_argument("expdir")
     parser.add_argument("-x", default="Samples", choices=["Samples", "Steps"])
     parser.add_argument("-y", default="ReturnPolicy")
+    parser.add_argument("--log_scale", action="store_true")
     args = parser.parse_args()
 
     exp_path = pathlib.Path(args.expdir)
@@ -51,6 +52,8 @@ def main():
             # Just some formatting niceness: x-axis scale in scientific notation if max x is large
             ax.ticklabel_format(style="sci", axis="x", scilimits=(0, 0))
 
+    if args.log_scale:
+        plt.yscale("log")
     plt.savefig(os.path.join(args.expdir, args.y + ".png"))
 
 

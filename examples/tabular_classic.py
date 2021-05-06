@@ -10,7 +10,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from clearml import Task
-from misc import CONTINUOUS_SOLVERS, DISCRETE_SOLVERS, prepare
+from misc import CONTINUOUS_SOLVERS, DISCRETE_SOLVERS, prepare, make_valid_options
 from shinrl import solvers
 
 matplotlib.use("Agg")
@@ -37,16 +37,17 @@ def main():
         ],
     )
     defaults = {"--epochs": 5, "--evaluation_interval": 100, "--steps_per_epoch": 500}
-    args, options, project_name, task_name, task, logger = prepare(parser, defaults)
+    args, project_name, task_name, task, logger = prepare(parser, defaults)
 
     # Construct solver
     env = gym.make(args.env)
-    SOLVERS = (
+    SOLVER = (
         CONTINUOUS_SOLVERS
         if isinstance(env.action_space, gym.spaces.Box)
         else DISCRETE_SOLVERS
-    )
-    solver = SOLVERS[args.solver](env, logger=logger, solve_options=options)
+    )[args.solver]
+    options = make_valid_options(args, SOLVER)
+    solver = SOLVER(env, logger=logger, solve_options=options)
     if args.clearml:
         task_params = task.connect(solver.solve_options)
     solver_name = solver.__class__.__name__

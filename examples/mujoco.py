@@ -7,7 +7,7 @@ import argparse
 
 import gym
 import numpy as np
-from misc import CONTINUOUS_SOLVERS, prepare
+from misc import CONTINUOUS_SOLVERS, prepare, make_valid_options
 from shinrl import solvers
 
 
@@ -22,11 +22,13 @@ def main():
         "--evaluation_interval": 5000,
         "--steps_per_epoch": 100000,
     }
-    args, options, project_name, task_name, task, logger = prepare(parser, defaults)
+    args, project_name, task_name, task, logger = prepare(parser, defaults)
 
     # Construct solver
     env = gym.make(args.env)
-    solver = CONTINUOUS_SOLVERS[args.solver](env, logger=logger, solve_options=options)
+    SOLVER = CONTINUOUS_SOLVERS[args.solver]
+    options = make_valid_options(args, SOLVER)
+    solver = SOLVER(env, logger=logger, solve_options=options)
     if args.clearml:
         task_params = task.connect(solver.solve_options)
     solver_name = solver.__class__.__name__

@@ -18,6 +18,12 @@ def setUp():
     yield pend_env
 
 
+def test_linear_approx(setUp):
+    pend_env = setUp
+    solver = ExactFittedViSolver(pend_env, solve_options={"use_linear_approx": True})
+    run_solver_tb(solver, pend_env)
+
+
 def test_vi(setUp):
     pend_env = setUp
     solver = ExactFittedViSolver(pend_env)

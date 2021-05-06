@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 from celluloid import Camera
 from clearml import Task
-from misc import DISCRETE_SOLVERS, prepare, to_numeric
+from misc import DISCRETE_SOLVERS, prepare, to_numeric, make_valid_options
 from shinrl.envs.gridcraft import GridEnv, create_maze, grid_spec_from_string
 
 matplotlib.use("Agg")
@@ -21,22 +21,28 @@ def main():
     parser = argparse.ArgumentParser()
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--solver", type=str, default="SAC", choices=list(DISCRETE_SOLVERS.keys())
+        "--solver", type=str, default="SAC", choices=list(DISCRETE_SOLVERS.keys()),
     )
     parser.add_argument("--env", type=str, default="GridCraft-v0")  # dummy
+    parser.add_argument("--obs_mode", type=str, default="one-hot")
     defaults = {
         "--epochs": 10,
         "--evaluation_interval": 1,
         "--steps_per_epoch": 10,
         "--log_interval": 1,
     }
-    args, options, project_name, task_name, task, logger = prepare(parser, defaults)
+    args, project_name, task_name, task, logger = prepare(parser, defaults)
 
     spec = grid_spec_from_string("SOOO\\" + "O###\\" + "OOOO\\" + "O#RO\\")
-    env = GridEnv(spec, trans_eps=0.1, horizon=25)
+    if args.obs_mode == "one-hot":
+        env = GridEnv(spec, trans_eps=0.1, horizon=25)
+    else:
+        env = GridEnv(spec, trans_eps=0.1, horizon=25, obs_mode="random", obs_dim=100)
 
     # solve tabular MDP
-    solver = DISCRETE_SOLVERS[args.solver](env, logger=logger, solve_options=options)
+    SOLVER = DISCRETE_SOLVERS[args.solver]
+    options = make_valid_options(args, SOLVER)
+    solver = SOLVER(env, logger=logger, solve_options=options)
 
     if args.clearml:
         task_params = task.connect(solver.solve_options)

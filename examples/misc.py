@@ -43,6 +43,14 @@ def to_numeric(arg):
         return int(float(arg)) if float(arg).is_integer() else float(arg)
 
 
+def make_valid_options(args, SOLVER):
+    options = {}
+    for key, val in vars(args).items():
+        if key in SOLVER.default_options:
+            options[key] = to_numeric(val)
+    return options
+
+
 def prepare(
     parser,
     defaults={
@@ -64,21 +72,6 @@ def prepare(
         if arg.startswith(("-", "--")):
             parser.add_argument(arg.split("=")[0])
     args = parser.parse_args()
-
-    options = {}
-    for key, val in vars(args).items():
-        if key not in [
-            "solver",
-            "env",
-            "exp_name",
-            "task_name",
-            "epochs",
-            "steps_per_epoch",
-            "save",
-            "clearml",
-        ]:
-            options[key] = to_numeric(val)
-
     project_name = args.env if args.exp_name is None else args.exp_name
     task_name = args.solver if args.task_name is None else args.task_name
 
@@ -90,4 +83,4 @@ def prepare(
     else:
         task, logger = None, None
 
-    return args, options, project_name, task_name, task, logger
+    return args, project_name, task_name, task, logger
