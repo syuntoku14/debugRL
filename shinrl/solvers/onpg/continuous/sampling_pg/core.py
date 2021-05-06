@@ -1,4 +1,5 @@
 import itertools
+from copy import deepcopy
 
 import gym
 import numpy as np
@@ -128,9 +129,11 @@ class PolicyNet(nn.Module):
 
 
 class Solver(BaseSolver):
+    default_options = deepcopy(BaseSolver.default_options)
+    default_options.update(OPTIONS)
+
     def initialize(self, options={}):
         assert isinstance(self.env.action_space, gym.spaces.Box)
-        self.solve_options.update(OPTIONS)
         super().initialize(options)
         self.device = self.solve_options["device"]
 

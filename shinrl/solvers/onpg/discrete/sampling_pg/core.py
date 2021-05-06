@@ -1,4 +1,5 @@
 import itertools
+from copy import deepcopy
 
 import torch
 import torch.nn.functional as F
@@ -59,8 +60,10 @@ def conv_net(env, num_output, hidden=32, depth=1, act_layer=nn.ReLU):
 
 
 class Solver(BaseSolver):
+    default_options = deepcopy(BaseSolver.default_options)
+    default_options.update(OPTIONS)
+
     def initialize(self, options={}):
-        self.solve_options.update(OPTIONS)
         super().initialize(options)
         self.device = self.solve_options["device"]
         self.optimizer = getattr(torch.optim, self.solve_options["optimizer"])

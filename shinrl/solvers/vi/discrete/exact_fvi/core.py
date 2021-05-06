@@ -1,4 +1,5 @@
 import torch
+from copy import deepcopy
 import torch.nn.functional as F
 from torch import nn
 
@@ -12,6 +13,7 @@ OPTIONS = {
     "max_operator": "mellow_max",
     "proj_iters": 10,
     # Fitted iteration settings
+    "use_linear_approx": False,
     "activation": "ReLU",
     "hidden": 128,  # size of hidden layer
     "depth": 2,  # depth of the network
@@ -57,28 +59,37 @@ def conv_net(env, hidden=32, depth=1, act_layer=nn.ReLU):
 
 
 class Solver(BaseSolver):
+    default_options = deepcopy(BaseSolver.default_options)
+    default_options.update(OPTIONS)
+
     def initialize(self, options={}):
         assert self.is_tabular
-        self.solve_options.update(OPTIONS)
         super().initialize(options)
-
         self.device = self.solve_options["device"]
         self.max_operator = getattr(utils, self.solve_options["max_operator"])
-        self.optimizer = getattr(torch.optim, self.solve_options["optimizer"])
-        self.critic_loss = getattr(F, self.solve_options["critic_loss"])
-        act_layer = getattr(nn, self.solve_options["activation"])
-
-        net = fc_net if len(self.env.observation_space.shape) == 1 else conv_net
-        self.value_network = net(
-            self.env,
-            hidden=self.solve_options["hidden"],
-            depth=self.solve_options["depth"],
-            act_layer=act_layer,
-        ).to(self.device)
-        self.value_optimizer = self.optimizer(
-            self.value_network.parameters(), lr=self.solve_options["lr"]
-        )
         self.all_obss = torch.tensor(
             self.env.all_observations, dtype=torch.float32, device=self.device
-        )
+        )  # SxO
+
+        if self.solve_options["use_linear_approx"]:
+            obs_shape, act_n = (
+                self.env.observation_space.shape[0],
+                self.env.action_space.n,
+            )
+            self.value_network = nn.Linear(obs_shape, act_n).to(self.device)  # OxA
+        else:
+            self.optimizer = getattr(torch.optim, self.solve_options["optimizer"])
+            self.critic_loss = getattr(F, self.solve_options["critic_loss"])
+            act_layer = getattr(nn, self.solve_options["activation"])
+
+            net = fc_net if len(self.env.observation_space.shape) == 1 else conv_net
+            self.value_network = net(
+                self.env,
+                hidden=self.solve_options["hidden"],
+                depth=self.solve_options["depth"],
+                act_layer=act_layer,
+            ).to(self.device)
+            self.value_optimizer = self.optimizer(
+                self.value_network.parameters(), lr=self.solve_options["lr"]
+            )
         self.set_tb_values_policy()

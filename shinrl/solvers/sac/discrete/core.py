@@ -60,12 +60,13 @@ def conv_net(env, hidden=32, depth=1, act_layer=nn.ReLU):
 
 
 class Solver(BaseSolver):
+    default_options = deepcopy(BaseSolver.default_options)
+    default_options.update(OPTIONS)
+
     def initialize(self, options={}):
-        self.solve_options.update(OPTIONS)
         super().initialize(options)
 
         self.device = self.solve_options["device"]
-        self.max_operator = getattr(utils, self.solve_options["max_operator"])
         self.optimizer = getattr(torch.optim, self.solve_options["optimizer"])
         self.critic_loss = getattr(F, self.solve_options["critic_loss"])
         act_layer = getattr(nn, self.solve_options["activation"])

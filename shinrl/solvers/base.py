@@ -30,9 +30,11 @@ class BaseSolver(ABC):
         logger (Trains.Logger): logger for ClearML
     """
 
+    default_options = DEFAULT_OPTIONS
+
     def __init__(self, env, solve_options={}, logger=None):
         # solver options
-        self.solve_options = DEFAULT_OPTIONS
+        self.solve_options = deepcopy(self.default_options)
         self.logger = logger
 
         # env parameters

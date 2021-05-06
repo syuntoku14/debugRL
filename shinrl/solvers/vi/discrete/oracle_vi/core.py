@@ -1,4 +1,5 @@
 import numpy as np
+from copy import deepcopy
 
 from shinrl import utils
 from shinrl.solvers import BaseSolver
@@ -13,9 +14,11 @@ OPTIONS = {
 
 
 class Solver(BaseSolver):
+    default_options = deepcopy(BaseSolver.default_options)
+    default_options.update(OPTIONS)
+
     def initialize(self, options={}):
         assert self.is_tabular
-        self.solve_options.update(OPTIONS)
         super().initialize(options)
         self.record_array("Values", np.zeros((self.dS, self.dA)))
         self.record_array("Policy", np.ones((self.dS, self.dA)) / self.dA)
