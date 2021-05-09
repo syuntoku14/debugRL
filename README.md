@@ -2,7 +2,7 @@
 
 # ShinRL: A python library for analyzing reinforcement learning
 
-`ShinRL` is a reinforcement learning (RL) library with useful analysis tools.
+`ShinRL` is a reinforcement learning (RL) library with helpful analysis tools.
 It allows you to analyze the *shin* (*shin* means oracle in Japanese) behaviors of RL.
 
 ```python
@@ -21,7 +21,7 @@ v_values = np.sum(solver.tb_policy*q_values, axis=-1)
 env.plot_values(v_values, title="State Values")
 ```
 
-See [quickstart.py](examples/quickstart.py) and [tutorial.ipynb](examples/tutorial.ipynb) for the basic usages.
+See [quickstart.py](experiments/tutorial/quickstart.py) and [tutorial.ipynb](experiments/tutorial/tutorial.ipynb) for the basic usages.
 For more information, you can refer to [ShinRL's documentation](https://shinrl.readthedocs.io/en/latest/?).
 
 ![Ant](assets/ant.gif)
@@ -70,14 +70,19 @@ See [shinrl/\_\_init\_\_.py](shinrl/__init__.py) for the available environments.
 
 <b id="f2">2</b> Those solvers support both TabularEnv and regular Gym environments.
 
-# Run Benchmarks
+# Experiments
 
-All the results will be saved at ``results/``.
+The goal of ShinRL is not to provide state-of-the-art performance but to analyze the behaviors of various algorithms.
+To the end, ShinRL provides `experiments` that reproduce various analyses from many studies.
+For example, ``experiments/VI_Error_Propagation`` analyzes the effects of entropy and KL regularization on the error tolerance and convergence speed of VI.
 
-```bash
-# Value iterations on 5x5 gridcraft
-bash examples/scripts/benchmark_gridcraft.bash [oracle, exact, sampling, samplingfitted]
-```
+## Conducted Experiments
+
+|                        Experiment                        |                       Objective                        |                                              Source                                              |
+| :------------------------------------------------------: | :----------------------------------------------------: | :----------------------------------------------------------------------------------------------: |
+|             [Tutorial](experiments/Tutorial)             |                Learn how to use ShinRL                 |                                                                                                  |
+| [VI_Performance_Bound](experiments/VI_Performance_Bound) | Examine the performance bound of various VI algorithms | [Leverage the Average: an Analysis of KL Regularization in RL](https://arxiv.org/abs/2003.14089) |
+
 
 # Installation
 
