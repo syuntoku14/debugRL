@@ -22,8 +22,9 @@ class ExactPgSolver(Solver):
     def update_actor(self):
         discount = self.solve_options["discount"]
         # compute policy
-        dist = self.policy_network.compute_pi_distribution(self.all_obss)
-        log_policy = dist.log_prob(self.all_actions)
+        dist = self.policy_network.compute_distribution(self.all_obss)
+        all_actions = self.policy_network.unsquash_action(self.all_actions)
+        log_policy = self.policy_network.compute_logp_pi(dist, all_actions)
         policy = torch.softmax(log_policy, dim=-1).reshape(self.dS, self.dA)
         policy_np = policy.detach().cpu().numpy()
         # compute action values
@@ -55,8 +56,9 @@ class ExactPgSolver(Solver):
         self.record_scalar("LossActor", loss.detach().cpu().item())
 
     def set_tb_values_policy(self):
-        dist = self.policy_network.compute_pi_distribution(self.all_obss)
-        log_policy = dist.log_prob(self.all_actions)
+        dist = self.policy_network.compute_distribution(self.all_obss)
+        all_actions = self.policy_network.unsquash_action(self.all_actions)
+        log_policy = self.policy_network.compute_logp_pi(dist, all_actions)
         policy = (
             torch.softmax(log_policy, dim=-1)
             .reshape(self.dS, self.dA)
@@ -64,6 +66,11 @@ class ExactPgSolver(Solver):
             .cpu()
             .numpy()
         )
+        if "array" in self.history["Policy"]:
+            kl = (
+                policy * (np.log(policy + 1e-20) - np.log(self.tb_policy + 1e-20))
+            ).sum(1)
+            self.record_scalar("KL", kl.max())
         self.record_array("Policy", policy)
         values = self.env.compute_action_values(policy)
         self.record_array("Values", values)

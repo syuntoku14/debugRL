@@ -6,15 +6,15 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torch.distributions.normal import Normal
+from torch.distributions.beta import Beta
 
 from shinrl import utils
 from shinrl.solvers import BaseSolver
 
 OPTIONS = {
     "activation": "ReLU",
-    "hidden": 128,  # size of hidden layer
-    "depth": 2,  # depth of the network
+    "hidden": 128,
+    "depth": 2,
     "device": "cuda",
     "optimizer": "Adam",
     "lr": 3e-4,
@@ -31,63 +31,57 @@ def fc_net(env, hidden, depth, act_layer):
     for _ in range(depth - 1):
         modules += [act_layer(), nn.Linear(hidden, hidden)]
     modules.append(act_layer())
-    return nn.Sequential(*modules), None
-
-
-def conv_net(env, hidden, depth, act_layer):
-    # this assumes image shape == (1, 28, 28)
-    act_layer = getattr(nn, act_layer)
-    n_acts = env.action_space.n
-    conv_modules = [
-        nn.Conv2d(1, 10, kernel_size=5, stride=2),
-        nn.Conv2d(10, 20, kernel_size=5, stride=2),
-        nn.Flatten(),
-    ]
-    fc_modules = []
-    fc_modules.append(nn.Linear(320, hidden))
-    for _ in range(depth - 1):
-        fc_modules += [act_layer(), nn.Linear(hidden, hidden)]
-    fc_modules.append(act_layer())
-    conv_modules = nn.Sequential(*conv_modules)
-    fc_modules = nn.Sequential(*fc_modules)
-    return fc_modules, conv_modules
+    return nn.Sequential(*modules)
 
 
 class PolicyNet(nn.Module):
     def __init__(self, env, solve_options):
         super().__init__()
-        net = fc_net if len(env.observation_space.shape) == 1 else conv_net
-        self.fc, self.conv = net(
+        self.device = solve_options["device"]
+        self.fc = fc_net(
             env,
             solve_options["hidden"],
             solve_options["depth"],
             solve_options["activation"],
         )
         act_dim = env.action_space.shape[0]
-        log_std = np.zeros(act_dim, dtype=np.float32)
-        self.log_std = torch.nn.Parameter(torch.as_tensor(log_std))
-        self.mu_layer = nn.Linear(solve_options["hidden"], act_dim)
+        self.high = torch.tensor(
+            env.action_space.high[0], dtype=torch.float32, device=self.device
+        )
+        self.low = torch.tensor(
+            env.action_space.low[0], dtype=torch.float32, device=self.device
+        )
+        self.log_alpha_layer = nn.Linear(solve_options["hidden"], act_dim)
+        self.log_beta_layer = nn.Linear(solve_options["hidden"], act_dim)
         self.solve_options = solve_options
 
     def forward(self, obs):
-        pi_dist = self.compute_pi_distribution(obs)
-        pi_action = pi_dist.sample()
-        logp_pi = self.compute_logp_pi(pi_dist, pi_action)
-        return pi_action, logp_pi
+        pi_dist = self.compute_distribution(obs)
+        raw_action = pi_dist.rsample()
+        logp_pi = self.compute_logp_pi(pi_dist, raw_action)
+        return self.squash_action(raw_action), logp_pi
 
-    def compute_pi_distribution(self, obss):
-        if self.conv is not None:
-            x = self.conv(obss)
-        else:
-            x = obss
-        net_out = self.fc(x)
-        mu = self.mu_layer(net_out)
-        std = torch.exp(self.log_std).expand_as(mu)
-        pi_dist = Normal(mu, std)
+    def squash_action(self, action):
+        return action * (self.high - self.low) + self.low
+
+    def unsquash_action(self, action):
+        action = (action - self.low) / (self.high - self.low)
+        # to avoid numerical instability
+        action = (
+            action + (action == 0.0).float() * 1e-8 - (action == 1.0).float() * 1e-8
+        )
+        return action
+
+    def compute_distribution(self, obss):
+        net_out = self.fc(obss)
+        alpha = self.log_alpha_layer(net_out).exp()
+        beta = self.log_beta_layer(net_out).exp()
+        pi_dist = Beta(alpha, beta)
         return pi_dist
 
-    def compute_logp_pi(self, pi_dist, pi_action):
-        logp_pi = pi_dist.log_prob(pi_action).sum(-1)
+    def compute_logp_pi(self, pi_dist, raw_action):
+        logp_pi = pi_dist.log_prob(raw_action)
+        logp_pi -= (self.high - self.low).log()
         return logp_pi
 
 
