@@ -202,31 +202,3 @@ class Solver(BaseSolver):
             )
         else:
             return utils.collect_samples(self.env, self.get_action_gym, num_samples)
-
-    def save(self, dir_name):
-        data = {
-            "vnet1": self.value_network.state_dict(),
-            "vnet2": self.value_network2.state_dict(),
-            "valopt": self.value_optimizer.state_dict(),
-            "targ_vnet1": self.target_value_network.state_dict(),
-            "targ_vnet2": self.target_value_network2.state_dict(),
-            "polnet": self.policy_network.state_dict(),
-            "polopt": self.policy_optimizer.state_dict(),
-        }
-        super().save(dir_name, data)
-        self.buffer.save_transitions(os.path.join(dir_name, "rbuf.npz"), safe=True)
-
-    def load(self, dir_name):
-        data = super().load(dir_name, device=self.device)
-        self.value_network.load_state_dict(data["vnet1"])
-        self.value_network2.load_state_dict(data["vnet2"])
-        self.value_optimizer.load_state_dict(data["valopt"])
-        self.target_value_network.load_state_dict(data["targ_vnet1"])
-        self.target_value_network2.load_state_dict(data["targ_vnet2"])
-        self.policy_network.load_state_dict(data["polnet"])
-        self.policy_optimizer.load_state_dict(data["polopt"])
-
-        self.buffer = utils.make_replay_buffer(
-            self.env, self.solve_options["buffer_size"]
-        )
-        self.buffer.load_transitions(os.path.join(dir_name, "rbuf.npz"))

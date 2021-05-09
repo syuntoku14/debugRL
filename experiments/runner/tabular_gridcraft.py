@@ -11,7 +11,8 @@ import numpy as np
 import pandas as pd
 from celluloid import Camera
 from clearml import Task
-from misc import DISCRETE_SOLVERS, prepare, to_numeric, make_valid_options
+from misc import DISCRETE_SOLVERS, make_valid_options, prepare, to_numeric
+
 from shinrl.envs.gridcraft import GridEnv, create_maze, grid_spec_from_string
 
 matplotlib.use("Agg")

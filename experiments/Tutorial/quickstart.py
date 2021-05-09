@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from celluloid import Camera
+
 from shinrl.solvers.sac.discrete import SacSolver
 
 device = "cuda" if torch.cuda.is_available() else "cpu"

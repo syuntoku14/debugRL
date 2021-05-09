@@ -14,11 +14,11 @@ from shinrl.solvers import BaseSolver
 OPTIONS = {
     "num_samples": 20,
     # Fitted iteration settings
-    "activation": "tanh",
+    "activation": "ReLU",
     "hidden": 256,  # size of hidden layer
     "depth": 2,  # depth of the network
     "device": "cuda" if torch.cuda.is_available() else "cpu",
-    "critic_loss": "mse",  # mse or huber
+    "critic_loss": "mse_loss",
     "optimizer": "Adam",
     "lr": 3e-4,
     "num_minibatches": 1,
@@ -33,12 +33,7 @@ OPTIONS = {
 
 
 def fc_net(env, hidden, depth, act_layer):
-    if act_layer == "tanh":
-        act_layer = nn.Tanh
-    elif act_layer == "relu":
-        act_layer = nn.ReLU
-    else:
-        raise ValueError("Invalid activation layer.")
+    act_layer = getattr(nn, act_layer)
     modules = [
         nn.Linear(env.observation_space.shape[0], hidden),
     ]
@@ -49,12 +44,7 @@ def fc_net(env, hidden, depth, act_layer):
 
 
 def conv_net(env, hidden, depth, act_layer):
-    if act_layer == "tanh":
-        act_layer = nn.Tanh
-    elif act_layer == "relu":
-        act_layer = nn.ReLU
-    else:
-        raise ValueError("Invalid activation layer.")
+    act_layer = getattr(nn, act_layer)
     # this assumes image shape == (1, 28, 28)
     n_acts = env.action_space.n
     conv_modules = [
@@ -136,20 +126,8 @@ class Solver(BaseSolver):
         assert isinstance(self.env.action_space, gym.spaces.Box)
         super().initialize(options)
         self.device = self.solve_options["device"]
-
-        # set networks
-        if self.solve_options["optimizer"] == "Adam":
-            self.optimizer = torch.optim.Adam
-        else:
-            self.optimizer = torch.optim.RMSprop
-
-        # set critic loss
-        if self.solve_options["critic_loss"] == "mse":
-            self.critic_loss = F.mse_loss
-        elif self.solve_options["critic_loss"] == "huber":
-            self.critic_loss = F.smooth_l1_loss
-        else:
-            raise ValueError("Invalid critic_loss")
+        self.optimizer = getattr(torch.optim, self.solve_options["optimizer"])
+        self.critic_loss = getattr(F, self.solve_options["critic_loss"])
 
         # set value network
         self.value_network = ValueNet(self.env, self.solve_options).to(self.device)
@@ -180,17 +158,3 @@ class Solver(BaseSolver):
             )
         else:
             return utils.collect_samples(self.env, self.get_action_gym, num_samples)
-
-    def save(self, path):
-        data = {
-            "vnet": self.value_network.state_dict(),
-            "polnet": self.policy_network.state_dict(),
-            "opt": self.optimizer.state_dict(),
-        }
-        super().save(path, data)
-
-    def load(self, path):
-        data = super().load(path, device=self.device)
-        self.value_network.load_state_dict(data["vnet"])
-        self.policy_network.load_state_dict(data["polnet"])
-        self.optimizer.load_state_dict(data["opt"])

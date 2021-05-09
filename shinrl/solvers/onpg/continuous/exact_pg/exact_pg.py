@@ -16,10 +16,7 @@ class ExactPgSolver(Solver):
         for _ in tqdm(range(num_steps)):
             self.set_tb_values_policy()
             self.record_history()
-
-            # ----- update networks -----
-            actor_loss = self.update_actor()
-            self.record_scalar("LossActor", actor_loss)
+            self.update_actor()
             self.step += 1
 
     def update_actor(self):
@@ -55,7 +52,7 @@ class ExactPgSolver(Solver):
         self.policy_optimizer.zero_grad()
         loss.backward()
         self.policy_optimizer.step()
-        return loss.detach().cpu().item()
+        self.record_scalar("LossActor", loss.detach().cpu().item())
 
     def set_tb_values_policy(self):
         dist = self.policy_network.compute_pi_distribution(self.all_obss)
@@ -70,14 +67,6 @@ class ExactPgSolver(Solver):
         self.record_array("Policy", policy)
         values = self.env.compute_action_values(policy)
         self.record_array("Values", values)
-
-    def collect_samples(self, num_samples):
-        return utils.collect_samples(
-            self.env,
-            utils.get_tb_action,
-            self.solve_options["num_samples"],
-            policy=self.tb_policy,
-        )
 
     def record_history(self):
         if self.step % self.solve_options["evaluation_interval"] == 0:

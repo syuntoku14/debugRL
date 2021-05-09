@@ -10,7 +10,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from clearml import Task
-from misc import CONTINUOUS_SOLVERS, DISCRETE_SOLVERS, prepare, make_valid_options
+from misc import CONTINUOUS_SOLVERS, DISCRETE_SOLVERS, make_valid_options, prepare
+
 from shinrl import solvers
 
 matplotlib.use("Agg")

@@ -7,7 +7,8 @@ import argparse
 
 import gym
 import numpy as np
-from misc import CONTINUOUS_SOLVERS, prepare, make_valid_options
+from misc import CONTINUOUS_SOLVERS, make_valid_options, prepare
+
 from shinrl import solvers
 
 

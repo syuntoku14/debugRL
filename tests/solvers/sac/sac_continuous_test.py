@@ -25,24 +25,8 @@ def test_tb(setUp, tmpdir):
     solver = SacSolver(tb_env)
     run_solver_tb(solver, tb_env)
 
-    # test_save
-    dir_name = tmpdir.mkdir("tmp")
-    next_obs = solver.buffer.get_all_transitions()["next_obs"]
-    solver.save(dir_name)
-    solver.load(dir_name)
-    _next_obs = solver.buffer.get_all_transitions()["next_obs"]
-    assert (next_obs == _next_obs).all()
-
 
 def test_gym(setUp, tmpdir):
     _, gym_env = setUp
     solver = SacSolver(gym_env)
     run_solver_gym(solver, gym_env)
-
-    # test_save
-    dir_name = tmpdir.mkdir("tmp")
-    next_obs = solver.buffer.get_all_transitions()["next_obs"]
-    solver.save(dir_name)
-    solver.load(dir_name)
-    _next_obs = solver.buffer.get_all_transitions()["next_obs"]
-    assert (next_obs == _next_obs).all()

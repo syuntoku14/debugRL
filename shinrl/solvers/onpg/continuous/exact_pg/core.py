@@ -12,7 +12,7 @@ from shinrl import utils
 from shinrl.solvers import BaseSolver
 
 OPTIONS = {
-    "activation": "relu",
+    "activation": "ReLU",
     "hidden": 128,  # size of hidden layer
     "depth": 2,  # depth of the network
     "device": "cuda",
@@ -24,12 +24,7 @@ OPTIONS = {
 
 
 def fc_net(env, hidden, depth, act_layer):
-    if act_layer == "tanh":
-        act_layer = nn.Tanh
-    elif act_layer == "relu":
-        act_layer = nn.ReLU
-    else:
-        raise ValueError("Invalid activation layer.")
+    act_layer = getattr(nn, act_layer)
     modules = [
         nn.Linear(env.observation_space.shape[0], hidden),
     ]
@@ -40,13 +35,8 @@ def fc_net(env, hidden, depth, act_layer):
 
 
 def conv_net(env, hidden, depth, act_layer):
-    if act_layer == "tanh":
-        act_layer = nn.Tanh
-    elif act_layer == "relu":
-        act_layer = nn.ReLU
-    else:
-        raise ValueError("Invalid activation layer.")
     # this assumes image shape == (1, 28, 28)
+    act_layer = getattr(nn, act_layer)
     n_acts = env.action_space.n
     conv_modules = [
         nn.Conv2d(1, 10, kernel_size=5, stride=2),
@@ -109,20 +99,12 @@ class Solver(BaseSolver):
         assert isinstance(self.env.action_space, gym.spaces.Box)
         super().initialize(options)
         self.device = self.solve_options["device"]
-
-        # set networks
-        if self.solve_options["optimizer"] == "Adam":
-            self.optimizer = torch.optim.Adam
-        else:
-            self.optimizer = torch.optim.RMSprop
-
-        # set network
+        self.optimizer = getattr(torch.optim, self.solve_options["optimizer"])
         self.policy_network = PolicyNet(self.env, self.solve_options).to(self.device)
         self.policy_optimizer = self.optimizer(
             self.policy_network.parameters(), lr=self.solve_options["lr"]
         )
 
-        # Collect random samples in advance
         self.all_obss = torch.tensor(
             self.env.all_observations, dtype=torch.float32, device=self.device
         )
@@ -132,15 +114,3 @@ class Solver(BaseSolver):
             .reshape(self.dS, self.dA)
         )  # dS x dA
         self.set_tb_values_policy()
-
-    def save(self, path):
-        data = {
-            "polnet": self.policy_network.state_dict(),
-            "opt": self.policy_optimizer.state_dict(),
-        }
-        super().save(path, data)
-
-    def load(self, path):
-        data = super().load(path, device=self.device)
-        self.policy_network.load_state_dict(data["polnet"])
-        self.policy_optimizer.load_state_dict(data["opt"])
