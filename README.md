@@ -29,14 +29,24 @@ For more information, you can refer to [ShinRL's documentation](https://shinrl.r
 ![Tabular](assets/tabular.gif)
 
 
-## Key features
+# :pencil: Experiments
 
-### :zap: Oracle analysis with TabularEnv
+The goal of ShinRL is not to provide state-of-the-art agents but to analyze the behaviors of RL algorithms.
+To the end, ShinRL provides `experiments` that reproduce various analyses from many studies.
+For example, ``experiments/VI_Error_Propagation`` analyzes the effects of entropy and KL regularization on the error tolerance and convergence speed of VI.
+
+|                        Experiment                        |                       Objective                        |                                              Papers                                              |
+| :------------------------------------------------------: | :----------------------------------------------------: | :----------------------------------------------------------------------------------------------: |
+|             [Tutorial](experiments/Tutorial)             |                Learn how to use ShinRL                 |                                                                                                  |
+| [VI_Performance_Bound](experiments/VI_Performance_Bound) | Examine the performance bound of various VI algorithms | [Leverage the Average: an Analysis of KL Regularization in RL](https://arxiv.org/abs/2003.14089) |
+
+
+# :zap: Key features
+
+## Oracle analysis with TabularEnv
 * A flexible class `TabularEnv` provides useful functions for RL analysis. For example, you can calculate the oracle action-values with ``compute_action_values`` method.
 * Subclasses of `TabularEnv` can be used as the regular OpenAI-Gym environments.
 * Some environments support continuous action space and image observation.
-
-#### Implemented environments
 
 |                   Environment                    |   Dicrete action   | Continuous action  | Image Observation  | Tuple Observation  |
 | :----------------------------------------------: | :----------------: | :----------------: | :----------------: | :----------------: |
@@ -47,13 +57,11 @@ For more information, you can refer to [ShinRL's documentation](https://shinrl.r
 
 See [shinrl/\_\_init\_\_.py](shinrl/__init__.py) for the available environments.
 
-### :fire: Gym solvers
+## Gym solvers
 * `ShinRL` provides algorithms to solve MDPs as `Solver`.
 * Some solvers support the regular Gym environments as well as `TabularEnv`.
 * The dependencies between solvers are minimized to facilitate the addition and modification of new algorithms.
 * Easy to visualize the training progress with [ClearML](https://github.com/allegroai/clearml).
-
-#### Implemented algorithms
 
 |                                                                                                                                       Algorithms                                                                                                                                        |                  Discrete Control                  |                  Continuous Control                  |                                                                            Solvers                                                                             |
 | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------: | :--------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------: |
@@ -69,20 +77,6 @@ See [shinrl/\_\_init\_\_.py](shinrl/__init__.py) for the available environments.
 * *Sampling Fitted-* solvers use both function approximation and sampled data. 
 
 <b id="f2">2</b> Those solvers support both TabularEnv and regular Gym environments.
-
-# Experiments
-
-The goal of ShinRL is not to provide state-of-the-art performance but to analyze the behaviors of various algorithms.
-To the end, ShinRL provides `experiments` that reproduce various analyses from many studies.
-For example, ``experiments/VI_Error_Propagation`` analyzes the effects of entropy and KL regularization on the error tolerance and convergence speed of VI.
-
-## Conducted Experiments
-
-|                        Experiment                        |                       Objective                        |                                              Source                                              |
-| :------------------------------------------------------: | :----------------------------------------------------: | :----------------------------------------------------------------------------------------------: |
-|             [Tutorial](experiments/Tutorial)             |                Learn how to use ShinRL                 |                                                                                                  |
-| [VI_Performance_Bound](experiments/VI_Performance_Bound) | Examine the performance bound of various VI algorithms | [Leverage the Average: an Analysis of KL Regularization in RL](https://arxiv.org/abs/2003.14089) |
-
 
 # Installation
 
