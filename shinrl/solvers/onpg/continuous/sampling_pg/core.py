@@ -6,29 +6,27 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torch.distributions.normal import Normal
+from torch.distributions.beta import Beta
 
 from shinrl import utils
 from shinrl.solvers import BaseSolver
 
 OPTIONS = {
-    "num_samples": 20,
+    "num_samples": 80,
     # Fitted iteration settings
     "activation": "ReLU",
-    "hidden": 256,  # size of hidden layer
-    "depth": 2,  # depth of the network
+    "hidden": 256,
+    "depth": 2,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
     "critic_loss": "mse_loss",
     "optimizer": "Adam",
     "lr": 3e-4,
-    "num_minibatches": 1,
-    "vf_coef": 0.5,
+    "num_minibatches": 4,
     # coefficient of PG. "Q" or "A" or "GAE". See https://arxiv.org/abs/1506.02438 for details.
     "coef": "GAE",
     "td_lam": 0.95,
-    "clip_grad": True,
     "clip_ratio": 0.2,  # for PPO
-    "ent_coef": 0.001,
+    "er_coef": 0.001,
 }
 
 
@@ -91,31 +89,51 @@ class PolicyNet(nn.Module):
             solve_options["activation"],
         )
         act_dim = env.action_space.shape[0]
-        log_std = np.zeros(act_dim, dtype=np.float32)
-        self.log_std = torch.nn.Parameter(torch.as_tensor(log_std))
-        self.mu_layer = nn.Linear(solve_options["hidden"], act_dim)
+        self.device = solve_options["device"]
+        self.high = torch.tensor(
+            env.action_space.high[0], dtype=torch.float32, device=self.device
+        )
+        self.low = torch.tensor(
+            env.action_space.low[0], dtype=torch.float32, device=self.device
+        )
+        self.log_alpha_layer = nn.Linear(solve_options["hidden"], act_dim)
+        self.log_beta_layer = nn.Linear(solve_options["hidden"], act_dim)
         self.solve_options = solve_options
 
     def forward(self, obs):
-        pi_dist = self.compute_pi_distribution(obs)
-        pi_action = pi_dist.sample()
-        logp_pi = self.compute_logp_pi(pi_dist, pi_action)
-        return pi_action, logp_pi
+        pi_dist = self.compute_distribution(obs)
+        raw_action = pi_dist.rsample()
+        logp_pi = self.compute_logp_pi(pi_dist, raw_action)
+        return self.squash_action(raw_action), logp_pi
 
-    def compute_pi_distribution(self, obss):
-        if self.conv is not None:
-            x = self.conv(obss)
-        else:
-            x = obss
-        net_out = self.fc(x)
-        mu = self.mu_layer(net_out)
-        std = torch.exp(self.log_std).expand_as(mu)
-        pi_dist = Normal(mu, std)
+    def squash_action(self, action):
+        return action * (self.high - self.low) + self.low
+
+    def unsquash_action(self, action):
+        action = (action - self.low) / (self.high - self.low)
+        # to avoid numerical instability
+        action = (
+            action + (action == 0.0).float() * 1e-8 - (action == 1.0).float() * 1e-8
+        )
+        return action
+
+    def compute_distribution(self, obss):
+        net_out = self.fc(obss)
+        alpha = self.log_alpha_layer(net_out).exp()
+        beta = self.log_beta_layer(net_out).exp()
+        pi_dist = Beta(alpha, beta)
         return pi_dist
 
-    def compute_logp_pi(self, pi_dist, pi_action):
-        logp_pi = pi_dist.log_prob(pi_action).sum(-1)
+    def compute_logp_pi(self, pi_dist, raw_action):
+        logp_pi = pi_dist.log_prob(raw_action)
+        logp_pi -= (self.high - self.low).log()
         return logp_pi
+
+    def compute_entropy(self, pi_dist):
+        entropy = pi_dist.entropy()
+        scale = self.high - self.low
+        entropy = 1 / scale * (entropy + scale.log())
+        return entropy
 
 
 class Solver(BaseSolver):
@@ -150,11 +168,3 @@ class Solver(BaseSolver):
                 .reshape(self.dS, self.dA)
             )  # dS x dA
             self.set_tb_values_policy()
-
-    def collect_samples(self, num_samples):
-        if self.is_tabular:
-            return utils.collect_samples(
-                self.env, utils.get_tb_action, num_samples, policy=self.tb_policy
-            )
-        else:
-            return utils.collect_samples(self.env, self.get_action_gym, num_samples)

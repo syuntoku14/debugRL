@@ -15,7 +15,7 @@ OPTIONS = {
     "activation": "ReLU",
     "hidden": 128,
     "depth": 2,
-    "device": "cuda",
+    "device": "cuda" if torch.cuda.is_available() else "cpu",
     "optimizer": "Adam",
     "lr": 3e-4,
     # coefficient of PG. "Q" or "A". See https://arxiv.org/abs/1506.02438 for details.
@@ -37,7 +37,6 @@ def fc_net(env, hidden, depth, act_layer):
 class PolicyNet(nn.Module):
     def __init__(self, env, solve_options):
         super().__init__()
-        self.device = solve_options["device"]
         self.fc = fc_net(
             env,
             solve_options["hidden"],
@@ -45,6 +44,7 @@ class PolicyNet(nn.Module):
             solve_options["activation"],
         )
         act_dim = env.action_space.shape[0]
+        self.device = solve_options["device"]
         self.high = torch.tensor(
             env.action_space.high[0], dtype=torch.float32, device=self.device
         )
