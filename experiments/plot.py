@@ -57,7 +57,7 @@ def main():
 
     if args.log_scale:
         plt.yscale("log")
-    plt.savefig(os.path.join(args.expdir, args.y + ".png"), bbox_inches='tight')
+    plt.savefig(os.path.join(args.expdir, args.y + ".png"), bbox_inches="tight")
 
 
 if __name__ == "__main__":

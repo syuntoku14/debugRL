@@ -13,13 +13,13 @@ Similar to the ``VIPerformanceBound experiment``, we add Gaussian noise to the v
 
 |                    |    CPI    |  SPI  | CPI(mixing rate=1e-6) |
 | :----------------: | :-------: | :---: | :-------------------: |
-| Policy degradation | -3 x 1e-7 |  0.0  |       -2 x 1e-6       |
+| Policy degradation | -3 x 1e-7 |  0.0  |       -5 x 1e-7       |
 
 <br/>
 
 The figure and the table show that the mixing rate design of SPI is more efficient than CPI while demonstrating the monotonic improvement.
 Notably, CPI and CPI with constant mixing rate fail to obtain monotonicity even the smaller mixing rate.
-The reason why CPI lacks the monotonicity may be due to the poor implementation.
+I have not yet found why CPI did not show monotonicity.
 
 You can reproduce the results by:
 ```bash

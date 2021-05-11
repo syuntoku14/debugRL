@@ -9,6 +9,7 @@ DISCRETE_SOLVERS = {
     "SVI": solvers.vi.discrete.SamplingViSolver,
     "SFVI": solvers.vi.discrete.SamplingFittedViSolver,
     # Policy iteration
+    "OPI": solvers.pi.discrete.OraclePiSolver,
     "OCPI": solvers.pi.discrete.OracleCpiSolver,
     # Conservative value iteration
     "OCVI": solvers.vi.discrete.OracleCviSolver,

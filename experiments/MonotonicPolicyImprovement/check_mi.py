@@ -35,9 +35,12 @@ def main():
             data = pd.concat(datums)
             returns = data[y].values
             improvements = returns[1:] - returns[:-1]
-            print("Minimum improvements of {}: {}".format(solver_name, improvements.min()))
+            print(
+                "Minimum improvements of {}: {}".format(solver_name, improvements.min())
+            )
         except:
             print("Failed to load data from {}".format(solver_name))
+
 
 if __name__ == "__main__":
     main()
