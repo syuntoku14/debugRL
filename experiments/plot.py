@@ -17,16 +17,19 @@ def load_data(exp_path, x, y):
         if not solver.is_dir():
             continue
         solver_name = solver.name
-        data[solver_name] = []
-        for seed in solver.glob("*"):
-            datum = torch.load(str(seed) + "/data.tar")
-            datum = pd.DataFrame(datum["history"][y])
-            if x == "Samples":
-                num_samples = datum["options"]["num_samples"]
-                datum["x"] = datum["x"] * num_samples
-            datum = datum.rename(columns={"y": y, "x": x})
-            data[solver_name].append(datum)
-        data[solver_name] = pd.concat(data[solver_name])
+        try:
+            datums = []
+            for seed in solver.glob("*"):
+                datum = torch.load(str(seed) + "/data.tar")
+                datum = pd.DataFrame(datum["history"][y])
+                if x == "Samples":
+                    num_samples = datum["options"]["num_samples"]
+                    datum["x"] = datum["x"] * num_samples
+                datum = datum.rename(columns={"y": y, "x": x})
+                datums.append(datum)
+            data[solver_name] = pd.concat(datums)
+        except:
+            print("Failed to load data from {}".format(solver_name))
     return data
 
 
@@ -54,7 +57,7 @@ def main():
 
     if args.log_scale:
         plt.yscale("log")
-    plt.savefig(os.path.join(args.expdir, args.y + ".png"))
+    plt.savefig(os.path.join(args.expdir, args.y + ".png"), bbox_inches='tight')
 
 
 if __name__ == "__main__":

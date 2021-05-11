@@ -25,4 +25,4 @@ done
 
 
 python experiments/plot.py results/PerformanceBound -x Steps
-cp results/PerformanceBound/ReturnPolicy.png experiments/VI_Performance_Bound/Performance.png
+cp results/PerformanceBound/ReturnPolicy.png experiments/VIPerformanceBound/Performance.png
