@@ -71,6 +71,8 @@ However, we cannot see any advantage of entropy regularization from this experim
 Reproduction
 ------------------
 
+Expected time: 10 seconds
+
 .. code-block:: bash
 
     experiments/VIPerformanceBound/run.bash

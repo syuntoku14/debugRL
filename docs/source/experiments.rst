@@ -6,3 +6,4 @@ Experiments
     :maxdepth: 1
 
     experiments/VIPerformanceBound/experiment
+    experiments/MonotonicPolicyImprovement/experiment

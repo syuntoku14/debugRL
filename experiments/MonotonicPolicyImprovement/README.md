@@ -1,27 +1,19 @@
 # Experiment: Monotonic Policy Improvement
+# Experiment: Monotonic Policy Improvement
 
+For more discussion, see: 
+https://shinrl.readthedocs.io/en/latest/experiments/MonotonicPolicyImprovement/experiment.html
 
-Monotonic improvement is an essential property of reinforcement learning (RL), which guarantees that the current policy has better performance than the previous ones. 
-Conservative Policy Iteration (CPI) and its derivative, Safe Policy Iteration (SPI), are classical approaches to obtain monotonicity.
-These algorithms linearly mix the current policy and a greedy policy to trade-off the convergence speed and the conservativeness.
-This experiment aims to observe the trade-off using a simple tabular MDP without exploration.
-Similar to the ``VIPerformanceBound experiment``, we add Gaussian noise to the value matrix every update.
+## Goal 
+
+This experiment evaluates several monotonic improvement algorithms.
+
+## Results
 
 ![performance](Performance.png)
 
-<br/>
+## Reproduction 
 
-|                    |    CPI    |  SPI  | CPI(mixing rate=1e-6) |
-| :----------------: | :-------: | :---: | :-------------------: |
-| Policy degradation | -3 x 1e-7 |  0.0  |       -5 x 1e-7       |
-
-<br/>
-
-The figure and the table show that the mixing rate design of SPI is more efficient than CPI while demonstrating the monotonic improvement.
-Notably, CPI and CPI with constant mixing rate fail to obtain monotonicity even the smaller mixing rate.
-I have not yet found why CPI did not show monotonicity.
-
-You can reproduce the results by:
 ```bash
 experiments/MonotonicPolicyImprovement/run.bash
 ```

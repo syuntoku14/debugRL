@@ -1,11 +1,13 @@
+epochs=10
+steps_per_epoch=10000
 run_cpi() {
-    python experiments/runner/tabular_gridcraft.py --epochs 10 --steps_per_epoch 10 --evaluation_interval 1 --log_interval 1 --noise_scale 0.5 --exp_name MonotonicPolicyImprovement --solver OCPI --task_name CPI
+    python experiments/runner/tabular_gridcraft.py --epochs $epochs --steps_per_epoch $steps_per_epoch --evaluation_interval 1 --log_interval 1 --noise_scale 0.5 --exp_name MonotonicPolicyImprovement --solver OCPI --task_name CPI
 }
 run_spi() {
-    python experiments/runner/tabular_gridcraft.py --epochs 10 --steps_per_epoch 10 --evaluation_interval 1 --log_interval 1 --noise_scale 0.5 --exp_name MonotonicPolicyImprovement --solver OCPI --task_name SPI --use_spi True
+    python experiments/runner/tabular_gridcraft.py --epochs $epochs --steps_per_epoch $steps_per_epoch --evaluation_interval 1 --log_interval 1 --noise_scale 0.5 --exp_name MonotonicPolicyImprovement --solver OCPI --task_name SPI --use_spi True
 }
 run_pi() {
-    python experiments/runner/tabular_gridcraft.py --epochs 10 --steps_per_epoch 10 --evaluation_interval 1 --log_interval 1 --noise_scale 0.5 --exp_name MonotonicPolicyImprovement --solver OCPI --task_name CPI-mix_rate:1e-6 --constant_mix_rate 1e-6
+    python experiments/runner/tabular_gridcraft.py --epochs $epochs --steps_per_epoch $steps_per_epoch --evaluation_interval 1 --log_interval 1 --noise_scale 0.5 --exp_name MonotonicPolicyImprovement --solver OCPI --task_name CPI-mix_rate:1e-6 --constant_mix_rate 1e-3
 }
 
 declare -A pids
