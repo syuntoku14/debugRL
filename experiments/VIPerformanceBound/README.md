@@ -1,7 +1,7 @@
 # Experiment: Performance Bound of VI
 
 For more discussion, see: 
-https://shinrl.readthedocs.io/en/latest/experiments.html
+https://shinrl.readthedocs.io/en/latest/experiments/VIPerformanceBound/experiment.html
 
 ## Goal 
 

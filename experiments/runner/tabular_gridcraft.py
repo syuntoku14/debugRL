@@ -9,7 +9,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from celluloid import Camera
 from clearml import Task
 from misc import DISCRETE_SOLVERS, make_valid_options, prepare, to_numeric
 
@@ -51,19 +50,10 @@ def main():
     print(solver_name, "starts...")
 
     fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(20, 6))
-    camera = Camera(fig)
 
     for _ in range(args.epochs):
         # draw results
         solver.run(num_steps=args.steps_per_epoch)
-        env.plot_values(solver.tb_policy, ax=axes[0], title="Policy")
-        env.plot_values(solver.tb_values, ax=axes[1], title="Learned Q Values")
-        env.plot_values(
-            env.compute_action_values(solver.tb_policy),
-            ax=axes[2],
-            title="Oracle Q Values",
-        )
-        camera.snap()
 
     dir_name = os.path.join(
         "results", project_name, task_name, str(solver.solve_options["seed"])
@@ -71,11 +61,6 @@ def main():
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
     solver.save(os.path.join(dir_name))
-
-    animation = camera.animate()
-    animation.save(
-        os.path.join(dir_name, "values.gif".format(solver.solve_options["seed"]))
-    )
 
 
 if __name__ == "__main__":

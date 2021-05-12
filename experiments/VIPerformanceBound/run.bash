@@ -1,9 +1,9 @@
 run_vi () {
-    python experiments/runner/tabular_gridcraft.py --epochs 10 --steps_per_epoch 10 --evaluation_interval 1 --log_interval 1 --noise_scale 0.5 --exp_name PerformanceBound --solver OVI --task_name VI
+    python experiments/runner/tabular_gridcraft.py --epochs 10 --steps_per_epoch 10 --evaluation_interval 1 --log_interval 1 --noise_scale 0.5 --exp_name PerformanceBound --solver OVI --task_name VI --lr 1.0
 }
 
 run_cvi () {
-    python experiments/runner/tabular_gridcraft.py --epochs 10 --steps_per_epoch 10 --evaluation_interval 1 --log_interval 1 --noise_scale 0.5 --exp_name PerformanceBound --solver OCVI --task_name CVI-er:$1-kl:$2 --er_coef $1 --kl_coef $2
+    python experiments/runner/tabular_gridcraft.py --epochs 10 --steps_per_epoch 10 --evaluation_interval 1 --log_interval 1 --noise_scale 0.5 --exp_name PerformanceBound --solver OCVI --task_name CVI-er:$1-kl:$2 --er_coef $1 --kl_coef $2 --lr 1.0
 }
 
 declare -A pids

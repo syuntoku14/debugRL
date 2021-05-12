@@ -35,11 +35,11 @@ The goal of ShinRL is not to provide state-of-the-art agents but to analyze the 
 To the end, ShinRL provides `experiments` that reproduce various analyses from many studies.
 For example, ``experiments/VI_Error_Propagation`` analyzes the effects of entropy and KL regularization on the error tolerance and convergence speed of VI.
 
-|                               Experiment                               |                       Objective                        |                                              Papers                                              |
-| :--------------------------------------------------------------------: | :----------------------------------------------------: | :----------------------------------------------------------------------------------------------: |
-|                    [Tutorial](experiments/Tutorial)                    |                Learn how to use ShinRL                 |                                                                                                  |
-|         [VI Performance Bound](experiments/VIPerformanceBound)         | Examine the performance bound of various VI algorithms | [Leverage the Average: an Analysis of KL Regularization in RL](https://arxiv.org/abs/2003.14089) |
-| [Monotonic Policy Improvement](experiments/MonotonicPolicyImprovement) |  Demonstrate monotonic policy improvement algorithms   |             [Safe Policy Iteration](http://proceedings.mlr.press/v28/pirotta13.html)             |
+|                                    Experiment                                    |                       Objective                        |                                              Papers                                              |
+| :------------------------------------------------------------------------------: | :----------------------------------------------------: | :----------------------------------------------------------------------------------------------: |
+|                         [Tutorial](experiments/Tutorial)                         |                Learn how to use ShinRL                 |                                                                                                  |
+| [VI Performance Bound](https://shinrl.readthedocs.io/en/latest/experiments.html) | Examine the performance bound of various VI algorithms | [Leverage the Average: an Analysis of KL Regularization in RL](https://arxiv.org/abs/2003.14089) |
+|      [Monotonic Policy Improvement](experiments/MonotonicPolicyImprovement)      |  Demonstrate monotonic policy improvement algorithms   |             [Safe Policy Iteration](http://proceedings.mlr.press/v28/pirotta13.html)             |
 
 
 # :zap: Key features

@@ -11,6 +11,7 @@ OPTIONS = {
     "kl_coef": 0.1,
     "max_operator": "mellow_max",
     "noise_scale": 0.0,
+    "lr": 0.01
 }
 
 
