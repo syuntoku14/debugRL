@@ -5,6 +5,6 @@ API Reference
 .. toctree::
     :maxdepth: 1
 
-    env
-    solver
-    utils
+    modules/env
+    modules/solver
+    modules/utils

@@ -8,7 +8,8 @@ shinrl.solvers
    solvers/onpg
    solvers/sac
    solvers/vi
+   solvers/pi
 
-.. autoclass:: shinrl.solvers.Solver
+.. autoclass:: shinrl.solvers.BaseSolver
    :members: 
    :undoc-members:
