@@ -7,3 +7,4 @@ Experiments
 
     experiments/VIPerformanceBound/experiment
     experiments/MonotonicPolicyImprovement/experiment
+    experiments/DeadlyTriad/experiment

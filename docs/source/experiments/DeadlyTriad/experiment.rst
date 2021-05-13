@@ -4,49 +4,46 @@ Deadly Triad
 Goal
 ------------------
 
-This experiment investigates the cause of deadly triad based on https://arxiv.org/abs/1903.08894.
+This experiment investigates the cause of deadly-triad.
 
 
 Background
 ------------------
 
-Monotonic improvement is an essential property of reinforcement learning (RL), which guarantees that the current policy has better performance than the previous ones. 
-Conservative Policy Iteration (CPI) [1]_ and its derivative, Safe Policy Iteration (SPI) [2]_ , are classical approaches to obtain monotonicity.
-These algorithms linearly mix the current policy and a greedy policy :math:`\mathcal{G}(q)` to trade-off the convergence speed and the conservativeness.
+In reinforcement learning, *bootstrapping*, *off-policy learning*, and *function approximation* are known as deadly-triad, that together can lead to divergence in Q-learning algorithms.
+Prior work [1]_ analyzes the deadly-triad based on a linear approximation to the deep Q learning.
+Specifically, Q learning with off-policy learning and function approximation can be represented by the following update rule:
 
 .. math::
-    \begin{cases}
-    \pi_{k+1}=\left(1-\zeta\right) \pi_{k}+\zeta \mathcal{G}\left(q_{k}\right) \\
-    q_{k+1}=\left(T_{\pi_{k+1}}\right)^{m} q_{k}+\epsilon_{k+1}
-    \end{cases},
+    Q \leftarrow Q+\alpha K D_{\rho}\left(\mathcal{T}^{*} Q-Q\right)
 
-By adjusting the mixing coefficient :math:`\zeta`, you can always ensure that :math:`\pi_{k+1}` is better than :math:`\pi_k`.
-This experiment evaluates how each algorithms trade-off the convergence speed and the conservativeness.
+where :math:`D_{\rho}` is a diagonal matrix representing sampling errors and :math:`K` is a constant symmetric positive-definite matrix representing function approximation errors.
+Intuitively, we can avoid deadly-triad when :math:`D_{\rho}` and :math:`K` are under specific conditions:
 
-.. [1] http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.7.7601
-.. [2] http://proceedings.mlr.press/v28/pirotta13.html
+* For the entries :math:`\rho(s, a)` of :math:`D_{\rho}`, :math:`\rho(s, a) > 0` for all :math:`(s, a)`  and :math:`\alpha \in (0, 1/\rho_{\max})`. This is the case when the agent explored enough.
+* The diagonal elements of :math:`K` is much larger than non-diagonal ones. This is ensured when the function approximator is not overly generalized.
+
+.. [1] https://arxiv.org/abs/1903.08894
+
+This experiment examines the above discussion. 
+We observe the performance of value iteration (VI) with different :math:`D_\rho` and :math:`K`.
 
 
 Results
 ------------------
 
-To evaluate the monotonicity, we add Gaussian noise to the value matrix every update.
-
 .. image:: Performance.png
 
-As the figure shows, CPI and SPI demonstrate monotonic improvement while constant :math:`\zeta` demonstrates an oscillated curve. CPI and SPI show degradation about :math:`-10^{-6}`, which may be due to numerical errors.
-
-While algorithms with monotonicity obtain smooth curves, their convergence rate is much slower than constant :math:`\zeta`.
-This is an expected result because the smaller :math:`\zeta`, the slower convergence rate [3]_ .
-
-.. [3] https://arxiv.org/abs/1906.09784
+The figure illustrates the performance of VI with two hyperparameters: *DS* represents how large the diagonal elements of :math:`K` w.r.t. non-diagonal ones, and *NS* represents how dense the diagonal elements of :math:`D_{\rho}`.
+In other words, the smaller DS and NS, the closer VI is to deadly-triad.
+As you can see, smaller DS and NS fail to converge to the optimal policy, which is consistent to the theory.
 
 
 Reproduction
 ------------------
 
-Expected time: 20 minutes
+Expected time: 5 minutes
 
 .. code-block:: bash
 
-    experiments/MonotonicPolicyImprovement/run.bash
+    experiments/DeadlyTriad/run.bash
