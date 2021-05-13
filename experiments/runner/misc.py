@@ -42,7 +42,12 @@ def to_numeric(arg):
     try:
         float(arg)
     except ValueError:
-        return arg
+        if arg == "False":
+            return False
+        elif arg == "True":
+            return True
+        else:
+            return arg
     else:
         return int(float(arg)) if float(arg).is_integer() else float(arg)
 

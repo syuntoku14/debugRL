@@ -40,6 +40,7 @@ For example, ``experiments/VI_Error_Propagation`` analyzes the effects of entrop
 |                         [Tutorial](experiments/Tutorial)                         |                Learn how to use ShinRL                 |                                                                                                  |
 | [VI Performance Bound](https://shinrl.readthedocs.io/en/latest/experiments.html) | Examine the performance bound of various VI algorithms | [Leverage the Average: an Analysis of KL Regularization in RL](https://arxiv.org/abs/2003.14089) |
 |      [Monotonic Policy Improvement](experiments/MonotonicPolicyImprovement)      |  Demonstrate monotonic policy improvement algorithms   |             [Safe Policy Iteration](http://proceedings.mlr.press/v28/pirotta13.html)             |
+|                     [Deadly Triad](experiments/DeadlyTriad)                      |         Investigate the cause of deadly triad          |     [Towards Characterizing Divergence in Deep Q-Learning](https://arxiv.org/abs/1903.08894)     |
 
 
 # :zap: Key features
