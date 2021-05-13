@@ -14,6 +14,18 @@ def setUp():
     yield pend_env
 
 
+def test_visitation_matrix(setUp):
+    pend_env = setUp
+    solver = OracleViSolver(pend_env, solve_options={"use_oracle_visitation": False})
+    run_solver_tb(solver, pend_env)
+
+
+def test_approx_matrix(setUp):
+    pend_env = setUp
+    solver = OracleViSolver(pend_env, solve_options={"no_approx": False})
+    run_solver_tb(solver, pend_env)
+
+
 def test_vi(setUp):
     pend_env = setUp
     solver = OracleViSolver(pend_env)

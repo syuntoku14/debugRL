@@ -8,6 +8,34 @@ from .core import Solver
 
 
 class OracleSolver(Solver):
+    """
+    OracleSolver assumes full knowledge of MDP: the dynamics and the reward function.
+    The value table is updated as:
+
+    .. math::
+        Q \\leftarrow Q+\\alpha K D_{\\rho}\\left(\\mathcal{T}^{*} Q-Q\\right),
+
+    where we include several types of errors for advanced analysis: :math:`D_{\\rho}` is a visitation matrix for sampling errors and :math:`K` is a constant symmetric positive-definite matrix for function approximation errors (see https://arxiv.org/abs/1903.08894).
+    You can also add errors into the Bellman optimal operator :math:`\\mathcal{T}^{*}` by "noise_scale".
+    If :math:`D_\\rho` and :math:`K` are identity matrix and "noise_scale" is 0, the above equation becomes the ideal update.
+
+    Options:
+        noise_scale: 
+            Scale of noise in :math:`\\mathcal{T}^{*}` for error tolerance analysis.
+
+        use_oracle_visitation: 
+            Set an identity matrix to :math:`D_{\\rho}` if True.
+
+        num_samples: 
+            Number of samples to create :math:`D_{\\rho}`. We assign a state and action pair to each sample and set the number of occurrence as the probability mass function. The update becomes contraction if all the diagonal elements are positive and thus more samples may prevent deadly triad (see https://arxiv.org/abs/1903.08894).
+
+        no_approx: 
+            Set an identity matrix to :math:`K` if True.
+
+        diag_scale: 
+            Controls the magnitude of the diagonal elements of :math:`K` w.r.t. non-diagonal ones. If the non-diagonal elements are huge w.r.t. diagonal elements, contraction is not guaranteed (see https://arxiv.org/abs/1903.08894).
+    """
+
     def run(self, num_steps=10000):
         for _ in tqdm(range(num_steps)):
             self.record_history()
@@ -16,12 +44,41 @@ class OracleSolver(Solver):
             self.step += 1
 
     def update(self, new_values):
-        # to analyze the error tolerance
+        values, new_values = self.tb_values.reshape(-1), new_values.reshape(-1)
+
+        # ----- add noise into the optimal operator -----
         noise_scale = self.solve_options["noise_scale"]
         new_values = new_values + np.random.randn(*new_values.shape) * noise_scale
-        values = self.tb_values
-        values = values + self.solve_options["lr"] * (new_values - values)
-        self.record_array("Values", values)
+
+        # ----- make visitation matrix -----
+        # for memory efficiency, we use elementwise multiplication instead of inner product.
+        if self.solve_options["use_oracle_visitation"]:
+            visitation = np.ones_like(values)  # SA
+        else:
+            # Randomly select states and action pairs for the number of "num_samples".
+            num_samples = self.solve_options["num_samples"]
+            index, counts = np.unique(
+                np.random.randint(len(values), size=num_samples), return_counts=True
+            )
+            visitation = np.zeros_like(values)  # SA
+            visitation[index] = counts / num_samples
+
+        # ----- make approximation matrix -----
+        if self.solve_options["no_approx"]:
+            values = values + self.solve_options["lr"] * visitation * (
+                new_values - values
+            )
+        else:
+            SA = len(new_values)
+            approx = np.random.rand(SA, SA)
+            approx = approx @ approx.T
+            scale = 1 / self.solve_options["diag_scale"]
+            diag = np.ones((SA, SA)) * scale + np.eye(SA) * (1 - scale)
+            approx = (approx / approx.max()) * diag
+            values = values + self.solve_options["lr"] * approx @ (
+                visitation * (new_values - values)
+            )
+        self.record_array("Values", values.reshape(self.dS, self.dA))
         self.set_tb_policy()
 
     def record_history(self):
@@ -106,5 +163,3 @@ class OracleMviSolver(OracleSolver):
         tau = kl_coef + er_coef
         policy = utils.softmax_policy(self.tb_values, beta=1 / tau)
         self.record_array("Policy", policy)
-
-

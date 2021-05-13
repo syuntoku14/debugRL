@@ -1,5 +1,4 @@
 # Experiment: Monotonic Policy Improvement
-# Experiment: Monotonic Policy Improvement
 
 For more discussion, see: 
 https://shinrl.readthedocs.io/en/latest/experiments/MonotonicPolicyImprovement/experiment.html

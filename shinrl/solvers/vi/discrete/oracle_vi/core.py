@@ -10,8 +10,13 @@ OPTIONS = {
     "er_coef": 0.2,
     "kl_coef": 0.1,
     "max_operator": "mellow_max",
+    "lr": 0.01,
+    # for error analysis
+    "use_oracle_visitation": True,
+    "num_samples": 100,
+    "no_approx": True,
+    "diag_scale": 10.0,
     "noise_scale": 0.0,
-    "lr": 0.01
 }
 
 

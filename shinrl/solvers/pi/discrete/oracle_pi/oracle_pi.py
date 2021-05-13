@@ -29,7 +29,7 @@ class OracleSolver(Solver):
             ).max()
             self.record_scalar("maxKL", kl)
 
-  
+
 class OraclePiSolver(OracleSolver):
     def update(self):
         discount = self.solve_options["discount"]
@@ -44,7 +44,7 @@ class OraclePiSolver(OracleSolver):
             self.env.transition_matrix * curr_v
         ).reshape(self.dS, self.dA)
         self.set_tb_values(values)
-   
+
 
 class OracleCpiSolver(OracleSolver):
     """

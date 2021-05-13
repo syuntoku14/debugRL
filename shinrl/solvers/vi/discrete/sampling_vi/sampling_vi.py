@@ -7,6 +7,15 @@ from .core import Solver
 
 
 class SamplingSolver(Solver):
+    """
+    SamplingSolver assumes the access to the reward function but not to the dynamics.
+    The value table is updated as:
+    .. math::
+        Q\leftarrow Q+\alpha D_{\rho}\left(\mathcal{T}^{*} Q-Q\right),
+    where :math:`D_\rho` is a diagonal matrix with entries :math:`\rho(s, a)`, a probability mass function on state-action pairs.
+    This corresponds to :math:`\mathcal{U_2}` in https://arxiv.org/abs/1903.08894.
+    """
+
     def run(self, num_steps=10000):
         for _ in tqdm(range(num_steps)):
             self.set_tb_policy()

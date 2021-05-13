@@ -1,4 +1,4 @@
-from .oracle_pi.oracle_pi import OraclePiSolver, OracleCpiSolver
+from .oracle_pi.oracle_pi import OracleCpiSolver, OraclePiSolver
 
 __all__ = [
     "OraclePiSolver",

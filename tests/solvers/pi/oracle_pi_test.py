@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from shinrl.envs import Pendulum
-from shinrl.solvers.pi.discrete import OraclePiSolver, OracleCpiSolver
+from shinrl.solvers.pi.discrete import OracleCpiSolver, OraclePiSolver
 
 from ..misc import run_solver_tb
 
