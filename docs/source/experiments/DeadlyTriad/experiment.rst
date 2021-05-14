@@ -32,17 +32,22 @@ We observe the performance of value iteration (VI) with different :math:`D_\rho`
 Results
 ------------------
 
-.. image:: Performance.png
+.. image:: VI-Performance.png
 
 The figure illustrates the performance of VI with two hyperparameters: *DS* represents how large the diagonal elements of :math:`K` w.r.t. non-diagonal ones, and *NS* represents how dense the diagonal elements of :math:`D_{\rho}`.
 In other words, the smaller DS and NS, the closer VI is to deadly-triad.
 As you can see, smaller DS and NS fail to converge to the optimal policy, which is consistent to the theory.
 
+.. image:: CVI-Performance.png
+
+The second figure illustrates the performance of CVI with entropy and KL regularization; both are set to 0.01.
+Interestingly, adding regularization is effective to prevent deadly-triad.
+
 
 Reproduction
 ------------------
 
-Expected time: 5 minutes
+Expected time: 10 minutes
 
 .. code-block:: bash
 

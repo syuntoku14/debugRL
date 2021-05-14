@@ -9,7 +9,13 @@ This experiment investigates the cause of deadly triad based on https://arxiv.or
 
 ## Results
 
-![performance](Performance.png)
+Value Iteration:
+
+![vi](VI-Performance.png)
+
+Conservative Value Iteration:
+
+![cvi](CVI-Performance.png)
 
 ## Reproduction 
 

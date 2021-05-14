@@ -7,7 +7,7 @@ run_spi() {
     python experiments/runner/tabular_gridcraft.py --epochs $epochs --steps_per_epoch $steps_per_epoch --evaluation_interval 1 --log_interval 1 --noise_scale 0.5 --exp_name MonotonicPolicyImprovement --solver OCPI --task_name SPI --use_spi True
 }
 run_pi() {
-    python experiments/runner/tabular_gridcraft.py --epochs $epochs --steps_per_epoch $steps_per_epoch --evaluation_interval 1 --log_interval 1 --noise_scale 0.5 --exp_name MonotonicPolicyImprovement --solver OCPI --task_name CPI-mix_rate:1e-6 --constant_mix_rate 1e-3
+    python experiments/runner/tabular_gridcraft.py --epochs $epochs --steps_per_epoch $steps_per_epoch --evaluation_interval 1 --log_interval 1 --noise_scale 0.5 --exp_name MonotonicPolicyImprovement --solver OCPI --task_name CPI-mix_rate:1e-3 --constant_mix_rate 1e-3
 }
 
 declare -A pids
