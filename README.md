@@ -32,7 +32,7 @@ For more information, you can refer to [ShinRL's documentation](https://shinrl.r
 # :pencil: Experiments
 
 The goal of ShinRL is not to provide state-of-the-art agents but to analyze the behaviors of RL algorithms.
-To the end, ShinRL provides `experiments` that reproduce various analyses from many studies.
+To this end, ShinRL provides `experiments` that reproduce various analyses from many studies.
 For example, ``experiments/VI_Error_Propagation`` analyzes the effects of entropy and KL regularization on the error tolerance and convergence speed of VI.
 
 |                                    Experiment                                    |                       Objective                        |                                              Papers                                              |

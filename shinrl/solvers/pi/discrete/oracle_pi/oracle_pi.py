@@ -1,6 +1,8 @@
 import numpy as np
 from tqdm import tqdm
 
+from shinrl import utils
+
 from .core import Solver
 
 
@@ -23,27 +25,21 @@ class OracleSolver(Solver):
         if self.step % self.solve_options["evaluation_interval"] == 0:
             expected_return = self.env.compute_expected_return(self.tb_policy)
             self.record_scalar("Return", expected_return, tag="Policy")
-            kl = np.sum(
-                self.tb_policy * np.log(self.tb_policy / self.tb_prev_policy + 1e-6),
-                axis=-1,
-            ).max()
-            self.record_scalar("maxKL", kl)
 
 
 class OraclePiSolver(OracleSolver):
     def update(self):
         discount = self.solve_options["discount"]
-        maxes = self.tb_values.max(axis=-1, keepdims=True)
-        policy = (self.tb_values == maxes).astype(float)
-        policy = policy / np.sum(policy, axis=-1, keepdims=True)
-        self.set_tb_policy(policy)
+
+        policy = utils.eps_greedy_policy(self.tb_values, eps_greedy=0.0)
+        self.record_array("Policy", np.asarray(policy))
 
         curr_q = self.tb_values  # SxA
         curr_v = np.sum(self.tb_policy * (curr_q), axis=-1)  # S
         values = self.env.reward_matrix + discount * (
             self.env.transition_matrix * curr_v
         ).reshape(self.dS, self.dA)
-        self.set_tb_values(values)
+        self.record_array("Values", np.asarray(values))
 
 
 class OracleCpiSolver(OracleSolver):
@@ -87,11 +83,11 @@ class OracleCpiSolver(OracleSolver):
         gr_policy = (self.tb_values == maxes).astype(float)
         policy = self.tb_policy * (1 - self.mix_rate) + gr_policy * self.mix_rate
         policy = policy / np.sum(policy, axis=-1, keepdims=True)
-        self.set_tb_policy(policy)
+        self.record_array("Policy", np.asarray(policy))
 
         curr_q = self.tb_values  # SxA
         curr_v = np.sum(self.tb_policy * (curr_q), axis=-1)  # S
         values = self.env.reward_matrix + discount * (
             self.env.transition_matrix * curr_v
         ).reshape(self.dS, self.dA)
-        self.set_tb_values(values)
+        self.record_array("Values", np.asarray(values))
