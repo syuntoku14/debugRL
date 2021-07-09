@@ -1,6 +1,7 @@
+import random
+
 import numpy as np
 import torch
-import random
 from torch.nn import functional as F
 from tqdm import tqdm
 
@@ -12,12 +13,15 @@ from .core import Solver
 class DeepVISolver(Solver):
     def run(self, num_steps=10000):
         for _ in tqdm(range(num_steps)):
-            if self.is_tabular:
-                self.set_tb_values_policy()
             self.record_history()
 
             # ----- generate mini-batch from the replay_buffer -----
-            utils.collect_samples(self.env, self.explore, num_samples=self.solve_options["num_samples"], buffer=self.buffer)
+            utils.collect_samples(
+                self.env,
+                self.explore,
+                num_samples=self.solve_options["num_samples"],
+                buffer=self.buffer,
+            )
             trajectory = self.buffer.sample(self.solve_options["minibatch_size"])
             tensor_traj = utils.trajectory_to_tensor(trajectory, self.device)
 
@@ -56,7 +60,7 @@ class DeepVISolver(Solver):
                 self.solve_options["eps_start"],
                 self.solve_options["eps_end"],
                 self.solve_options["eps_decay"],
-                self.solve_options["eps_period"]
+                self.solve_options["eps_period"],
             )
             if eps > 1.0:
                 obs = torch.tensor(
@@ -99,6 +103,7 @@ class MDQNSolver(DeepVISolver):
     """MDQNSolver
         Implementation of Munchausen DQN: https://arxiv.org/abs/2007.14430
     """
+
     def compute_target(self, tensor_traj):
         discount = self.solve_options["discount"]
         er_coef, kl_coef = self.solve_options["er_coef"], self.solve_options["kl_coef"]
@@ -137,7 +142,10 @@ class MDQNSolver(DeepVISolver):
                 env.obs, dtype=torch.float32, device=self.device
             ).unsqueeze(0)
             preference = self.value_network(obs).detach().cpu().numpy()  # 1 x dA
-            er_coef, kl_coef = self.solve_options["er_coef"], self.solve_options["kl_coef"]
+            er_coef, kl_coef = (
+                self.solve_options["er_coef"],
+                self.solve_options["kl_coef"],
+            )
             tau = er_coef + kl_coef
             probs = utils.softmax_policy(preference, beta=1 / tau).reshape(-1)
             log_probs = np.log(probs)

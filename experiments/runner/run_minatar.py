@@ -17,7 +17,12 @@ def main():
     parser.add_argument(
         "--solver", type=str, default="DQN", choices=list(DISCRETE_SOLVERS.keys())
     )
-    parser.add_argument("--env", type=str, default="breakout", choices=["seaquest", "breakout", "asterix", "freeway", "space_invaders"])
+    parser.add_argument(
+        "--env",
+        type=str,
+        default="breakout",
+        choices=["seaquest", "breakout", "asterix", "freeway", "space_invaders"],
+    )
     defaults = {
         "--epochs": 50,
         "--evaluation_interval": 10000,

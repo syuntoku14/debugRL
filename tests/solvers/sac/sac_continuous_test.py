@@ -1,6 +1,5 @@
 import gym
 import numpy as np
-import pybullet_envs
 import pytest
 import torch
 
@@ -15,7 +14,7 @@ def setUp():
     tb_env = Pendulum(state_disc=5, dA=4, horizon=5, action_mode="continuous")
     tb_env.reset()
 
-    gym_env = gym.make("AntBulletEnv-v0")
+    gym_env = gym.make("Pendulum-v0")
     gym_env.reset()
     yield tb_env, gym_env
 

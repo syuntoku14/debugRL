@@ -79,10 +79,9 @@ def main():
         plt.title(args.title)
 
     path = os.path.join(args.expdirs[0], args.y + ".png")
-    plt.savefig(path, bbox_inches="tight") 
+    plt.savefig(path, bbox_inches="tight")
     print("Figure saved at: {}".format(path))
 
 
 if __name__ == "__main__":
     main()
-
