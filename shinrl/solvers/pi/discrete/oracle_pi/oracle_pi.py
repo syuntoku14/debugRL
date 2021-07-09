@@ -55,9 +55,7 @@ class OracleCpiSolver(OracleSolver):
             self.mix_rate = self.solve_options["constant_mix_rate"]
         else:
             r_max = self.env.reward_matrix.max()
-            maxes = self.tb_values.argmax(axis=-1)
-            gr_policy = np.zeros_like(self.tb_policy)
-            gr_policy[np.arange(len(gr_policy)), maxes] = 1
+            gr_policy = utils.eps_greedy_policy(self.tb_values, eps_greedy=0.0)
             q = self.env.compute_action_values(self.tb_policy, discount)
             adv = q - np.sum(self.tb_policy * q, axis=-1, keepdims=True)
             visit = self.env.compute_visitation(self.tb_policy, discount).sum(

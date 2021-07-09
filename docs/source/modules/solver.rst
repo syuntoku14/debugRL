@@ -4,7 +4,6 @@ shinrl.solvers
 .. toctree::
    :maxdepth: 1
 
-   solvers/ipg
    solvers/onpg
    solvers/sac
    solvers/vi

@@ -16,7 +16,8 @@ OPTIONS = {
     # Q settings
     "eps_start": 0.9,
     "eps_end": 0.05,
-    "eps_decay": 200,
+    "eps_decay": 0.01,
+    "eps_period": 100,
     # Fitted iteration settings
     "activation": "ReLU",
     "hidden": 128,  # size of hidden layer

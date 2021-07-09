@@ -14,7 +14,8 @@ OPTIONS = {
     # Q settings
     "eps_start": 0.9,
     "eps_end": 0.05,
-    "eps_decay": 200,
+    "eps_decay": 0.01,
+    "eps_period": 1000,
     # Tabular settings
     "lr": 0.1,  # learning rate of tabular methods
 }

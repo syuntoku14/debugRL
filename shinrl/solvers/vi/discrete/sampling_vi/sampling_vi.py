@@ -60,6 +60,7 @@ class SamplingViSolver(SamplingSolver):
             self.solve_options["eps_start"],
             self.solve_options["eps_end"],
             self.solve_options["eps_decay"],
+            self.solve_options["eps_period"],
         )
         policy = utils.eps_greedy_policy(self.tb_values, eps_greedy=eps_greedy)
         self.record_array("Policy", policy)

@@ -87,6 +87,7 @@ class SamplingFittedViSolver(SamplingFittedSolver):
             self.solve_options["eps_start"],
             self.solve_options["eps_end"],
             self.solve_options["eps_decay"],
+            self.solve_options["eps_period"],
         )
         policy = utils.eps_greedy_policy(q_values, eps_greedy=eps_greedy)
         self.record_array("Values", q_values)
@@ -102,6 +103,7 @@ class SamplingFittedViSolver(SamplingFittedSolver):
             self.solve_options["eps_start"],
             self.solve_options["eps_end"],
             self.solve_options["eps_decay"],
+            self.solve_options["eps_period"],
         )
         probs = utils.eps_greedy_policy(vals, eps_greedy=eps_greedy).reshape(-1)
         log_probs = np.log(probs)

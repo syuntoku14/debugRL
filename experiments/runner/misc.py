@@ -25,7 +25,6 @@ DISCRETE_SOLVERS = {
     "EPG": solvers.onpg.discrete.ExactPgSolver,
     "SPG": solvers.onpg.discrete.SamplingPgSolver,
     "PPO": solvers.onpg.discrete.PpoSolver,
-    "IPG": solvers.ipg.discrete.IpgSolver,
     # SAC
     "SAC": solvers.sac.discrete.SacSolver,
 }

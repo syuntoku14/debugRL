@@ -68,8 +68,8 @@ def eps_greedy_policy(q_values, eps_greedy=0.0):
     return policy_probs
 
 
-def compute_epsilon(step, eps_start, eps_end, eps_decay):
-    return eps_end + (eps_start - eps_end) * np.exp(-1.0 * step / eps_decay)
+def compute_epsilon(step, eps_start, eps_end, eps_decay, eps_period):
+    return max(eps_end, eps_start - eps_decay * int(step // eps_period))
 
 
 def softmax_policy(preference, beta=1.0):
@@ -110,7 +110,7 @@ def trajectory_to_tensor(trajectory, device="cpu"):
 
 
 def collect_samples(
-    env, get_action, num_samples=None, num_episodes=None, render=False, **kwargs
+    env, get_action, num_samples=None, num_episodes=None, render=False, buffer=None, **kwargs
 ):
     """
     Args:
@@ -119,13 +119,14 @@ def collect_samples(
         num_samples (int): Number of samples to collect
         num_episodes (int): Number of episodes to collect. Prioritize this if not None.
         render (bool, optional)
+        buffer (cpprb.ReplayBuffer): For calling on_episode_end. Do buffer.add if not None.
     """
     is_tabular = hasattr(env, "get_state")
     assert hasattr(
         env, "obs"
     ), 'env has no attribute "obs". Run env.obs = env.reset() before collect_samples.'
-    traj = defaultdict(lambda: [])
-    done, done_count = False, 0
+    samples = defaultdict(lambda: [])
+    done, done_count, step_count = False, 0, 0
 
     # prioritize num_episodes if not None
     num_samples = -1 if num_episodes is not None else num_samples
@@ -134,48 +135,60 @@ def collect_samples(
         if render:
             time.sleep(1 / 20)
             env.render()
-
+        sample = {}
         # add current info
         if is_tabular:
             s = env.get_state()
-            traj["state"].append(s)
             obs = env.observation(s)
         else:
             obs = env.obs
-        traj["obs"].append(obs)
+        sample["obs"] = obs
 
-        # do action
+        # do one step
         action, log_prob = get_action(env, **kwargs)
         next_obs, rew, done, info = env.step(action)
         env.obs = next_obs
+        if is_tabular and env.action_mode == "continuous":
+            action = env.to_continuous_action(action)
+        step_count += 1
 
         # add next info
+        timeout = (
+            info["TimeLimit.truncated"] if "TimeLimit.truncated" in info else False
+        )
+        sample.update(
+            {
+                "next_obs": next_obs,
+                "rew": rew,
+                "done": done,
+                "log_prob": log_prob,
+                "act": action,
+                "timeout": timeout,
+            }
+        )
         if is_tabular:
-            traj["next_state"].append(env.get_state())
-            if env.action_mode == "continuous":
-                action = env.to_continuous_action(action)
-        traj["next_obs"].append(next_obs)
-        traj["rew"].append(rew)
-        traj["done"].append(done)
-        traj["log_prob"].append(log_prob)
-        traj["act"].append(action)
+            sample.update({"state": s, "next_state": env.get_state()})
 
-        if "TimeLimit.truncated" in info:
-            traj["timeout"].append(info["TimeLimit.truncated"])
-        else:
-            traj["timeout"].append(False)
+        if buffer is not None:
+            buffer.add(**sample)
+
         if done:
             env.obs = env.reset()
             done_count += 1
-        if len(traj["obs"]) == num_samples or done_count == num_episodes:
+            if buffer is not None:
+                buffer.on_episode_end()
+
+        for key, val in sample.items():
+            samples[key].append(val)
+        if step_count == num_samples or done_count == num_episodes:
             break
-    traj = {key: np.array(val) for key, val in traj.items()}
-    return traj
+    return {key: np.array(val) for key, val in samples.items()}
 
 
 def make_replay_buffer(env, size):
     is_tabular = hasattr(env, "get_state")
     env_dict = create_env_dict(env)
+    del env_dict["next_obs"]
     env_dict.update(
         {
             "obs": {"dtype": np.float32, "shape": env_dict["obs"]["shape"]},
