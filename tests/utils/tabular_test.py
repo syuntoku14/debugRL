@@ -26,14 +26,18 @@ def test_collect_samples(setUp):
 
     # discrete
     buf = utils.make_replay_buffer(env, 100)
-    traj = utils.collect_samples(env, utils.get_tb_action, 10, policy=policy, buffer=buf)
+    traj = utils.collect_samples(
+        env, utils.get_tb_action, 10, policy=policy, buffer=buf
+    )
     assert len(traj["obs"]) == 10
     assert (traj["act"]).dtype == np.long
     assert buf.get_stored_size() == 10
 
     # continuous
     buf = utils.make_replay_buffer(cont_env, 100)
-    traj = utils.collect_samples(cont_env, utils.get_tb_action, 10, policy=cont_policy, buffer=buf)
+    traj = utils.collect_samples(
+        cont_env, utils.get_tb_action, 10, policy=cont_policy, buffer=buf
+    )
     assert (traj["obs"]).dtype == np.float32
     assert buf.get_stored_size() == 10
 

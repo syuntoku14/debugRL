@@ -27,6 +27,9 @@ DISCRETE_SOLVERS = {
     "PPO": solvers.onpg.discrete.PpoSolver,
     # SAC
     "SAC": solvers.sac.discrete.SacSolver,
+    # MinAtar
+    "DQN": solvers.minatar.DQNSolver,
+    "M-DQN": solvers.minatar.MDQNSolver,
 }
 
 CONTINUOUS_SOLVERS = {

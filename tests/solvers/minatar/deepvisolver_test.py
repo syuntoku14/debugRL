@@ -10,14 +10,14 @@ import pytest
 import torch
 
 from shinrl.envs import Pendulum
-from shinrl.solvers.atari import DQNSolver, MDQNSolver, make_atari
+from shinrl.solvers.minatar import DQNSolver, MDQNSolver, make_minatar
 
 from ..misc import run_solver_gym
 
 
 @pytest.fixture
 def setUp():
-    env = make_atari("PongNoFrameskip-v4")
+    env = make_minatar("breakout")
     env.reset()
     yield env 
 

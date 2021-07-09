@@ -110,7 +110,13 @@ def trajectory_to_tensor(trajectory, device="cpu"):
 
 
 def collect_samples(
-    env, get_action, num_samples=None, num_episodes=None, render=False, buffer=None, **kwargs
+    env,
+    get_action,
+    num_samples=None,
+    num_episodes=None,
+    render=False,
+    buffer=None,
+    **kwargs,
 ):
     """
     Args:

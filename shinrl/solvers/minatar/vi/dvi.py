@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import random
 from torch.nn import functional as F
 from tqdm import tqdm
 
@@ -48,21 +49,23 @@ class DeepVISolver(Solver):
         self.record_scalar("LossCritic", loss.detach().cpu().item())
 
     def explore(self, env):
-        obs = torch.as_tensor(
-            env.obs, dtype=torch.float32, device=self.device
-        ).unsqueeze(0)
-        vals = self.value_network(obs).detach().cpu().numpy()  # 1 x dA
-        eps_greedy = utils.compute_epsilon(
-            self.step,
-            self.solve_options["eps_start"],
-            self.solve_options["eps_end"],
-            self.solve_options["eps_decay"],
-            self.solve_options["eps_period"]
-        )
-        probs = utils.eps_greedy_policy(vals, eps_greedy=eps_greedy).reshape(-1)
-        action = np.random.choice(np.arange(0, env.action_space.n), p=probs)
-        log_prob = np.log(probs)[action]
-        return action, log_prob
+        with torch.no_grad():
+            eps = random.random()
+            eps_thresh = utils.compute_epsilon(
+                self.step,
+                self.solve_options["eps_start"],
+                self.solve_options["eps_end"],
+                self.solve_options["eps_decay"],
+                self.solve_options["eps_period"]
+            )
+            if eps > 1.0:
+                obs = torch.tensor(
+                    env.obs, dtype=torch.float32, device=self.device
+                ).unsqueeze(0)
+                action = self.value_network(obs).max(1)[1].item()
+            else:
+                action = self.env.action_space.sample()
+            return action, 0.0
 
 
 class DQNSolver(DeepVISolver):
@@ -84,14 +87,12 @@ class DQNSolver(DeepVISolver):
         return new_q.squeeze()  # S
 
     def exploit(self, env):
-        obs = torch.as_tensor(
-            env.obs, dtype=torch.float32, device=self.device
-        ).unsqueeze(0)
-        vals = self.value_network(obs).detach().cpu().numpy()  # 1 x dA
-        probs = utils.eps_greedy_policy(vals, eps_greedy=0).reshape(-1)
-        action = np.random.choice(np.arange(0, env.action_space.n), p=probs)
-        log_prob = np.log(probs)[action]
-        return action, log_prob
+        with torch.no_grad():
+            obs = torch.as_tensor(
+                env.obs, dtype=torch.float32, device=self.device
+            ).unsqueeze(0)
+            action = self.value_network(obs).max(1)[1].item()
+            return action, 0.0
 
 
 class MDQNSolver(DeepVISolver):
@@ -131,14 +132,15 @@ class MDQNSolver(DeepVISolver):
         return new_preference.squeeze()  # S
 
     def exploit(self, env):
-        obs = torch.as_tensor(
-            env.obs, dtype=torch.float32, device=self.device
-        ).unsqueeze(0)
-        preference = self.value_network(obs).detach().cpu().numpy()  # 1 x dA
-        er_coef, kl_coef = self.solve_options["er_coef"], self.solve_options["kl_coef"]
-        tau = er_coef + kl_coef
-        probs = utils.softmax_policy(preference, beta=1 / tau).reshape(-1)
-        log_probs = np.log(probs)
-        action = np.random.choice(np.arange(0, env.action_space.n), p=probs)
-        log_prob = log_probs[action]
-        return action, log_prob
+        with torch.no_grad():
+            obs = torch.as_tensor(
+                env.obs, dtype=torch.float32, device=self.device
+            ).unsqueeze(0)
+            preference = self.value_network(obs).detach().cpu().numpy()  # 1 x dA
+            er_coef, kl_coef = self.solve_options["er_coef"], self.solve_options["kl_coef"]
+            tau = er_coef + kl_coef
+            probs = utils.softmax_policy(preference, beta=1 / tau).reshape(-1)
+            log_probs = np.log(probs)
+            action = np.random.choice(np.arange(0, env.action_space.n), p=probs)
+            log_prob = log_probs[action]
+            return action, log_prob

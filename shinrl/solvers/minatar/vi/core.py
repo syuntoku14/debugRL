@@ -11,56 +11,49 @@ from shinrl import utils
 from shinrl.solvers import BaseSolver
 
 OPTIONS = {
-    "num_samples": 4,
+    "num_samples": 1,
     "er_coef": 0.003,
     "kl_coef": 0.027,
     "clipping": -1,
     "max_operator": "mellow_max",
     # Q settings
     "eps_start": 1.0,
-    "eps_end": 0.01,
+    "eps_end": 0.1,
     "eps_decay": 0.01,
-    "eps_period": 2.5*(10**5),
+    "eps_period": 10**5,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
-    "lr": 5e-5,
+    "lr": 2.5 * 1e-4,
     "minibatch_size": 32,
-    "init_samples": 10000,
+    "replay_start": 5000,
     "critic_loss": "mse_loss",
     "optimizer": "Adam",
-    "buffer_size": 1e6,
-    "target_update_interval": 8000,
+    "buffer_size": 1e5,
+    "target_update_interval": 1000,
 }
 
 
-class Linear0(nn.Linear):
-    def reset_parameters(self):
-        nn.init.constant_(self.weight, 0.0)
-        if self.bias is not None:
-            nn.init.constant_(self.bias, 0.0)
-
-
-class Scale(nn.Module):
-    def __init__(self, scale):
+class Permute(nn.Module):
+    def __init__(self):
         super().__init__()
-        self.scale = scale
 
     def forward(self, x):
-        return x.reshape(-1, 4, 84, 84) * self.scale
+        return x.permute(0, 3, 1, 2)
 
 
-def nature_dqn(env, frames=4):
+def net(env, frames=4):
+    in_channels = env.observation_space.shape[2]
+    n_actions = env.action_space.n
+    def size_linear_unit(size, kernel_size=3, stride=1):
+        return (size - (kernel_size - 1) - 1) // stride + 1
+    num_linear_units = size_linear_unit(10) * size_linear_unit(10) * 16
     return nn.Sequential(
-        Scale(1 / 255),
-        nn.Conv2d(frames, 32, 8, stride=4),
-        nn.ReLU(),
-        nn.Conv2d(32, 64, 4, stride=2),
-        nn.ReLU(),
-        nn.Conv2d(64, 64, 3, stride=1),
+        Permute(),
+        nn.Conv2d(in_channels, 16, kernel_size=3, stride=1),
         nn.ReLU(),
         nn.Flatten(),
-        nn.Linear(3136, 512),
+        nn.Linear(num_linear_units, 128),
         nn.ReLU(),
-        Linear0(512, env.action_space.n)
+        nn.Linear(128, env.action_space.n)
     )
 
 
@@ -76,7 +69,7 @@ class Solver(BaseSolver):
         self.optimizer = getattr(torch.optim, self.solve_options["optimizer"])
         self.critic_loss = getattr(F, self.solve_options["critic_loss"])
 
-        self.value_network = nature_dqn(self.env).to(self.device)
+        self.value_network = net(self.env).to(self.device)
         self.value_optimizer = self.optimizer(
             self.value_network.parameters(), lr=self.solve_options["lr"]
         )
@@ -87,10 +80,10 @@ class Solver(BaseSolver):
         del env_dict["next_obs"]
         env_dict.update(
             {
-                "obs": {"dtype": np.ubyte, "shape": (84, 84, 4)},
+                "obs": {"dtype": np.ubyte, "shape": self.env.observation_space.shape},
                 "log_prob": {"dtype": np.float32, "shape": 1},
                 "timeout": {"dtype": np.bool, "shape": 1},
             }
         )
-        self.buffer = ReplayBuffer(int(self.solve_options["buffer_size"]), env_dict, next_of="obs", stack_compress=("obs"))
-        utils.collect_samples(self.env, self.explore, num_samples=self.solve_options["minibatch_size"], buffer=self.buffer)
+        self.buffer = ReplayBuffer(int(self.solve_options["buffer_size"]), env_dict, next_of="obs")
+        utils.collect_samples(self.env, self.explore, num_samples=self.solve_options["replay_start"], buffer=self.buffer)

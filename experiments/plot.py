@@ -13,6 +13,7 @@ import torch
 
 def load_data(exp_path, x, y):
     data = {}
+    labels = set()
     for solver in exp_path.glob("*"):
         if not solver.is_dir():
             continue
@@ -21,15 +22,18 @@ def load_data(exp_path, x, y):
             datums = []
             for seed in solver.glob("*"):
                 datum = torch.load(str(seed) + "/data.tar")
+                for key in datum["history"].keys():
+                    labels.add(key)
+                num_samples = datum["options"]["num_samples"]
                 datum = pd.DataFrame(datum["history"][y])
                 if x == "Samples":
-                    num_samples = datum["options"]["num_samples"]
                     datum["x"] = datum["x"] * num_samples
                 datum = datum.rename(columns={"y": y, "x": x})
                 datums.append(datum)
             data[solver_name] = pd.concat(datums)
         except:
             print("Failed to load data from {}".format(solver_name))
+    print("Available labels: {}".format(labels))
     return data
 
 
@@ -57,7 +61,9 @@ def main():
 
     if args.log_scale:
         plt.yscale("log")
-    plt.savefig(os.path.join(args.expdir, args.y + ".png"), bbox_inches="tight")
+    path = os.path.join(args.expdir, args.y + ".png")
+    plt.savefig(path, bbox_inches="tight") 
+    print("Figure saved at: {}".format(path))
 
 
 if __name__ == "__main__":
