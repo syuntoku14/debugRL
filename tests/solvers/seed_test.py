@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from shinrl.envs import Pendulum
-from shinrl.solvers.vi.discrete import SamplingFittedViSolver, SamplingViSolver
+from shinrl.solvers.tabular.discrete.vi import SamplingFittedViSolver, SamplingViSolver
 
 from .misc import run_solver_tb
 
