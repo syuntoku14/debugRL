@@ -154,4 +154,9 @@ class Solver(BaseSolver):
         self.buffer = utils.make_replay_buffer(
             self.env, self.solve_options["buffer_size"]
         )
-        utils.collect_samples(self.env, self.get_action, num_samples=self.solve_options["replay_start"], buffer=self.buffer)
+        utils.collect_samples(
+            self.env,
+            self.get_action,
+            num_samples=self.solve_options["replay_start"],
+            buffer=self.buffer,
+        )

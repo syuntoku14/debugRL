@@ -17,7 +17,12 @@ class SacSolver(Solver):
             self.record_history()
 
             # ----- generate mini-batch from replay_buffer -----
-            utils.collect_samples(self.env, self.get_action, num_samples=self.solve_options["num_samples"], buffer=self.buffer)
+            utils.collect_samples(
+                self.env,
+                self.get_action,
+                num_samples=self.solve_options["num_samples"],
+                buffer=self.buffer,
+            )
             trajectory = self.buffer.sample(self.solve_options["minibatch_size"])
             tensor_traj = utils.trajectory_to_tensor(trajectory, self.device)
 
@@ -75,7 +80,10 @@ class SacSolver(Solver):
         obss = tensor_traj["obs"]
 
         pi, logp_pi = self.policy_network(obss)
-        q_pi = torch.min(self.value_network(obss, pi).squeeze(-1), self.value_network2(obss, pi).squeeze(-1))
+        q_pi = torch.min(
+            self.value_network(obss, pi).squeeze(-1),
+            self.value_network2(obss, pi).squeeze(-1),
+        )
 
         # Entropy-regularized policy loss
         loss = (logp_pi - q_pi / er_coef).mean()
