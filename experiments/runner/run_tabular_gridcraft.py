@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from clearml import Task
-from misc import DISCRETE_SOLVERS, make_valid_options, prepare, to_numeric
+from misc import TABULAR_DISCRETE_SOLVERS, make_valid_options, prepare, to_numeric
 
 from shinrl.envs.gridcraft import GridEnv, create_maze, grid_spec_from_string
 
@@ -21,7 +21,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--solver", type=str, default="SAC", choices=list(DISCRETE_SOLVERS.keys()),
+        "--solver", type=str, default="SFVI", choices=list(TABULAR_DISCRETE_SOLVERS.keys()),
     )
     parser.add_argument("--env", type=str, default="GridCraft-v0")  # dummy
     parser.add_argument("--obs_mode", type=str, default="one-hot")
@@ -40,7 +40,7 @@ def main():
         env = GridEnv(spec, trans_eps=0.1, horizon=25, obs_mode="random", obs_dim=100)
 
     # solve tabular MDP
-    SOLVER = DISCRETE_SOLVERS[args.solver]
+    SOLVER = TABULAR_DISCRETE_SOLVERS[args.solver]
     options = make_valid_options(args, SOLVER)
     solver = SOLVER(env, logger=logger, solve_options=options)
 

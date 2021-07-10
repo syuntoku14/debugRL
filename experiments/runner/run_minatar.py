@@ -6,7 +6,7 @@ os.environ["OMP_NUM_THREADS"] = "1"  # NOQA
 import argparse
 
 import numpy as np
-from misc import DISCRETE_SOLVERS, make_valid_options, prepare
+from misc import MINATAR_SOLVERS, make_valid_options, prepare
 
 from shinrl import solvers
 from shinrl.solvers.minatar import make_minatar
@@ -15,7 +15,7 @@ from shinrl.solvers.minatar import make_minatar
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--solver", type=str, default="DQN", choices=list(DISCRETE_SOLVERS.keys())
+        "--solver", type=str, default="DQN", choices=list(MINATAR_SOLVERS.keys())
     )
     parser.add_argument(
         "--env",
@@ -32,7 +32,7 @@ def main():
 
     # Construct solver
     env = make_minatar(args.env)
-    SOLVER = DISCRETE_SOLVERS[args.solver]
+    SOLVER = MINATAR_SOLVERS[args.solver]
     options = make_valid_options(args, SOLVER)
     solver = SOLVER(env, logger=logger, solve_options=options)
     if args.clearml:

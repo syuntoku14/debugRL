@@ -2,41 +2,45 @@ from clearml import Task
 
 from shinrl import solvers
 
-DISCRETE_SOLVERS = {
-    # Value iteration
-    "OVI": solvers.vi.discrete.OracleViSolver,
-    "EFVI": solvers.vi.discrete.ExactFittedViSolver,
-    "SVI": solvers.vi.discrete.SamplingViSolver,
-    "SFVI": solvers.vi.discrete.SamplingFittedViSolver,
-    # Policy iteration
-    "OPI": solvers.pi.discrete.OraclePiSolver,
-    "OCPI": solvers.pi.discrete.OracleCpiSolver,
-    # Conservative value iteration
-    "OCVI": solvers.vi.discrete.OracleCviSolver,
-    "EFCVI": solvers.vi.discrete.ExactFittedCviSolver,
-    "SCVI": solvers.vi.discrete.SamplingCviSolver,
-    "SFCVI": solvers.vi.discrete.SamplingFittedCviSolver,
-    # Munchausen value iteration
-    "OMVI": solvers.vi.discrete.OracleMviSolver,
-    "EFMVI": solvers.vi.discrete.ExactFittedMviSolver,
-    "SMVI": solvers.vi.discrete.SamplingMviSolver,
-    "SFMVI": solvers.vi.discrete.SamplingFittedMviSolver,
-    # Policy gradient
-    "EPG": solvers.onpg.discrete.ExactPgSolver,
-    "SPG": solvers.onpg.discrete.SamplingPgSolver,
-    "PPO": solvers.onpg.discrete.PpoSolver,
-    # SAC
-    "SAC": solvers.sac.discrete.SacSolver,
-    # MinAtar
+MINATAR_SOLVERS = {
     "DQN": solvers.minatar.DqnSolver,
     "M-DQN": solvers.minatar.MDqnSolver,
+    "SAC": solvers.minatar.SacSolver,
 }
 
-CONTINUOUS_SOLVERS = {
-    "EPG": solvers.onpg.continuous.ExactPgSolver,
-    "SPG": solvers.onpg.continuous.SamplingPgSolver,
-    "PPO": solvers.onpg.continuous.PpoSolver,
-    "SAC": solvers.sac.continuous.SacSolver,
+MUJOCO_SOLVERS = {
+    "SAC": solvers.mujoco.SacSolver
+}
+
+TABULAR_DISCRETE_SOLVERS = {
+    # Value iteration
+    "OVI": solvers.tabular.discrete.vi.OracleViSolver,
+    "EFVI": solvers.tabular.discrete.vi.ExactFittedViSolver,
+    "SVI": solvers.tabular.discrete.vi.SamplingViSolver,
+    "SFVI": solvers.tabular.discrete.vi.SamplingFittedViSolver,
+    # Policy iteration
+    "OPI": solvers.tabular.discrete.pi.OraclePiSolver,
+    "OCPI": solvers.tabular.discrete.pi.OracleCpiSolver,
+    # Conservative value iteration
+    "OCVI": solvers.tabular.discrete.vi.OracleCviSolver,
+    "EFCVI": solvers.tabular.discrete.vi.ExactFittedCviSolver,
+    "SCVI": solvers.tabular.discrete.vi.SamplingCviSolver,
+    "SFCVI": solvers.tabular.discrete.vi.SamplingFittedCviSolver,
+    # Munchausen value iteration
+    "OMVI": solvers.tabular.discrete.vi.OracleMviSolver,
+    "EFMVI": solvers.tabular.discrete.vi.ExactFittedMviSolver,
+    "SMVI": solvers.tabular.discrete.vi.SamplingMviSolver,
+    "SFMVI": solvers.tabular.discrete.vi.SamplingFittedMviSolver,
+    # Policy gradient
+    "EPG": solvers.tabular.discrete.pg.ExactPgSolver,
+    "SPG": solvers.tabular.discrete.pg.SamplingPgSolver,
+    "PPO": solvers.tabular.discrete.pg.PpoSolver,
+}
+
+TABULAR_CONTINUOUS_SOLVERS = {
+    "EPG": solvers.tabular.continuous.pg.ExactPgSolver,
+    "SPG": solvers.tabular.continuous.pg.SamplingPgSolver,
+    "PPO": solvers.tabular.continuous.pg.PpoSolver,
 }
 
 

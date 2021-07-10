@@ -7,7 +7,7 @@ import argparse
 
 import gym
 import numpy as np
-from misc import CONTINUOUS_SOLVERS, make_valid_options, prepare
+from misc import MUJOCO_SOLVERS, make_valid_options, prepare
 
 from shinrl import solvers
 
@@ -15,7 +15,7 @@ from shinrl import solvers
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--solver", type=str, default="SAC", choices=list(CONTINUOUS_SOLVERS.keys())
+        "--solver", type=str, default="SAC", choices=list(MUJOCO_SOLVERS.keys())
     )
     parser.add_argument("--env", type=str, default="HalfCheetah-v2")
     defaults = {
@@ -27,7 +27,7 @@ def main():
 
     # Construct solver
     env = gym.make(args.env)
-    SOLVER = CONTINUOUS_SOLVERS[args.solver]
+    SOLVER = MUJOCO_SOLVERS[args.solver]
     options = make_valid_options(args, SOLVER)
     solver = SOLVER(env, logger=logger, solve_options=options)
     if args.clearml:

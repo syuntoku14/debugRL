@@ -10,7 +10,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from clearml import Task
-from misc import CONTINUOUS_SOLVERS, DISCRETE_SOLVERS, make_valid_options, prepare
+from misc import TABULAR_CONTINUOUS_SOLVERS, TABULAR_DISCRETE_SOLVERS, make_valid_options, prepare
 
 from shinrl import solvers
 
@@ -19,8 +19,8 @@ matplotlib.use("Agg")
 
 def main():
     parser = argparse.ArgumentParser()
-    KEYS = set(list(DISCRETE_SOLVERS.keys()) + list(CONTINUOUS_SOLVERS.keys()))
-    parser.add_argument("--solver", type=str, default="SAC", choices=KEYS)
+    KEYS = set(list(TABULAR_DISCRETE_SOLVERS.keys()) + list(TABULAR_CONTINUOUS_SOLVERS.keys()))
+    parser.add_argument("--solver", type=str, default="SFVI", choices=KEYS)
     parser.add_argument(
         "--env",
         type=str,
@@ -43,9 +43,9 @@ def main():
     # Construct solver
     env = gym.make(args.env)
     SOLVER = (
-        CONTINUOUS_SOLVERS
+        TABULAR_CONTINUOUS_SOLVERS
         if isinstance(env.action_space, gym.spaces.Box)
-        else DISCRETE_SOLVERS
+        else TABULAR_DISCRETE_SOLVERS
     )[args.solver]
     options = make_valid_options(args, SOLVER)
     solver = SOLVER(env, logger=logger, solve_options=options)
