@@ -15,7 +15,7 @@ class DeepVISolver(Solver):
         for _ in tqdm(range(num_steps)):
             self.record_history()
 
-            # ----- generate mini-batch from the replay_buffer -----
+            # ----- generate mini-batch -----
             utils.collect_samples(
                 self.env,
                 self.explore,

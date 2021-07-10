@@ -1,6 +1,7 @@
+import numpy as np
+import itertools
 from copy import deepcopy
 
-import numpy as np
 import torch
 import torch.nn.functional as F
 from cpprb import ReplayBuffer, create_env_dict
@@ -11,9 +12,7 @@ from shinrl.solvers import BaseSolver
 
 OPTIONS = {
     "num_samples": 1,
-    "er_coef": 0.003,
-    "kl_coef": 0.027,
-    "clipping": -1,
+    "er_coef": 0.2,
     # Exploration
     "eps_start": 1.0,
     "eps_end": 0.1,
@@ -73,6 +72,11 @@ class Solver(BaseSolver):
             self.value_network.parameters(), lr=self.solve_options["lr"]
         )
         self.target_value_network = deepcopy(self.value_network)
+
+        self.policy_network = net(self.env).to(self.device)
+        self.policy_optimizer = self.optimizer(
+            self.policy_network.parameters(), lr=self.solve_options["lr"]
+        )
 
         # Collect random samples in advance
         env_dict = create_env_dict(self.env)
