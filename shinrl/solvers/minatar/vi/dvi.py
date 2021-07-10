@@ -72,7 +72,7 @@ class DeepVISolver(Solver):
             return action, 0.0
 
 
-class DQNSolver(DeepVISolver):
+class DqnSolver(DeepVISolver):
     def compute_target(self, tensor_traj):
         discount = self.solve_options["discount"]
         next_obss, rews, dones, timeouts = (
@@ -99,8 +99,8 @@ class DQNSolver(DeepVISolver):
             return action, 0.0
 
 
-class MDQNSolver(DeepVISolver):
-    """MDQNSolver
+class MDqnSolver(DeepVISolver):
+    """MDqnSolver
         Implementation of Munchausen DQN: https://arxiv.org/abs/2007.14430
     """
 

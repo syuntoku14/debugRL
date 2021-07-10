@@ -10,7 +10,7 @@ import pytest
 import torch
 
 from shinrl.envs import Pendulum
-from shinrl.solvers.minatar import DQNSolver, MDQNSolver, SacSolver, make_minatar
+from shinrl.solvers.minatar import DqnSolver, MDqnSolver, SacSolver, make_minatar
 
 from ..misc import run_solver_gym
 
@@ -24,14 +24,14 @@ def setUp():
 
 def test_dqn(setUp):
     env = setUp
-    solver = DQNSolver(env)
+    solver = DqnSolver(env)
     solver.initialize()
     run_solver_gym(solver, env)
 
 
 def test_mdqn(setUp):
     env = setUp
-    solver = MDQNSolver(env)
+    solver = MDqnSolver(env)
     solver.initialize()
     run_solver_gym(solver, env)
 

@@ -1,3 +1,3 @@
-from .dvi import DQNSolver, MDQNSolver
+from .dvi import DqnSolver, MDqnSolver
 
-__all__ = ["DQNSolver", "MDQNSolver"]
+__all__ = ["DqnSolver", "MDqnSolver"]

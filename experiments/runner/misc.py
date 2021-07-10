@@ -28,8 +28,8 @@ DISCRETE_SOLVERS = {
     # SAC
     "SAC": solvers.sac.discrete.SacSolver,
     # MinAtar
-    "DQN": solvers.minatar.DQNSolver,
-    "M-DQN": solvers.minatar.MDQNSolver,
+    "DQN": solvers.minatar.DqnSolver,
+    "M-DQN": solvers.minatar.MDqnSolver,
 }
 
 CONTINUOUS_SOLVERS = {
