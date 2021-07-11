@@ -20,19 +20,19 @@ class OracleSolver(Solver):
     If :math:`D_\\rho` and :math:`K` are identity matrix and "noise_scale" is 0, the above equation becomes the ideal update.
 
     Options:
-        noise_scale: 
+        noise_scale:
             Scale of noise in :math:`\\mathcal{T}^{*}` for error tolerance analysis.
 
-        use_oracle_visitation: 
+        use_oracle_visitation:
             Set an identity matrix to :math:`D_{\\rho}` if True.
 
-        num_samples: 
+        num_samples:
             Number of samples to create :math:`D_{\\rho}`. We assign a state and action pair to each sample and set the number of occurrence as the probability mass function. The update becomes contraction if all the diagonal elements are positive and thus more samples may prevent deadly triad (see https://arxiv.org/abs/1903.08894).
 
-        no_approx: 
+        no_approx:
             Set an identity matrix to :math:`K` if True.
 
-        diag_scale: 
+        diag_scale:
             Controls the magnitude of the diagonal elements of :math:`K` w.r.t. non-diagonal ones. If the non-diagonal elements are huge w.r.t. diagonal elements, contraction is not guaranteed (see https://arxiv.org/abs/1903.08894).
     """
 

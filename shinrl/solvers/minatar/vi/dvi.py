@@ -101,7 +101,7 @@ class DqnSolver(DeepVISolver):
 
 class MDqnSolver(DeepVISolver):
     """MDqnSolver
-        Implementation of Munchausen DQN: https://arxiv.org/abs/2007.14430
+    Implementation of Munchausen DQN: https://arxiv.org/abs/2007.14430
     """
 
     def compute_target(self, tensor_traj):

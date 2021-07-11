@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 
 from shinrl.envs import Pendulum
-from shinrl.solvers.tabular.discrete.pg import SamplingPgSolver, PpoSolver
+from shinrl.solvers.tabular.discrete.pg import PpoSolver, SamplingPgSolver
 
 from ..misc import run_solver_gym, run_solver_tb
 

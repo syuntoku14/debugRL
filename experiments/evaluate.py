@@ -7,7 +7,6 @@ import argparse
 
 import gym
 import numpy as np
-from clearml import Task
 from misc import CONTINUOUS_SOLVERS, DISCRETE_SOLVERS
 
 from shinrl import solvers, utils

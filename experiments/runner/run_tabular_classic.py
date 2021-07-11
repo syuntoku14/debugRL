@@ -9,8 +9,12 @@ import gym
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from clearml import Task
-from misc import TABULAR_CONTINUOUS_SOLVERS, TABULAR_DISCRETE_SOLVERS, make_valid_options, prepare
+from misc import (
+    TABULAR_CONTINUOUS_SOLVERS,
+    TABULAR_DISCRETE_SOLVERS,
+    make_valid_options,
+    prepare,
+)
 
 from shinrl import solvers
 
@@ -19,7 +23,9 @@ matplotlib.use("Agg")
 
 def main():
     parser = argparse.ArgumentParser()
-    KEYS = set(list(TABULAR_DISCRETE_SOLVERS.keys()) + list(TABULAR_CONTINUOUS_SOLVERS.keys()))
+    KEYS = set(
+        list(TABULAR_DISCRETE_SOLVERS.keys()) + list(TABULAR_CONTINUOUS_SOLVERS.keys())
+    )
     parser.add_argument("--solver", type=str, default="SFVI", choices=KEYS)
     parser.add_argument(
         "--env",

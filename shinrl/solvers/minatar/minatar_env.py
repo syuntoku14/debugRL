@@ -1,7 +1,11 @@
 """MinAtar environment made compatible for Gym."""
 
 import gym
-import minatar
+
+try:
+    import minatar
+except ImportError:
+    pass
 import numpy as np
 
 

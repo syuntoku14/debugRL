@@ -1,7 +1,7 @@
-import numpy as np
 import itertools
 from copy import deepcopy
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 from cpprb import ReplayBuffer, create_env_dict

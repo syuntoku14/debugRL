@@ -106,5 +106,5 @@ class Solver(BaseSolver):
             utils.get_tb_action,
             num_samples,
             policy=self.tb_policy,
-            buffer=self.buffer
+            buffer=self.buffer,
         )

@@ -160,9 +160,7 @@ class Solver(BaseSolver):
             self.env.all_observations, dtype=torch.float32, device=self.device
         )
         self.all_actions = (
-            torch.tensor(
-                self.env.all_actions, dtype=torch.float32, device=self.device
-            )
+            torch.tensor(self.env.all_actions, dtype=torch.float32, device=self.device)
             .repeat(self.dS, 1)
             .reshape(self.dS, self.dA)
         )  # dS x dA

@@ -1,5 +1,3 @@
-from clearml import Task
-
 from shinrl import solvers
 
 MINATAR_SOLVERS = {
@@ -8,9 +6,7 @@ MINATAR_SOLVERS = {
     "SAC": solvers.minatar.SacSolver,
 }
 
-MUJOCO_SOLVERS = {
-    "SAC": solvers.mujoco.SacSolver
-}
+MUJOCO_SOLVERS = {"SAC": solvers.mujoco.SacSolver}
 
 TABULAR_DISCRETE_SOLVERS = {
     # Value iteration
@@ -91,6 +87,8 @@ def prepare(
     task_name = args.solver if args.task_name is None else args.task_name
 
     if args.clearml:
+        from clearml import Task
+
         task = Task.init(
             project_name=project_name, task_name=task_name, reuse_last_task_id=False
         )

@@ -6,7 +6,14 @@ os.environ["OMP_NUM_THREADS"] = "1"  # NOQA
 
 import gym
 import numpy as np
-import pybullet_envs
+
+try:
+    import pybullet_envs
+
+    skip = False
+except ImportError:
+    skip = True
+
 import pytest
 import torch
 
@@ -14,6 +21,8 @@ from shinrl.envs import Pendulum
 from shinrl.solvers.mujoco import SacSolver
 
 from ..misc import run_solver_gym
+
+import_skip = pytest.mark.skipif(skip, reason="pybullet is not installed")
 
 
 @pytest.fixture
@@ -23,6 +32,7 @@ def setUp():
     yield env
 
 
+@import_skip
 def test_sac(setUp):
     env = setUp
     solver = SacSolver(env)

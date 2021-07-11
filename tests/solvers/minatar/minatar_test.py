@@ -9,10 +9,19 @@ import numpy as np
 import pytest
 import torch
 
+try:
+    import minatar
+
+    skip = False
+except ImportError:
+    skip = True
+
 from shinrl.envs import Pendulum
 from shinrl.solvers.minatar import DqnSolver, MDqnSolver, SacSolver, make_minatar
 
 from ..misc import run_solver_gym
+
+import_skip = pytest.mark.skipif(skip, reason="pybullet is not installed")
 
 
 @pytest.fixture
@@ -22,6 +31,7 @@ def setUp():
     yield env
 
 
+@import_skip
 def test_dqn(setUp):
     env = setUp
     solver = DqnSolver(env)
@@ -29,6 +39,7 @@ def test_dqn(setUp):
     run_solver_gym(solver, env)
 
 
+@import_skip
 def test_mdqn(setUp):
     env = setUp
     solver = MDqnSolver(env)
@@ -36,6 +47,7 @@ def test_mdqn(setUp):
     run_solver_gym(solver, env)
 
 
+@import_skip
 def test_sac(setUp):
     env = setUp
     solver = SacSolver(env)

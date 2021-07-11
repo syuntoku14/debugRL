@@ -21,7 +21,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--solver", type=str, default="SFVI", choices=list(TABULAR_DISCRETE_SOLVERS.keys()),
+        "--solver",
+        type=str,
+        default="SFVI",
+        choices=list(TABULAR_DISCRETE_SOLVERS.keys()),
     )
     parser.add_argument("--env", type=str, default="GridCraft-v0")  # dummy
     parser.add_argument("--obs_mode", type=str, default="one-hot")

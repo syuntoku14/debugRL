@@ -52,9 +52,7 @@ class SamplingPgSolver(Solver):
             ret = rew[step] + discount * ret * (~done[step])
             gaes[step], rets[step] = gae, ret
             oracle_Q[step] = Q_table[state[step], act[step]]
-            oracle_V[step] = np.sum(
-                self.tb_policy[state[step]] * Q_table[state[step]]
-                )
+            oracle_V[step] = np.sum(self.tb_policy[state[step]] * Q_table[state[step]])
         self.record_scalar("ReturnError", np.mean((rets - oracle_Q) ** 2))
         self.record_scalar(
             "AdvantageError",
@@ -152,7 +150,7 @@ class SamplingPgSolver(Solver):
         if self.step % self.solve_options["evaluation_interval"] == 0:
             expected_return = self.env.compute_expected_return(self.tb_policy)
             self.record_scalar("Return", expected_return, tag="Policy")
-            
+
 
 class PpoSolver(SamplingPgSolver):
     def update(self, tensor_traj):
