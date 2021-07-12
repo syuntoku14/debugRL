@@ -14,10 +14,9 @@ OPTIONS = {
     "num_samples": 1,
     "er_coef": 0.2,
     # Exploration
-    "eps_start": 1.0,
     "eps_end": 0.1,
-    "eps_decay": 0.01,
-    "eps_period": 10 ** 5,
+    "eps_warmup": 0,
+    "eps_decay": 10 ** 5,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
     "lr": 2.5 * 1e-4,
     "minibatch_size": 32,

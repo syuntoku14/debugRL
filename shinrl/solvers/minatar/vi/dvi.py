@@ -57,10 +57,9 @@ class DeepVISolver(Solver):
             eps = random.random()
             eps_thresh = utils.compute_epsilon(
                 self.step,
-                self.solve_options["eps_start"],
-                self.solve_options["eps_end"],
                 self.solve_options["eps_decay"],
-                self.solve_options["eps_period"],
+                self.solve_options["eps_warmup"],
+                self.solve_options["eps_end"],
             )
             if eps > 1.0:
                 obs = torch.tensor(
@@ -104,6 +103,12 @@ class MDqnSolver(DeepVISolver):
     Implementation of Munchausen DQN: https://arxiv.org/abs/2007.14430
     """
 
+    def compute_log_policy(self, val, tau):
+        # to avoid numerical problems
+        val = val - val.max(dim=-1, keepdim=True)[0]
+        logp = val / tau - torch.logsumexp(val / tau, dim=-1, keepdim=True)
+        return torch.clamp(logp, min=-10, max=1)
+
     def compute_target(self, tensor_traj):
         discount = self.solve_options["discount"]
         er_coef, kl_coef = self.solve_options["er_coef"], self.solve_options["kl_coef"]
@@ -120,15 +125,15 @@ class MDqnSolver(DeepVISolver):
 
         with torch.no_grad():
             curr_preference = self.target_value_network(obss)
-            next_preference = self.target_value_network(next_obss)  # SxA
-            curr_policy = (
-                F.softmax(curr_preference / tau, dim=-1)
+            curr_policy_log = (
+                self.compute_log_policy(curr_preference, tau)
                 .gather(1, actions.reshape(-1, 1))
                 .squeeze()
-            )  # S
+            )
+            next_preference = self.target_value_network(next_obss)  # SxA
             next_policy = F.softmax(next_preference / tau, dim=-1)  # SxA
-            curr_policy_log = torch.clamp(curr_policy.log(), min=-1.0)
-            next_max = (next_policy * (next_preference - tau * next_policy.log())).sum(
+            next_policy_log = self.compute_log_policy(next_preference, tau)
+            next_max = (next_policy * (next_preference - tau * next_policy_log)).sum(
                 dim=-1
             )
             new_preference = (

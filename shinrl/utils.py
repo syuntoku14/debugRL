@@ -68,8 +68,26 @@ def eps_greedy_policy(q_values, eps_greedy=0.0):
     return policy_probs
 
 
-def compute_epsilon(step, eps_start, eps_end, eps_decay, eps_period):
-    return max(eps_end, eps_start - eps_decay * int(step // eps_period))
+def compute_epsilon(step, decay_period, warmup_steps, eps_end):
+    """Copied from dopamine(https://github.com/google/dopamine/blob/master/dopamine/agents/dqn/dqn_agent.py#L43).
+    Returns the current epsilon for the agent's epsilon-greedy policy.
+    This follows the Nature DQN schedule of a linearly decaying epsilon (Mnih et
+    al., 2015). The schedule is as follows:
+      Begin at 1. until warmup_steps steps have been taken; then
+      Linearly decay epsilon from 1. to eps_end in decay_period steps; and then
+      Use eps_end from there on.
+    Args:
+      decay_period: float, the period over which epsilon is decayed.
+      step: int, the number of training steps completed so far.
+      warmup_steps: int, the number of steps taken before epsilon is decayed.
+      eps_end: float, the final value to which to decay the epsilon parameter.
+    Returns:
+      A float, the current epsilon value computed according to the schedule.
+    """
+    steps_left = decay_period + warmup_steps - step
+    bonus = (1.0 - eps_end) * steps_left / decay_period
+    bonus = np.clip(bonus, 0.0, 1.0 - eps_end)
+    return eps_end + bonus
 
 
 def softmax_policy(preference, beta=1.0):
@@ -127,7 +145,7 @@ def collect_samples(
         render (bool, optional)
         buffer (cpprb.ReplayBuffer): For calling on_episode_end. Do buffer.add if not None.
     """
-    is_tabular = hasattr(env, "get_state")
+    is_tabular = hasattr(env, "transition_matrix")
     assert hasattr(
         env, "obs"
     ), 'env has no attribute "obs". Run env.obs = env.reset() before collect_samples.'
@@ -192,7 +210,7 @@ def collect_samples(
 
 
 def make_replay_buffer(env, size):
-    is_tabular = hasattr(env, "get_state")
+    is_tabular = hasattr(env, "transition_matrix")
     env_dict = create_env_dict(env)
     del env_dict["next_obs"]
     env_dict.update(

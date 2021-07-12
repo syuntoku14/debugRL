@@ -58,10 +58,9 @@ class SamplingViSolver(SamplingSolver):
         # set epsilon-greedy policy
         eps_greedy = utils.compute_epsilon(
             self.step,
-            self.solve_options["eps_start"],
-            self.solve_options["eps_end"],
             self.solve_options["eps_decay"],
-            self.solve_options["eps_period"],
+            self.solve_options["eps_warmup"],
+            self.solve_options["eps_end"],
         )
         policy = utils.eps_greedy_policy(self.tb_values, eps_greedy=eps_greedy)
         self.record_array("Policy", policy)

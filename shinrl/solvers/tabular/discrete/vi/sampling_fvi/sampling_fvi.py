@@ -76,10 +76,9 @@ class SamplingFittedViSolver(SamplingFittedSolver):
         )
         eps_greedy = utils.compute_epsilon(
             self.step,
-            self.solve_options["eps_start"],
-            self.solve_options["eps_end"],
             self.solve_options["eps_decay"],
-            self.solve_options["eps_period"],
+            self.solve_options["eps_warmup"],
+            self.solve_options["eps_end"],
         )
         policy = utils.eps_greedy_policy(q_values, eps_greedy=eps_greedy)
         self.record_array("Values", q_values)

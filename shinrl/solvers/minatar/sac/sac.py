@@ -99,10 +99,9 @@ class SacSolver(Solver):
             eps = random.random()
             eps_thresh = utils.compute_epsilon(
                 self.step,
-                self.solve_options["eps_start"],
-                self.solve_options["eps_end"],
                 self.solve_options["eps_decay"],
-                self.solve_options["eps_period"],
+                self.solve_options["eps_warmup"],
+                self.solve_options["eps_end"],
             )
             if eps > 1.0:
                 obs = torch.tensor(

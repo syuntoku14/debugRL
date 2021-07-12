@@ -14,10 +14,9 @@ OPTIONS = {
     "kl_coef": 0.1,
     "max_operator": "mellow_max",
     # Q settings
-    "eps_start": 0.9,
-    "eps_end": 0.05,
-    "eps_decay": 0.01,
-    "eps_period": 100,
+    "eps_end": 0.1,
+    "eps_warmup": 0,
+    "eps_decay": 10 ** 5,
     # Fitted iteration settings
     "activation": "ReLU",
     "hidden": 128,  # size of hidden layer
